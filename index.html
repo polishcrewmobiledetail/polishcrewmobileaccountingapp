@@ -37,6 +37,13 @@
   .footnote{font-size:.8rem;color:#8ea59a}
   .drawer {position:fixed;right:0;top:0;height:100%;width:min(92vw,420px);transform:translateX(100%);transition:transform .25s ease;background:#050607;border-left:1px solid #14171a;z-index:20;display:flex;flex-direction:column}
   .drawer.open{transform:translateX(0)}
+  @media print {
+    @page { size:A4; margin:12mm; }
+    body * { visibility:hidden !important; }
+    #printSheet, #printSheet * { visibility:visible !important; }
+    #printSheet { position:absolute; inset:0; width:auto; background:#fff; color:#000; }
+    .no-print { display:none !important; }
+  }
 </style>
 </head>
 <body>
@@ -212,6 +219,7 @@
     </div>
   </div>
 
+  <div id="printSheet" class="hidden"></div>
   <div id="modalHost"></div>
 
 <script>
@@ -324,11 +332,11 @@ const UI = {
   quickDisc(type,val){ document.getElementById('jobDiscType').value=type; document.getElementById('jobDiscValue').value=val; UI.updateTotals(); },
   resetJobForm(){ document.getElementById('jobSize').value=S.menu.sizes[0]; document.getElementById('jobPkg').value=Object.keys(S.menu.packages)[0]; UI.prefillBase(); document.getElementById('jobDiscType').value='none'; document.getElementById('jobDiscValue').value='0'; document.getElementById('jobNotes').value=''; },
   refreshJobsList(){ const list=document.getElementById('jobsList'); list.innerHTML=''; for(const j of S.jobs){ const c=S.clients.find(x=>x.id===j.clientId); const paid=(j.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0); const due=Math.max(0,Calc.total(j)-paid); list.append(el('div',{class:'list-item'}, el('div',{class:'row',style:'justify-content:space-between;'}, el('div',{html:`<b>${c?.name||'Unknown'}</b> <span class='tiny'>${j.pkg} — ${j.size}</span>`}), el('div',{class:'tiny'}, j.status)), el('div',{class:'row',style:'justify-content:space-between;margin-top:.25rem;'}, el('div',{class:'tiny'}, `Total: ${Calc.total(j).toFixed(2)}`), el('div',{class:'tiny'}, paid>0? `Paid: ${paid.toFixed(2)} (Due ${due.toFixed(2)})` : 'Unpaid')), el('div',{class:'row',style:'gap:.5rem;margin-top:.4rem;'}, ...(j.status==='Quoted'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Booked')},'Book')]:[]), ...(j.status==='Booked'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'In Progress')},'Start')]:[]), ...(j.status==='In Progress'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Complete')},'Complete')]:[]), ...(j.status!=='Paid'?[el('button',{class:'pill',onclick:()=>App.takePayment(j.id)},'Take Payment')]:[]), el('button',{class:'pill',onclick:()=>UI.openPrintDetails(j.id)},'Print Quote'), el('button',{class:'pill',onclick:()=>App.deleteJob(j.id)},'Delete') )) ); } const r=document.getElementById('recentList'); r.innerHTML=''; for(const j of S.jobs.slice(0,5)){ const c=S.clients.find(x=>x.id===j.clientId); r.append(el('div',{class:'list-item'}, `${j.date} · ${c?.name||'Unknown'} · ${j.pkg} (${j.status})`)); } },
-UI.openPrintDetails = function(id){
-  const j = S.jobs.find(x => x.id === id);
-  if (!j) return;
-  UI.renderPrintSheet(j);
-};
+  openPrintDetails(id){
+    const j = S.jobs.find(x => x.id === id);
+    if (!j) return;
+    UI.renderPrintSheet(j);
+  },
   showQuickClient(){ document.getElementById('quickClient').classList.remove('hidden'); },
   hideQuickClient(){ document.getElementById('quickClient').classList.add('hidden'); },
   openExpenseForm(){ const m=this.modal('Add Expense', (close)=>{ const date=m.querySelector('#exDate').value; const cat=m.querySelector('#exCat').value; const vendor=m.querySelector('#exVendor').value.trim(); const pay=m.querySelector('#exPay').value; const amt=Number(m.querySelector('#exAmt').value||0); const notes=m.querySelector('#exNotes').value.trim(); if(!amt)return alert('Amount required'); App.addExpenseRecord({id:uid(),type:'Expense',date,category:cat,item:'',clientId:null,vendor,payment:pay,amount:amt,notes}); close(); UI.flash('Expense added.'); }, el('div',{}, el('label',{},'Date'), el('input',{id:'exDate',type:'date',value:today()}), el('label',{},'Category'), (()=>{ const s=el('select',{id:'exCat'}); for(const c of S.settings.categories) if(c!=='Package'&&c!=='Add-on') s.append(el('option',{value:c},c)); return s; })(), el('label',{},'Vendor'), el('input',{id:'exVendor'}), el('div',{class:'row'}, el('div',{}, el('label',{},'Payment'), (()=>{ const s=el('select',{id:'exPay'}); for(const p of S.settings.paymentMethods) s.append(el('option',{value:p},p)); return s; })()), el('div',{}, el('label',{},'Amount'), el('input',{id:'exAmt',type:'number',min:'0',step:'0.01'}))), el('label',{},'Notes'), el('textarea',{id:'exNotes'}) )); },
@@ -345,36 +353,36 @@ UI.openPrintDetails = function(id){
   openSettings(){ const content=el('div',{}, el('h4',{},'Brand'), el('label',{},'Header Title'), el('input',{id:'stHeader', value:S.business.headerTitle||''}), el('label',{},'Business Name (on quotes)'), el('input',{id:'stBiz', value:S.business.name||''}), el('label',{},'Logo'), el('div',{class:'row'}, el('button',{class:'btn', onclick:()=>UI.pickLogo()},'Upload Logo'), el('button',{class:'btn secondary', onclick:()=>{ S.business.logoDataUrl=''; Storage.save(S); UI.initHeader(); UI.flash('Logo removed.'); }},'Remove Logo')), el('div',{class:'footnote'},'Replace install icons by swapping icon-192.png / icon-512.png in the bundle.') ); UI.modal('Settings',(close)=>{ S.business.headerTitle=content.querySelector('#stHeader').value.trim()||'POLISH CREW — Accounting'; S.business.name=content.querySelector('#stBiz').value.trim()||'Polish Crew'; Storage.save(S); UI.initHeader(); UI.flash('Settings saved.'); close(); }, content); },
   pickLogo(){ const f=el('input',{type:'file',accept:'image/*'}); f.onchange=(e)=>{ const file=e.target.files[0]; if(!file) return; const r=new FileReader(); r.onload=()=>{ S.business.logoDataUrl=r.result; Storage.save(S); UI.initHeader(); UI.flash('Logo updated.'); }; r.readAsDataURL(file); }; f.click(); },
   clientName(id){ return (S.clients.find(c=>c.id===id)||{}).name||''; },
-  UI.printQuote = function(){
-  // Build a temporary job from the current form (no save needed)
-  const clientId = document.getElementById('jobClient').value || '';
-  const size     = document.getElementById('jobSize').value;
-  const pkg      = document.getElementById('jobPkg').value;
-  const base     = Number(document.getElementById('jobBase').value || 0);
-  const discType = document.getElementById('jobDiscType').value;
-  const discValue= Number(document.getElementById('jobDiscValue').value || 0);
-  const notes    = document.getElementById('jobNotes').value.trim();
+  printQuote(){
+    // Build a temporary job from the current form (no save needed)
+    const clientId = document.getElementById('jobClient').value || '';
+    const size     = document.getElementById('jobSize').value;
+    const pkg      = document.getElementById('jobPkg').value;
+    const base     = Number(document.getElementById('jobBase').value || 0);
+    const discType = document.getElementById('jobDiscType').value;
+    const discValue= Number(document.getElementById('jobDiscValue').value || 0);
+    const notes    = document.getElementById('jobNotes').value.trim();
 
-  const addons = [];
-  document.querySelectorAll('.addon-row').forEach(row=>{
-    const checked = row.querySelector('input[type=checkbox]').checked;
-    if (!checked) return;
-    const name  = row.getAttribute('data-name');
-    const price = Number(row.querySelector('input[type=number]').value || 0);
-    addons.push({name, price});
-  });
+    const addons = [];
+    document.querySelectorAll('.addon-row').forEach(row=>{
+      const checked = row.querySelector('input[type=checkbox]').checked;
+      if (!checked) return;
+      const name  = row.getAttribute('data-name');
+      const price = Number(row.querySelector('input[type=number]').value || 0);
+      addons.push({name, price});
+    });
 
-  const tempJob = {
-    id: 'preview',
-    date: new Date().toISOString().slice(0,10),
-    clientId, size, pkg, base, addons,
-    discType, discValue, notes,
-    status: 'Quoted',
-    payments: []
-  };
+    const tempJob = {
+      id: 'preview',
+      date: new Date().toISOString().slice(0,10),
+      clientId, size, pkg, base, addons,
+      discType, discValue, notes,
+      status: 'Quoted',
+      payments: []
+    };
 
-  UI.renderPrintSheet(tempJob);
-};
+    UI.renderPrintSheet(tempJob);
+  },
   toggleDrawer(open){ document.getElementById('drawer').classList.toggle('open', !!open); },
   modal(title,onPrimary,contentNode,primaryText='Save',showCancel=true,wide=false){ const host=document.getElementById('modalHost'); host.innerHTML=''; const overlay=el('div',{style:'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:30;display:flex;align-items:center;justify-content:center;'}); const card=el('div',{class:'card',style:`width:${wide?'min(96vw,980px)':'min(96vw,640px)'};max-height:90vh;overflow:auto;`}); card.append(el('h3',{},title)); card.append(contentNode); const actions=el('div',{class:'row',style:'margin-top:.5rem;justify-content:flex-end;'}); if(showCancel) actions.append(el('button',{class:'btn secondary',onclick:()=>host.innerHTML=''},'Cancel')); actions.append(el('button',{class:'btn',onclick:()=>onPrimary(()=>host.innerHTML='')},primaryText)); card.append(actions); overlay.append(card); host.append(overlay); return card; },
   flash(msg){ const n=el('div',{style:'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#06100a;border:1px solid #163c27;color:#dff8e7;padding:.6rem 1rem;border-radius:999px;z-index:50;'}, msg); document.body.append(n); setTimeout(()=>n.remove(),1600); },
@@ -396,6 +404,10 @@ UI.renderPrintSheet = function(job){
   const headerTitle = (j.status === 'Paid') ? 'Receipt' : 'Quote';
 
   const sheet = document.getElementById('printSheet');
+  if(!sheet){
+    console.error('printSheet host missing');
+    return;
+  }
   sheet.innerHTML = `
     <div style="max-width:800px;margin:0 auto;font:14px/1.35 Montserrat,Arial,sans-serif;color:#111">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
