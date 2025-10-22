@@ -111,7 +111,7 @@
           </div>
 
           <div class="row">
-            <div><label>Vehicle Size</label><select id="jobSize"></select></div>
+            <div><label>Vehicle Size</label><select id="jobSize" onchange="UI.prefillBase()"></select></div>
             <div>
               <label>Package</label>
               <div class="row" style="gap:.4rem;">
@@ -335,81 +335,9 @@ const UI = {
   resetJobForm(){ document.getElementById('jobSize').value=S.menu.sizes[0]; document.getElementById('jobPkg').value=Object.keys(S.menu.packages)[0]; UI.prefillBase(); document.getElementById('jobDiscType').value='none'; document.getElementById('jobDiscValue').value='0'; document.getElementById('jobNotes').value=''; },
   refreshJobsList(){ const list=document.getElementById('jobsList'); list.innerHTML=''; for(const j of S.jobs){ const c=S.clients.find(x=>x.id===j.clientId); const paid=(j.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0); const due=Math.max(0,Calc.total(j)-paid); list.append(el('div',{class:'list-item'}, el('div',{class:'row',style:'justify-content:space-between;'}, el('div',{html:`<b>${c?.name||'Unknown'}</b> <span class='tiny'>${j.pkg} — ${j.size}</span>`}), el('div',{class:'tiny'}, j.status)), el('div',{class:'row',style:'justify-content:space-between;margin-top:.25rem;'}, el('div',{class:'tiny'}, `Total: ${Calc.total(j).toFixed(2)}`), el('div',{class:'tiny'}, paid>0? `Paid: ${paid.toFixed(2)} (Due ${due.toFixed(2)})` : 'Unpaid')), el('div',{class:'row',style:'gap:.5rem;margin-top:.4rem;'}, ...(j.status==='Quoted'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Booked')},'Book')]:[]), ...(j.status==='Booked'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'In Progress')},'Start')]:[]), ...(j.status==='In Progress'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Complete')},'Complete')]:[]), ...(j.status!=='Paid'?[el('button',{class:'pill',onclick:()=>App.takePayment(j.id)},'Take Payment')]:[]), el('button',{class:'pill',onclick:()=>UI.openPrintDetails(j.id)},'Print Quote'), el('button',{class:'pill',onclick:()=>App.deleteJob(j.id)},'Delete') )) ); } const r=document.getElementById('recentList'); r.innerHTML=''; for(const j of S.jobs.slice(0,5)){ const c=S.clients.find(x=>x.id===j.clientId); r.append(el('div',{class:'list-item'}, `${j.date} · ${c?.name||'Unknown'} · ${j.pkg} (${j.status})`)); } },
   openPrintDetails(id){
-    const j=S.jobs.find(x=>x.id===id); if(!j) return;
-    const c=S.clients.find(x=>x.id===j.clientId);
-    const meta=pkgMeta(j.pkg);
-    const inc=(meta.includedAddons||[]).map(n=>`<li>${n}</li>`).join('');
-    const addons=(j.addons||[]).map(a=>`<tr><td>${a.name}</td><td style="text-align:right">$${Number(a.price||0).toFixed(2)}</td></tr>`).join('');
-    const subtotal=Calc.subtotal(j).toFixed(2);
-    const disc=Calc.discount(j).toFixed(2);
-    const total=Calc.total(j).toFixed(2);
-    const paidRows=(j.payments||[]).map(p=>`<tr><td>${p.date}</td><td>${p.method||''}</td><td style="text-align:right">$${Number(p.amount||0).toFixed(2)}</td></tr>`).join('');
-    const bizName=S.business?.name||'Polish Crew';
-    const logo=S.business?.logoDataUrl||'';
-    const headerTitle=(j.status==='Paid') ? 'Receipt' : 'Quote';
-
-    const sheet=document.getElementById('printSheet');
-    sheet.innerHTML = `
-      <div style="max-width:800px;margin:0 auto;font:14px/1.35 Montserrat,Arial,sans-serif;color:#111">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-          ${logo ? `<img src="${logo}" style="width:48px;height:48px;border-radius:8px;border:2px solid #0a0;object-fit:cover">` : ''}
-          <div style="font-weight:800;font-size:18px">${bizName}</div>
-        </div>
-
-        <div style="display:flex;justify-content:space-between;align-items:end;margin-bottom:10px;">
-          <div>
-            <div style="font-weight:900;font-size:22px;letter-spacing:.4px">${headerTitle}</div>
-            <div style="color:#555">Date: ${j.date}</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-weight:700">${c?.name||''}</div>
-            <div style="color:#555">${c?.phone||''}</div>
-          </div>
-        </div>
-
-        <hr style="border:none;border-top:1px solid #ddd;margin:8px 0 12px">
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px;">
-          <div><div style="color:#555">Package</div><div style="font-weight:700">${j.pkg} — ${j.size}</div></div>
-          <div><div style="color:#555">Status</div><div style="font-weight:700">${j.status}</div></div>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-          <div>
-            <div style="font-weight:800;margin:6px 0 4px">Included with package</div>
-            <ul style="margin:0 0 8px 18px;padding:0">${inc || '<li>None</li>'}</ul>
-
-            <div style="font-weight:800;margin:6px 0 4px">Add-ons</div>
-            <table style="width:100%;border-collapse:collapse;font-size:14px">
-              ${addons || '<tr><td style="color:#666">None</td><td></td></tr>'}
-            </table>
-
-            ${j.notes ? `<div style="margin-top:8px"><div style="color:#555">Notes</div><div>${j.notes}</div></div>` : ''}
-          </div>
-
-          <div>
-            <table style="width:100%;border-collapse:collapse;font-size:14px">
-              <tr><td>Subtotal</td><td style="text-align:right">$${subtotal}</td></tr>
-              <tr><td>Discount</td><td style="text-align:right">-$${disc}</td></tr>
-              <tr><td style="padding-top:8px;border-top:1px solid #ddd;font-weight:800">Total</td>
-                  <td style="padding-top:8px;border-top:1px solid #ddd;font-weight:800;text-align:right">$${total}</td></tr>
-            </table>
-
-            ${paidRows ? `
-            <div style="margin-top:12px">
-              <div style="font-weight:800;margin-bottom:4px">Payments</div>
-              <table style="width:100%;border-collapse:collapse">
-                ${paidRows}
-              </table>
-            </div>` : ''}
-          </div>
-        </div>
-
-        <div style="margin-top:16px;color:#666;font-size:12px">Thank you for your business.</div>
-      </div>`;
-    sheet.classList.remove('hidden');
-    window.print();
-    setTimeout(()=>{ sheet.classList.add('hidden'); sheet.innerHTML=''; }, 300);
+    const j=S.jobs.find(x=>x.id===id);
+    if(!j) return;
+    UI.renderPrintSheet(j);
   },
   showQuickClient(){ document.getElementById('quickClient').classList.remove('hidden'); },
   hideQuickClient(){ document.getElementById('quickClient').classList.add('hidden'); },
@@ -427,11 +355,124 @@ const UI = {
   openSettings(){ const content=el('div',{}, el('h4',{},'Brand'), el('label',{},'Header Title'), el('input',{id:'stHeader', value:S.business.headerTitle||''}), el('label',{},'Business Name (on quotes)'), el('input',{id:'stBiz', value:S.business.name||''}), el('label',{},'Logo'), el('div',{class:'row'}, el('button',{class:'btn', onclick:()=>UI.pickLogo()},'Upload Logo'), el('button',{class:'btn secondary', onclick:()=>{ S.business.logoDataUrl=''; Storage.save(S); UI.initHeader(); UI.flash('Logo removed.'); }},'Remove Logo')), el('div',{class:'footnote'},'Replace install icons by swapping icon-192.png / icon-512.png in the bundle.') ); UI.modal('Settings',(close)=>{ S.business.headerTitle=content.querySelector('#stHeader').value.trim()||'POLISH CREW — Accounting'; S.business.name=content.querySelector('#stBiz').value.trim()||'Polish Crew'; Storage.save(S); UI.initHeader(); UI.flash('Settings saved.'); close(); }, content); },
   pickLogo(){ const f=el('input',{type:'file',accept:'image/*'}); f.onchange=(e)=>{ const file=e.target.files[0]; if(!file) return; const r=new FileReader(); r.onload=()=>{ S.business.logoDataUrl=r.result; Storage.save(S); UI.initHeader(); UI.flash('Logo updated.'); }; r.readAsDataURL(file); }; f.click(); },
   clientName(id){ return (S.clients.find(c=>c.id===id)||{}).name||''; },
-  printQuote(){ const host=document.getElementById('printSheet'); host.innerHTML='<div style="font:14px/1.35 Montserrat,Arial,sans-serif;padding:12mm;color:#111">Open a specific job and use <b>Print Quote</b> on that job.</div>'; host.classList.remove('hidden'); window.print(); setTimeout(()=>{ host.classList.add('hidden'); host.innerHTML=""; }, 300); },
+  printQuote(){
+    const clientId=document.getElementById('jobClient').value||'';
+    const size=document.getElementById('jobSize').value;
+    const pkg=document.getElementById('jobPkg').value;
+    const base=Number(document.getElementById('jobBase').value||0);
+    const discType=document.getElementById('jobDiscType').value;
+    const discValue=Number(document.getElementById('jobDiscValue').value||0);
+    const notes=document.getElementById('jobNotes').value.trim();
+
+    const addons=[];
+    document.querySelectorAll('.addon-row').forEach(row=>{
+      const checked=row.querySelector('input[type=checkbox]').checked;
+      if(!checked) return;
+      const name=row.getAttribute('data-name');
+      const price=Number(row.querySelector('input[type=number]').value||0);
+      addons.push({name,price});
+    });
+
+    const tempJob={
+      id:'preview',
+      date:new Date().toISOString().slice(0,10),
+      clientId,size,pkg,base,addons,
+      discType,discValue,notes,
+      status:'Quoted',
+      payments:[]
+    };
+
+    UI.renderPrintSheet(tempJob);
+  },
   toggleDrawer(open){ document.getElementById('drawer').classList.toggle('open', !!open); },
   modal(title,onPrimary,contentNode,primaryText='Save',showCancel=true,wide=false){ const host=document.getElementById('modalHost'); host.innerHTML=''; const overlay=el('div',{style:'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:30;display:flex;align-items:center;justify-content:center;'}); const card=el('div',{class:'card',style:`width:${wide?'min(96vw,980px)':'min(96vw,640px)'};max-height:90vh;overflow:auto;`}); card.append(el('h3',{},title)); card.append(contentNode); const actions=el('div',{class:'row',style:'margin-top:.5rem;justify-content:flex-end;'}); if(showCancel) actions.append(el('button',{class:'btn secondary',onclick:()=>host.innerHTML=''},'Cancel')); actions.append(el('button',{class:'btn',onclick:()=>onPrimary(()=>host.innerHTML='')},primaryText)); card.append(actions); overlay.append(card); host.append(overlay); return card; },
   flash(msg){ const n=el('div',{style:'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#06100a;border:1px solid #163c27;color:#dff8e7;padding:.6rem 1rem;border-radius:999px;z-index:50;'}, msg); document.body.append(n); setTimeout(()=>n.remove(),1600); },
   bootError(text){ const w=el('div',{class:'card',style:'margin:1rem;border-color:#3a1515;background:#1b0c0c;'}, el('h3',{},'Boot Error'), el('div',{}, text||'Unknown error')); document.body.prepend(w); }
+};
+
+UI.renderPrintSheet = function(job){
+  const j=job;
+  const c=S.clients.find(x=>x.id===j.clientId);
+  const meta=(S.menu.packageMeta && S.menu.packageMeta[j.pkg]) || {includedAddons:[]};
+  const included=(meta.includedAddons||[]).map(n=>`<li>${n}</li>`).join('');
+  const addons=(j.addons||[]).map(a=>`<tr><td>${a.name}</td><td style="text-align:right">$${Number(a.price||0).toFixed(2)}</td></tr>`).join('');
+  const subtotal=Calc.subtotal(j).toFixed(2);
+  const disc=Calc.discount(j).toFixed(2);
+  const total=Calc.total(j).toFixed(2);
+  const paidRows=(j.payments||[]).map(p=>`<tr><td>${p.date}</td><td>${p.method||''}</td><td style="text-align:right">$${Number(p.amount||0).toFixed(2)}</td></tr>`).join('');
+  const bizName=S.business?.name||'Polish Crew';
+  const logo=S.business?.logoDataUrl||'';
+  const headerTitle=(j.status==='Paid') ? 'Receipt' : 'Quote';
+
+  const sheet=document.getElementById('printSheet');
+  if(!sheet){
+    console.error('printSheet host missing');
+    return;
+  }
+
+  sheet.innerHTML=`
+    <div style="max-width:800px;margin:0 auto;font:14px/1.35 Montserrat,Arial,sans-serif;color:#111">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+        ${logo ? `<img src="${logo}" style="width:48px;height:48px;border-radius:8px;border:2px solid #0a0;object-fit:cover">` : ''}
+        <div style="font-weight:800;font-size:18px">${bizName}</div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:end;margin-bottom:10px;">
+        <div>
+          <div style="font-weight:900;font-size:22px;letter-spacing:.4px">${headerTitle}</div>
+          <div style="color:#555">Date: ${j.date}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-weight:700">${c?.name||''}</div>
+          <div style="color:#555">${c?.phone||''}</div>
+        </div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid #ddd;margin:8px 0 12px">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px;">
+        <div><div style="color:#555">Package</div><div style="font-weight:700">${j.pkg} — ${j.size}</div></div>
+        <div><div style="color:#555">Status</div><div style="font-weight:700">${j.status}</div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div>
+          <div style="font-weight:800;margin:6px 0 4px">Included with package</div>
+          <ul style="margin:0 0 8px 18px;padding:0">${included || '<li>None</li>'}</ul>
+
+          <div style="font-weight:800;margin:6px 0 4px">Add-ons</div>
+          <table style="width:100%;border-collapse:collapse;font-size:14px">
+            ${addons || '<tr><td style="color:#666">None</td><td></td></tr>'}
+          </table>
+
+          ${j.notes ? `<div style="margin-top:8px"><div style="color:#555">Notes</div><div>${j.notes}</div></div>` : ''}
+        </div>
+
+        <div>
+          <table style="width:100%;border-collapse:collapse;font-size:14px">
+            <tr><td>Subtotal</td><td style="text-align:right">$${subtotal}</td></tr>
+            <tr><td>Discount</td><td style="text-align:right">-$${disc}</td></tr>
+            <tr><td style="padding-top:8px;border-top:1px solid #ddd;font-weight:800">Total</td>
+                <td style="padding-top:8px;border-top:1px solid #ddd;font-weight:800;text-align:right">$${total}</td></tr>
+          </table>
+
+          ${paidRows ? `
+          <div style="margin-top:12px">
+            <div style="font-weight:800;margin-bottom:4px">Payments</div>
+            <table style="width:100%;border-collapse:collapse">${paidRows}</table>
+          </div>` : ''}
+        </div>
+      </div>
+
+      <div style="margin-top:16px;color:#666;font-size:12px">Thank you for your business.</div>
+    </div>`;
+
+  sheet.classList.remove('hidden');
+  window.print();
+  setTimeout(()=>{
+    sheet.classList.add('hidden');
+    sheet.innerHTML='';
+  }, 300);
 };
 
 /*** Export helpers ***/
