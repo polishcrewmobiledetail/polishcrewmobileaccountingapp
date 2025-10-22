@@ -1,5 +1,6 @@
-const CACHE_VERSION = "pcwa-v2.0.0";
+const CACHE_VERSION = "pcwa-v2.1.0";
 const CACHE_NAME = CACHE_VERSION;
+
 self.addEventListener('install', e=>{
   e.waitUntil((async()=>{
     const cache = await caches.open(CACHE_NAME);
@@ -7,6 +8,7 @@ self.addEventListener('install', e=>{
     self.skipWaiting();
   })());
 });
+
 self.addEventListener('activate', e=>{
   e.waitUntil((async()=>{
     const keys = await caches.keys();
@@ -14,6 +16,7 @@ self.addEventListener('activate', e=>{
     self.clients.claim();
   })());
 });
+
 self.addEventListener('fetch', e=>{
   if (e.request.method!=='GET') return;
   e.respondWith((async()=>{
