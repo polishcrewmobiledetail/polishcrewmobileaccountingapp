@@ -345,7 +345,36 @@ UI.openPrintDetails = function(id){
   openSettings(){ const content=el('div',{}, el('h4',{},'Brand'), el('label',{},'Header Title'), el('input',{id:'stHeader', value:S.business.headerTitle||''}), el('label',{},'Business Name (on quotes)'), el('input',{id:'stBiz', value:S.business.name||''}), el('label',{},'Logo'), el('div',{class:'row'}, el('button',{class:'btn', onclick:()=>UI.pickLogo()},'Upload Logo'), el('button',{class:'btn secondary', onclick:()=>{ S.business.logoDataUrl=''; Storage.save(S); UI.initHeader(); UI.flash('Logo removed.'); }},'Remove Logo')), el('div',{class:'footnote'},'Replace install icons by swapping icon-192.png / icon-512.png in the bundle.') ); UI.modal('Settings',(close)=>{ S.business.headerTitle=content.querySelector('#stHeader').value.trim()||'POLISH CREW — Accounting'; S.business.name=content.querySelector('#stBiz').value.trim()||'Polish Crew'; Storage.save(S); UI.initHeader(); UI.flash('Settings saved.'); close(); }, content); },
   pickLogo(){ const f=el('input',{type:'file',accept:'image/*'}); f.onchange=(e)=>{ const file=e.target.files[0]; if(!file) return; const r=new FileReader(); r.onload=()=>{ S.business.logoDataUrl=r.result; Storage.save(S); UI.initHeader(); UI.flash('Logo updated.'); }; r.readAsDataURL(file); }; f.click(); },
   clientName(id){ return (S.clients.find(c=>c.id===id)||{}).name||''; },
-  printQuote(){ window.print(); },
+  UI.printQuote = function(){
+  // Build a temporary job from the current form (no save needed)
+  const clientId = document.getElementById('jobClient').value || '';
+  const size     = document.getElementById('jobSize').value;
+  const pkg      = document.getElementById('jobPkg').value;
+  const base     = Number(document.getElementById('jobBase').value || 0);
+  const discType = document.getElementById('jobDiscType').value;
+  const discValue= Number(document.getElementById('jobDiscValue').value || 0);
+  const notes    = document.getElementById('jobNotes').value.trim();
+
+  const addons = [];
+  document.querySelectorAll('.addon-row').forEach(row=>{
+    const checked = row.querySelector('input[type=checkbox]').checked;
+    if (!checked) return;
+    const name  = row.getAttribute('data-name');
+    const price = Number(row.querySelector('input[type=number]').value || 0);
+    addons.push({name, price});
+  });
+
+  const tempJob = {
+    id: 'preview',
+    date: new Date().toISOString().slice(0,10),
+    clientId, size, pkg, base, addons,
+    discType, discValue, notes,
+    status: 'Quoted',
+    payments: []
+  };
+
+  UI.renderPrintSheet(tempJob);
+};
   toggleDrawer(open){ document.getElementById('drawer').classList.toggle('open', !!open); },
   modal(title,onPrimary,contentNode,primaryText='Save',showCancel=true,wide=false){ const host=document.getElementById('modalHost'); host.innerHTML=''; const overlay=el('div',{style:'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:30;display:flex;align-items:center;justify-content:center;'}); const card=el('div',{class:'card',style:`width:${wide?'min(96vw,980px)':'min(96vw,640px)'};max-height:90vh;overflow:auto;`}); card.append(el('h3',{},title)); card.append(contentNode); const actions=el('div',{class:'row',style:'margin-top:.5rem;justify-content:flex-end;'}); if(showCancel) actions.append(el('button',{class:'btn secondary',onclick:()=>host.innerHTML=''},'Cancel')); actions.append(el('button',{class:'btn',onclick:()=>onPrimary(()=>host.innerHTML='')},primaryText)); card.append(actions); overlay.append(card); host.append(overlay); return card; },
   flash(msg){ const n=el('div',{style:'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#06100a;border:1px solid #163c27;color:#dff8e7;padding:.6rem 1rem;border-radius:999px;z-index:50;'}, msg); document.body.append(n); setTimeout(()=>n.remove(),1600); },
