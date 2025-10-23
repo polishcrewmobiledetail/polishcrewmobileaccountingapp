@@ -8,18 +8,18 @@
 <title>POLISH CREW — Accounting</title>
 <style>
   :root { --bg:#0b0b0c; --card:#101114; --text:#f5f7f7; --muted:#a7b0b0; --green:#00A651; }
-  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Montserrat,system-ui,Segoe UI,Roboto,Arial,sans-serif}
-  .appbar{position:sticky;top:0;z-index:10;display:flex;gap:.75rem;align-items:center;padding:.75rem 1rem;background:linear-gradient(180deg,#000c,#0009);border-bottom:1px solid #16181a;backdrop-filter:blur(8px)}
-  .logo{width:32px;height:32px;border-radius:8px;background:#000;border:2px solid var(--green)}
-  .title{font-family:Oswald,'Bebas Neue',Impact,sans-serif;font-weight:800;letter-spacing:.5px;font-size:1.05rem}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Montserrat,system-ui,Segoe UI,Roboto,Arial,sans-serif;}
+  .appbar{position:sticky;top:0;z-index:10;display:flex;gap:.75rem;align-items:center;padding:.75rem 1rem;background:linear-gradient(180deg,#000c,#0009);border-bottom:1px solid #16181a;backdrop-filter:blur(8px);}
+  .logo{width:32px;height:32px;border-radius:8px;background:#000;border:2px solid var(--green);}
+  .title{font-family:Oswald,'Bebas Neue',Impact,sans-serif;font-weight:800;letter-spacing:.5px;font-size:1.05rem;}
   .spacer{flex:1}
-  .iconbtn{background:#0a0b0c;border:1px solid #1b1d20;padding:.5rem;border-radius:12px;cursor:pointer}
-  .tabs{display:flex;gap:.5rem;padding:.5rem;border-bottom:1px solid #15171a;background:#050607;position:sticky;top:3.5rem;z-index:9}
+  .iconbtn{background:#0a0b0c;border:1px solid #1b1d20;padding:.5rem;border-radius:12px;cursor:pointer;}
+  .tabs{display:flex;gap:.5rem;padding:.5rem;border-bottom:1px solid #15171a;background:#050607;position:sticky;top:3.5rem;z-index:9;}
   .tab{padding:.5rem .75rem;border:1px solid #1a1e21;border-radius:999px;cursor:pointer;font-weight:700;color:#cfd6d6}
   .tab.active{background:radial-gradient(120% 120% at 50% 0%,#0f1a12,#0a0d0b);border-color:#1f2a1f;color:var(--text);box-shadow:0 0 0 1px #112c19 inset,0 0 12px #0a1}
   .wrap{padding:1rem;max-width:1100px;margin:0 auto}
-  .grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
-  .card{background:linear-gradient(180deg,#0f1013,#0b0c0f);border:1px solid #1a1e21;border-radius:16px;padding:1rem;box-shadow:inset 0 1px 0 #1b221d}
+  .grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));}
+  .card{background:linear-gradient(180deg,#0f1013,#0b0c0f);border:1px solid #1a1e21;border-radius:16px;padding:1rem;box-shadow:inset 0 1px 0 #1b221d;}
   .card h3{margin:.25rem 0 .75rem;font-family:Oswald,'Bebas Neue',Impact,sans-serif;letter-spacing:.4px}
   .muted{color:var(--muted);font-size:.9rem}
   input,select,textarea{width:100%;background:#0a0b0c;color:var(--text);border:1px solid #1a1e21;border-radius:12px;padding:.6rem .7rem;outline:none}
@@ -35,15 +35,14 @@
   .tiny{font-size:.8rem;color:#aab5b5}
   .hidden{display:none}
   .footnote{font-size:.8rem;color:#8ea59a}
-  .drawer{position:fixed;right:0;top:0;height:100%;width:min(92vw,420px);transform:translateX(100%);transition:transform .25s ease;background:#050607;border-left:1px solid #14171a;z-index:20;display:flex;flex-direction:column}
+  .drawer {position:fixed;right:0;top:0;height:100%;width:min(92vw,420px);transform:translateX(100%);transition:transform .25s ease;background:#050607;border-left:1px solid #14171a;z-index:20;display:flex;flex-direction:column}
   .drawer.open{transform:translateX(0)}
-  /* PRINT-ONLY: prints a single white page */
   @media print {
-    @page { size: A4; margin: 12mm; }      /* change to Letter if you prefer */
-    body * { visibility: hidden !important; }
-    #printSheet, #printSheet * { visibility: visible !important; }
-    #printSheet { position: absolute; inset: 0; width: auto; background: #fff; color: #000; }
-    .no-print { display: none !important; }
+    @page { size:A4; margin:12mm; }
+    body * { visibility:hidden !important; }
+    #printSheet, #printSheet * { visibility:visible !important; }
+    #printSheet { position:absolute; inset:0; width:auto; background:#fff; color:#000; }
+    .no-print { display:none !important; }
   }
 </style>
 </head>
@@ -111,15 +110,13 @@
           </div>
 
           <div class="row">
-            <div><label>Vehicle Size</label><select id="jobSize" onchange="UI.prefillBase()"></select></div>
-            <div>
+            <div style="flex:1;">
               <label>Package</label>
               <div class="row" style="gap:.4rem;">
-                <select id="jobPkg" onchange="UI.prefillBase()"></select>
+                <select id="jobPkg" onchange="UI.handlePackageChange()"></select>
                 <button class="btn secondary" onclick="UI.openCustomBuilder()">Build Custom</button>
               </div>
             </div>
-            <div><label>Base</label><input id="jobBase" type="number" min="0" step="0.01"></div>
           </div>
 
           <div id="includedPanel" class="card hidden" style="margin-top:.4rem;">
@@ -128,13 +125,16 @@
           </div>
 
           <div class="card" style="margin-top:.6rem;">
-            <h3>Add-ons</h3>
-            <div id="addonsList" class="list"></div>
+            <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:.4rem;">
+              <h3 style="margin:.25rem 0;">Vehicles</h3>
+              <button class="btn secondary" onclick="UI.addVehicle()">Add Vehicle</button>
+            </div>
+            <div id="vehiclesList" class="list"></div>
             <div class="footnote">≤3 add-ons = Maintenance. 4+ or heavy soil → Full Detail upgrade.</div>
           </div>
 
-          <div class="row" style="margin-top:.6rem;align-items:flex-start;">
-            <div>
+          <div class="row" style="margin-top:.6rem;align-items:flex-start;gap:1rem;">
+            <div style="flex:1;">
               <label>Discount</label>
               <div class="row">
                 <select id="jobDiscType"><option value="none">None</option><option value="%">%</option><option value="$">$</option></select>
@@ -153,11 +153,7 @@
                   <option value="vehicle">Per vehicle</option>
                 </select>
               </div>
-            </div>
-            <div>
-              <label>Vehicles</label>
-              <input id="jobVehicleCount" type="number" min="1" step="1" value="1">
-              <div class="tiny" style="margin-top:.25rem;">Use per-vehicle to repeat discounts for each car.</div>
+              <div class="tiny" style="margin-top:.25rem;">Per-vehicle discounts are applied to each vehicle individually.</div>
             </div>
             <div style="flex:1;"><label>Notes</label><textarea id="jobNotes" placeholder="Any special conditions, soil level, etc."></textarea></div>
           </div>
@@ -203,7 +199,6 @@
     </section>
   </div>
 
-  <!-- Drawer -->
   <div id="drawer" class="drawer">
     <header style="padding:1rem;border-bottom:1px solid #14171a;display:flex;justify-content:space-between;align-items:center;">
       <div style="font-weight:800;">More</div>
@@ -229,16 +224,14 @@
       <div class="list">
         <div class="list-item" onclick="UI.openSettings()">Settings ›</div>
       </div>
-      <div class="footnote">Build cache: <b>pcwa-v2.1.0</b></div>
+      <div class="footnote">Build cache: <b>pcwa-v2.0.0</b></div>
     </div>
   </div>
 
-  <!-- PRINT-ONLY TARGET -->
   <div id="printSheet" class="hidden"></div>
   <div id="modalHost"></div>
 
 <script>
-/*** Defaults ***/
 const DEFAULT_SIZES = ["Coupe","Sedan","Crossover","SUV/Truck","XL/Lifted"];
 const DEFAULT_MENU = {
   sizes: DEFAULT_SIZES,
@@ -270,70 +263,91 @@ const DEFAULT_MENU = {
   guidance: "≤3 add-ons = Maintenance. 4+ or heavy soil → Full Detail upgrade.",
   packageMeta: {} // name -> {lock:boolean, includedAddons:string[]}
 };
+
 const DEFAULT_SETTINGS = {
   paymentMethods: ["Cash","Card","Zelle","Venmo","CashApp","Bank"],
   categories: ["Package","Add-on","Supplies","Fuel","Tools/Equipment","Marketing","Labor/Subcontract","Fees","Other"]
 };
+
 const DEFAULT_BIZ = { name:"Polish Crew", headerTitle:"POLISH CREW — Accounting", logoDataUrl:"" };
 
 const AppState = { business: DEFAULT_BIZ, clients: [], menu: DEFAULT_MENU, jobs: [], transactions: [], mileage: [], settings: DEFAULT_SETTINGS };
 
-/*** Storage ***/
 const Storage = {
-  key: "pc_accounting_v2_1",
+  key: "pc_accounting_v2",
   load() {
     try {
       const raw = localStorage.getItem(this.key);
       if (!raw) return structuredClone(AppState);
-      const s = JSON.parse(raw);
-      if (!s.settings) s.settings = structuredClone(DEFAULT_SETTINGS);
-      if (!s.menu) s.menu = structuredClone(DEFAULT_MENU);
-      if (!s.menu.packageMeta) s.menu.packageMeta = {};
-      if (!s.business) s.business = structuredClone(DEFAULT_BIZ);
-      if (!s.transactions) s.transactions = [];
-      if (!s.clients) s.clients = [];
-      if (!s.jobs) s.jobs = [];
-      if (!s.mileage) s.mileage = [];
-      return s;
+      const parsed = JSON.parse(raw);
+      if (!parsed.settings) parsed.settings = structuredClone(DEFAULT_SETTINGS);
+      if (!parsed.menu) parsed.menu = structuredClone(DEFAULT_MENU);
+      if (!parsed.business) parsed.business = structuredClone(DEFAULT_BIZ);
+      if (!parsed.transactions) parsed.transactions = [];
+      if (!parsed.clients) parsed.clients = [];
+      if (!parsed.jobs) parsed.jobs = [];
+      if (!parsed.mileage) parsed.mileage = [];
+      if (!parsed.menu.packageMeta) parsed.menu.packageMeta = {};
+      return parsed;
     } catch(e) {
-      UI.bootError("Failed to load saved data: "+e.message);
+      UI.bootError("Failed to load saved data: " + e.message);
       return structuredClone(AppState);
     }
   },
-  save(s) { localStorage.setItem(this.key, JSON.stringify(s)); }
+  save(state) { localStorage.setItem(this.key, JSON.stringify(state)); }
 };
+
 let S = Storage.load();
 
 /*** Utils ***/
 function uid(){ return Math.random().toString(36).slice(2,10); }
 function fmt(n){ return "$"+Number(n||0).toFixed(2); }
-function el(t,a={},...c){ const e=document.createElement(t); for(const[k,v] of Object.entries(a)){ if(k==='class')e.className=v; else if(k==='html')e.innerHTML=v; else if(k.startsWith('on')) e.addEventListener(k.slice(2),v); else e.setAttribute(k,v);} c.forEach(x=>e.append(x)); return e;}
+function el(tag, attrs={}, ...children){ const e=document.createElement(tag); for(const [k,v] of Object.entries(attrs)){ if(k==='class')e.className=v; else if(k==='html') e.innerHTML=v; else if(k.startsWith('on')) e.addEventListener(k.slice(2),v); else e.setAttribute(k,v); } children.forEach(c=>e.append(c)); return e; }
 function today(){ return new Date().toISOString().slice(0,10); }
-function pkgMeta(name){ return (S.menu.packageMeta && S.menu.packageMeta[name]) || {lock:false,includedAddons:[]}; }
+function pkgMeta(name){ return (S.menu.packageMeta && S.menu.packageMeta[name]) || {lock:false, includedAddons:[]}; }
 
-/*** Calc ***/
 const Calc = {
   sizeIndex(size){ return S.menu.sizes.indexOf(size); },
   base(pkg,size){ const i=this.sizeIndex(size); return (S.menu.packages[pkg]||[])[i]||0; },
   addonPrice(name,size){ const i=this.sizeIndex(size); return (S.menu.addons[name]||[])[i]||0; },
-  vehicleCount(job){ return Math.max(1, Number(job.vehicleCount||1)); },
-  perVehicleSubtotal(job){ const add=(job.addons||[]).reduce((t,a)=>t+Number(a.price||0),0); return Number(job.base||0)+add; },
-  subtotal(job){ return this.perVehicleSubtotal(job) * this.vehicleCount(job); },
+  vehicleSubtotal(vehicle){ const add=(vehicle.addons||[]).reduce((t,a)=>t+Number(a.price||0),0); return Number(vehicle.base||0)+add; },
+  vehicles(job){
+    if(job.vehicles && job.vehicles.length){
+      return job.vehicles.map(v=>({
+        size: v.size || job.size || S.menu.sizes[0],
+        base: Number(v.base||0),
+        addons: (v.addons||[]).map(a=>({name:a.name, price:Number(a.price||0)}))
+      }));
+    }
+    const count=Math.max(1, Number(job.vehicleCount||1));
+    const base=Number(job.base||0);
+    const size=job.size || S.menu.sizes[0];
+    const addons=(job.addons||[]).map(a=>({name:a.name, price:Number(a.price||0)}));
+    return Array.from({length:count},()=>({
+      size,
+      base,
+      addons: addons.map(a=>({name:a.name, price:Number(a.price||0)}))
+    }));
+  },
+  vehicleCount(job){ return this.vehicles(job).length; },
+  subtotal(job){ return this.vehicles(job).reduce((t,v)=>t+this.vehicleSubtotal(v),0); },
   discount(job){
     const discType = job.discType;
     if(!discType || discType==='none') return 0;
     const value = Number(job.discValue||0);
     if(!value) return 0;
     const scope = job.discScope==='vehicle' ? 'vehicle' : 'job';
-    const perVehicleSub = this.perVehicleSubtotal(job);
+    const vehicles = this.vehicles(job);
+    if(!vehicles.length) return 0;
     const subtotal = this.subtotal(job);
     if(discType==='%'){
       const pct = value/100;
       if(pct<=0) return 0;
-      return (scope==='vehicle' ? perVehicleSub * this.vehicleCount(job) : subtotal) * pct;
+      if(scope==='vehicle') return vehicles.reduce((sum,v)=>sum+this.vehicleSubtotal(v)*pct,0);
+      return subtotal * pct;
     }
     if(discType==='$'){
-      if(scope==='vehicle') return Math.min(perVehicleSub, value) * this.vehicleCount(job);
+      if(scope==='vehicle') return vehicles.reduce((sum,v)=>sum+Math.min(this.vehicleSubtotal(v), value),0);
       return Math.min(subtotal, value);
     }
     return 0;
@@ -348,23 +362,41 @@ const App = {
     UI.initTabs();
     UI.populateClients();
     UI.populateSizesAndPackages();
-    UI.renderAddons();
-    document.getElementById('jobBase').addEventListener('input',()=>UI.updateTotals());
     document.getElementById('jobDiscType').addEventListener('change',()=>UI.updateTotals());
     document.getElementById('jobDiscValue').addEventListener('input',()=>UI.updateTotals());
     document.getElementById('jobDiscScope').addEventListener('change',()=>UI.updateTotals());
-    document.getElementById('jobVehicleCount').addEventListener('input',()=>UI.updateTotals());
     UI.resetJobForm();
     UI.refreshJobsList();
     UI.refreshDashboard();
-    if('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js');
   },
-  addClient(){ const name=document.getElementById('cName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(),name,phone:document.getElementById('cPhone').value.trim(),notes:document.getElementById('cNotes').value.trim(),discount:{type:document.getElementById('cDiscType').value,value:Number(document.getElementById('cDiscValue').value||0)}}; S.clients.push(c); Storage.save(S); UI.populateClients(); UI.flash('Client added.'); document.getElementById('cName').value='';document.getElementById('cPhone').value='';document.getElementById('cNotes').value='';document.getElementById('cDiscType').value='none';document.getElementById('cDiscValue').value='0'; },
-  addQuickClient(){ const name=document.getElementById('qcName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(),name,phone:document.getElementById('qcPhone').value.trim(),notes:document.getElementById('qcNotes').value.trim(),discount:{type:document.getElementById('qcDiscType').value,value:Number(document.getElementById('qcDiscValue').value||0)}}; S.clients.push(c); Storage.save(S); UI.populateClients(c.id); UI.hideQuickClient(); UI.flash('Client added.'); },
-  saveJob(){ const clientId=document.getElementById('jobClient').value; const size=document.getElementById('jobSize').value; const pkg=document.getElementById('jobPkg').value; if(!clientId||!size||!pkg) return alert('Client, size, and package are required'); const base=Number(document.getElementById('jobBase').value||0); const discType=document.getElementById('jobDiscType').value; const discValue=Number(document.getElementById('jobDiscValue').value||0); const discScope=document.getElementById('jobDiscScope').value; const vehicleCount=Math.max(1, Math.floor(Number(document.getElementById('jobVehicleCount').value||1))||1); const notes=document.getElementById('jobNotes').value.trim(); const addons=[]; document.querySelectorAll('.addon-row').forEach(row=>{ const cb=row.querySelector('input[type=checkbox]'); const name=row.getAttribute('data-name'); const price=Number(row.querySelector('input[type=number]').value||0); if(cb.checked) addons.push({name,price}); }); const job={id:uid(),date:today(),clientId,size,pkg,base,addons,discType,discValue,discScope,vehicleCount,notes,status:"Quoted",payments:[]}; S.jobs.unshift(job); Storage.save(S); UI.refreshJobsList(); UI.resetJobForm(); UI.flash('Quote saved.'); },
+  addClient(){ const name=document.getElementById('cName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(), name, phone:document.getElementById('cPhone').value.trim(), notes:document.getElementById('cNotes').value.trim(), discount:{type:document.getElementById('cDiscType').value, value:Number(document.getElementById('cDiscValue').value||0)}}; S.clients.push(c); Storage.save(S); UI.populateClients(); UI.flash('Client added.'); document.getElementById('cName').value='';document.getElementById('cPhone').value='';document.getElementById('cNotes').value='';document.getElementById('cDiscType').value='none';document.getElementById('cDiscValue').value='0'; },
+  addQuickClient(){ const name=document.getElementById('qcName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(), name, phone:document.getElementById('qcPhone').value.trim(), notes:document.getElementById('qcNotes').value.trim(), discount:{type:document.getElementById('qcDiscType').value, value:Number(document.getElementById('qcDiscValue').value||0)}}; S.clients.push(c); Storage.save(S); UI.populateClients(c.id); UI.hideQuickClient(); UI.flash('Client added.'); },
+  saveJob(){ const clientId=document.getElementById('jobClient').value; const pkg=document.getElementById('jobPkg').value; if(!clientId||!pkg) return alert('Client and package are required'); const vehicles=UI.collectVehicles(); if(!vehicles.length) return alert('Add at least one vehicle'); const discType=document.getElementById('jobDiscType').value; const discValue=Number(document.getElementById('jobDiscValue').value||0); const discScope=document.getElementById('jobDiscScope').value; const notes=document.getElementById('jobNotes').value.trim(); const job={id:uid(), date:today(), clientId,pkg,vehicles,discType,discValue,discScope,notes,status:"Quoted",payments:[]}; job.size=vehicles[0]?.size||''; job.vehicleCount=vehicles.length; S.jobs.unshift(job); Storage.save(S); UI.refreshJobsList(); UI.resetJobForm(); UI.flash('Quote saved.'); },
   updateJobStatus(id,next){ const j=S.jobs.find(x=>x.id===id); if(!j) return; j.status=next; Storage.save(S); UI.refreshJobsList(); UI.flash('Status: '+next); },
-  takePayment(id){ const j=S.jobs.find(x=>x.id===id); if(!j) return; const paid=(j.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0); const due=Math.max(0,Calc.total(j)-paid); const amount=Number(prompt('Amount received', due.toFixed(2))||0); if(amount<=0) return; const method=prompt('Method (Cash/Card/Zelle/Venmo/CashApp/Bank)','Cash')||'Cash'; j.payments.push({date:today(),method,amount}); const paid2=j.payments.reduce((t,p)=>t+Number(p.amount||0),0); if(paid2+1e-6>=Calc.total(j)){ j.status='Paid'; S.transactions.push({id:uid(),type:'Income',date:today(),category:'Package',item:j.pkg+' — '+j.size,clientId:j.clientId,vendor:'',payment:method,amount:Calc.total(j),notes:'Discount: '+(j.discType||'none')+' '+(j.discValue||0)}); UI.flash('Paid in full. Income posted.'); } else UI.flash('Partial payment recorded.'); Storage.save(S); UI.refreshJobsList(); UI.refreshDashboard(); },
-  deleteJob(id){ if(!confirm('Delete this job?')) return; S.jobs=S.jobs.filter(x=>x.id!==id); Storage.save(S); },
+  takePayment(id){
+    const j=S.jobs.find(x=>x.id===id);
+    if(!j) return;
+    const paid=(j.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0);
+    const due=Math.max(0,Calc.total(j)-paid);
+    const amount=Number(prompt('Amount received', due.toFixed(2))||0);
+    if(amount<=0) return;
+    const method=prompt('Method (Cash/Card/Zelle/Venmo/CashApp/Bank)','Cash')||'Cash';
+    j.payments.push({date:today(),method,amount});
+    const paid2=j.payments.reduce((t,p)=>t+Number(p.amount||0),0);
+    if(paid2+1e-6>=Calc.total(j)){
+      j.status='Paid';
+      const vehicleLabel=UI.jobVehicleSummary(j);
+      const itemLabel=vehicleLabel?`${j.pkg} — ${vehicleLabel}`:j.pkg;
+      S.transactions.push({id:uid(), type:'Income', date:today(), category:'Package', item:itemLabel, clientId:j.clientId, vendor:'', payment:method, amount:Calc.total(j), notes:'Discount: '+(j.discType||'none')+' '+(j.discValue||0)});
+      UI.flash('Paid in full. Income posted.');
+    } else {
+      UI.flash('Partial payment recorded.');
+    }
+    Storage.save(S);
+    UI.refreshJobsList();
+    UI.refreshDashboard();
+  },
+  deleteJob(id){ if(!confirm('Delete this job?')) return; S.jobs=S.jobs.filter(x=>x.id!==id); Storage.save(S); UI.refreshJobsList(); },
   addExpenseRecord(rec){ S.transactions.push(rec); Storage.save(S); UI.refreshDashboard(); }
 };
 
@@ -373,39 +405,185 @@ const UI = {
   initHeader(){ const logo=document.getElementById('headerLogo'); logo.src=S.business.logoDataUrl||'icon-192.png'; document.getElementById('headerTitle').textContent=S.business.headerTitle||'POLISH CREW — Accounting'; document.getElementById('openDrawer').onclick=()=>UI.toggleDrawer(true); },
   switchTab(name){ document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.getAttribute('data-tab')===name)); document.querySelectorAll('.tabpage').forEach(p=>p.classList.add('hidden')); document.getElementById(name).classList.remove('hidden'); },
   initTabs(){ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>UI.switchTab(t.getAttribute('data-tab')))); },
-  populateClients(selectId){ const sel=document.getElementById('jobClient'); sel.innerHTML='<option value="">-- select client --</option>'; for(const c of S.clients){ const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; sel.appendChild(o);} if(selectId) sel.value=selectId; const list=document.getElementById('clientsList'); list.innerHTML=''; for(const c of S.clients){ const li=el('div',{class:'list-item'}, el('div',{html:`<b>${c.name}</b> <span class='tiny'>${c.phone||''}</span>`}), el('div',{class:'tiny'},c.notes||'')); list.append(li); } },
-  populateSizesAndPackages(){ const size=document.getElementById('jobSize'); size.innerHTML=''; S.menu.sizes.forEach(s=>size.append(el('option',{value:s},s))); const pkg=document.getElementById('jobPkg'); pkg.innerHTML=''; Object.keys(S.menu.packages).forEach(p=>pkg.append(el('option',{value:p},p))); },
-  prefillBase(){ const size=document.getElementById('jobSize').value; const pkg=document.getElementById('jobPkg').value; const b=Calc.base(pkg,size); const meta=pkgMeta(pkg); const baseInp=document.getElementById('jobBase'); baseInp.value=b.toFixed(2); baseInp.disabled=!!meta.lock; const inc=meta.includedAddons||[]; const panel=document.getElementById('includedPanel'); const list=document.getElementById('includedList'); list.innerHTML=''; if(inc.length){ panel.classList.remove('hidden'); for(const n of inc) list.append(el('span',{class:'pill'},n)); } else panel.classList.add('hidden'); this.renderAddons(); this.updateTotals(); },
-  renderAddons(){ const host=document.getElementById('addonsList'); host.innerHTML=''; const size=document.getElementById('jobSize').value||S.menu.sizes[0]; const selPkg=document.getElementById('jobPkg').value; const meta=pkgMeta(selPkg); for(const [name,arr] of Object.entries(S.menu.addons)){ const price=Calc.addonPrice(name,size); const included=meta.includedAddons?.includes(name); const row=el('div',{class:'list-item addon-row','data-name':name}, el('div',{class:'row'}, el('input',{type:'checkbox', ...(included?{checked:true,disabled:true}:{}), style:'flex:0;width:22px;height:22px;'}), el('div',{style:'flex:1;font-weight:800;'}, name + (included?' — Included':'')), el('input',{type:'number', min:'0', step:'0.01', value:(included?'0.00':price.toFixed(2)), ...(included?{disabled:true}:{}) ,style:'flex:0;width:120px;'}) )); host.append(row);} document.querySelectorAll('#addonsList input').forEach(i=>i.addEventListener('input',()=>UI.updateTotals())); document.querySelectorAll('#addonsList input[type=checkbox]').forEach(i=>i.addEventListener('change',()=>UI.updateTotals())); },
+  populateClients(selectId){ const sel=document.getElementById('jobClient'); sel.innerHTML='<option value="">-- select client --</option>'; for(const c of S.clients){ const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; sel.appendChild(o); } if(selectId) sel.value=selectId; const list=document.getElementById('clientsList'); list.innerHTML=''; for(const c of S.clients){ const li=el('div',{class:'list-item'}, el('div',{html:`<b>${c.name}</b> <span class='tiny'>${c.phone||''}</span>`}), el('div',{class:'tiny'},c.notes||'')); list.append(li); } },
+  populateSizesAndPackages(){
+    const pkg=document.getElementById('jobPkg');
+    const currentPkg=pkg?.value;
+    if(pkg){
+      pkg.innerHTML='';
+      Object.keys(S.menu.packages).forEach(name=>pkg.append(el('option',{value:name},name)));
+      if(currentPkg && S.menu.packages[currentPkg]) pkg.value=currentPkg;
+      else if(pkg.options.length) pkg.value=pkg.options[0].value;
+    }
+    document.querySelectorAll('.vehicle-size').forEach(sel=>{
+      const current=sel.value;
+      sel.innerHTML='';
+      S.menu.sizes.forEach(size=>sel.append(el('option',{value:size},size)));
+      if(S.menu.sizes.includes(current)) sel.value=current;
+      else if(S.menu.sizes.length) sel.value=S.menu.sizes[0];
+    });
+  },
+  handlePackageChange(){
+    const pkg=document.getElementById('jobPkg')?.value || '';
+    const meta=pkgMeta(pkg);
+    const panel=document.getElementById('includedPanel');
+    const list=document.getElementById('includedList');
+    if(panel && list){
+      list.innerHTML='';
+      if(meta.includedAddons && meta.includedAddons.length){
+        panel.classList.remove('hidden');
+        meta.includedAddons.forEach(n=>list.append(el('span',{class:'pill'},n)));
+      } else {
+        panel.classList.add('hidden');
+      }
+    }
+    document.querySelectorAll('.vehicle-row').forEach(row=>UI.refreshVehicleRow(row,{setBase:true}));
+    UI.updateTotals();
+  },
+  prefillBase(){ this.handlePackageChange(); },
+  renderAddons(){ this.handlePackageChange(); },
+  addVehicle(prefill={}){
+    const list=document.getElementById('vehiclesList');
+    if(!list) return;
+    const pkg=document.getElementById('jobPkg')?.value || '';
+    const sizeOptions=S.menu.sizes;
+    const sizePref=(prefill.size && sizeOptions.includes(prefill.size))?prefill.size:(sizeOptions[0]||'');
+    const meta=pkgMeta(pkg);
+    const baseDefault=Calc.base(pkg,sizePref);
+    const baseValue=prefill.base!=null?Number(prefill.base):baseDefault;
+    const row=el('div',{class:'list-item vehicle-row'});
+    const header=el('div',{class:'row',style:'gap:.5rem;align-items:flex-end;'});
+    const sizeWrap=el('div',{style:'flex:1;'});
+    sizeWrap.append(el('label',{},'Vehicle Size'));
+    const sizeSel=el('select',{class:'vehicle-size'});
+    sizeOptions.forEach(s=>sizeSel.append(el('option',{value:s},s)));
+    if(sizePref) sizeSel.value=sizePref;
+    sizeWrap.append(sizeSel);
+    header.append(sizeWrap);
+    const baseWrap=el('div',{style:'flex:1;'});
+    baseWrap.append(el('label',{},'Base'));
+    const baseInput=el('input',{type:'number',min:'0',step:'0.01',class:'vehicle-base',value:Number(baseValue||0).toFixed(2)});
+    if(meta.lock) baseInput.disabled=true;
+    baseWrap.append(baseInput);
+    header.append(baseWrap);
+    const removeWrap=el('div',{style:'flex:0;'});
+    removeWrap.append(el('label',{},'\u00a0'));
+    const removeBtn=el('button',{class:'btn secondary vehicle-remove',onclick:()=>UI.removeVehicle(row)},'Remove');
+    removeWrap.append(removeBtn);
+    header.append(removeWrap);
+    row.append(header);
+    const addonsHost=el('div',{class:'list vehicle-addons',style:'margin-top:.6rem;gap:.4rem;'});
+    row.append(addonsHost);
+    list.append(row);
+    UI.renderVehicleAddons(row, prefill.addons||null);
+    baseInput.addEventListener('input',()=>UI.updateTotals());
+    sizeSel.addEventListener('change',()=>{ UI.refreshVehicleRow(row,{setBase:true}); UI.updateTotals(); });
+    UI.syncVehicleRemovers();
+    UI.updateTotals();
+  },
+  removeVehicle(row){
+    const list=document.getElementById('vehiclesList');
+    if(!list) return;
+    if(list.querySelectorAll('.vehicle-row').length<=1){
+      UI.flash('At least one vehicle required.');
+      return;
+    }
+    row.remove();
+    UI.syncVehicleRemovers();
+    UI.updateTotals();
+  },
+  refreshVehicleRow(row,{setBase=false}={}){
+    const pkg=document.getElementById('jobPkg')?.value || '';
+    const meta=pkgMeta(pkg);
+    const sizeSel=row.querySelector('.vehicle-size');
+    const baseInput=row.querySelector('.vehicle-base');
+    const size=sizeSel?.value || S.menu.sizes[0] || '';
+    if(setBase && baseInput){
+      const base=Calc.base(pkg,size);
+      baseInput.value=Number(base||0).toFixed(2);
+    }
+    if(baseInput) baseInput.disabled=!!meta.lock;
+    UI.renderVehicleAddons(row);
+  },
+  renderVehicleAddons(row,preset=null){
+    const host=row.querySelector('.vehicle-addons');
+    if(!host) return;
+    const pkg=document.getElementById('jobPkg')?.value || '';
+    const size=row.querySelector('.vehicle-size')?.value || S.menu.sizes[0] || '';
+    const meta=pkgMeta(pkg);
+    const previous=new Map();
+    if(preset){
+      (preset||[]).forEach(a=>previous.set(a.name,{checked:true, price:Number(a.price||0)}));
+    } else {
+      host.querySelectorAll('.vehicle-addon-row').forEach(node=>{
+        const name=node.getAttribute('data-name');
+        const cb=node.querySelector('input[type=checkbox]');
+        const price=node.querySelector('input[type=number]');
+        previous.set(name,{checked:!!cb?.checked, price:Number(price?.value||0)});
+      });
+    }
+    host.innerHTML='';
+    for(const name of Object.keys(S.menu.addons)){
+      const basePrice=Calc.addonPrice(name,size);
+      const included=meta.includedAddons?.includes(name);
+      const prev=previous.get(name);
+      const isChecked=included || !!prev?.checked;
+      const priceVal=included?0:(prev?prev.price:basePrice);
+      const checkbox=el('input',{type:'checkbox',style:'flex:0;width:22px;height:22px;'});
+      if(isChecked) checkbox.checked=true;
+      if(included) checkbox.disabled=true;
+      checkbox.addEventListener('change',()=>UI.updateTotals());
+      const priceInput=el('input',{type:'number',min:'0',step:'0.01',value:Number(priceVal||0).toFixed(2),style:'flex:0;width:120px;'});
+      if(included) priceInput.disabled=true;
+      priceInput.addEventListener('input',()=>UI.updateTotals());
+      const rowEl=el('div',{class:'list-item vehicle-addon-row','data-name':name}, el('div',{class:'row',style:'align-items:center;gap:.5rem;'}, checkbox, el('div',{style:'flex:1;font-weight:800;'}, name + (included?' — Included':'')), priceInput));
+      host.append(rowEl);
+    }
+  },
+  syncVehicleRemovers(){
+    const rows=document.querySelectorAll('.vehicle-row');
+    rows.forEach(row=>{
+      const btn=row.querySelector('.vehicle-remove');
+      if(btn) btn.classList.toggle('hidden', rows.length<=1);
+    });
+  },
+  collectVehicles(){
+    return Array.from(document.querySelectorAll('.vehicle-row')).map(row=>{
+      const size=row.querySelector('.vehicle-size')?.value || '';
+      const base=Number(row.querySelector('.vehicle-base')?.value||0);
+      const addons=Array.from(row.querySelectorAll('.vehicle-addon-row')).map(aRow=>{
+        const cb=aRow.querySelector('input[type=checkbox]');
+        if(!cb || !cb.checked) return null;
+        const priceInput=aRow.querySelector('input[type=number]');
+        const name=aRow.getAttribute('data-name');
+        const price=Number(priceInput?.value||0);
+        return {name, price};
+      }).filter(Boolean);
+      return {size, base, addons};
+    });
+  },
   updateTotals(){
-    const scope=document.getElementById('jobDiscScope').value;
-    const rawCount=Number(document.getElementById('jobVehicleCount').value||1);
-    const count=Math.max(1, Math.floor(rawCount)||1);
-    if(count!==rawCount) document.getElementById('jobVehicleCount').value=count;
     const job={
-      base:Number(document.getElementById('jobBase').value||0),
-      addons:Array.from(document.querySelectorAll('.addon-row')).map(r=>({
-        checked:r.querySelector('input[type=checkbox]').checked,
-        price:Number(r.querySelector('input[type=number]').value||0),
-        name:r.getAttribute('data-name')
-      })).filter(x=>x.checked),
+      pkg:document.getElementById('jobPkg')?.value || '',
+      vehicles:this.collectVehicles(),
       discType:document.getElementById('jobDiscType').value,
       discValue:Number(document.getElementById('jobDiscValue').value||0),
-      discScope:scope,
-      vehicleCount:count
+      discScope:document.getElementById('jobDiscScope').value
     };
     const subtotal=Calc.subtotal(job);
     const discount=Calc.discount(job);
+    const total=Calc.total(job);
     document.getElementById('jobSubtotal').textContent=fmt(subtotal);
     document.getElementById('jobDiscount').textContent=fmt(discount);
-    document.getElementById('jobTotal').textContent=fmt(subtotal-discount);
+    document.getElementById('jobTotal').textContent=fmt(total);
   },
   quickDisc(type,val){ document.getElementById('jobDiscType').value=type; document.getElementById('jobDiscValue').value=val; UI.updateTotals(); },
-  resetJobForm(){ document.getElementById('jobSize').value=S.menu.sizes[0]; document.getElementById('jobPkg').value=Object.keys(S.menu.packages)[0]; UI.prefillBase(); document.getElementById('jobDiscType').value='none'; document.getElementById('jobDiscValue').value='0'; document.getElementById('jobDiscScope').value='job'; document.getElementById('jobVehicleCount').value='1'; document.getElementById('jobNotes').value=''; this.updateTotals(); },
-  refreshJobsList(){ const list=document.getElementById('jobsList'); list.innerHTML=''; for(const j of S.jobs){ const c=S.clients.find(x=>x.id===j.clientId); const paid=(j.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0); const due=Math.max(0,Calc.total(j)-paid); const vehicleNote=j.vehicleCount&&j.vehicleCount>1?` · ${j.vehicleCount} vehicles`:''; list.append(el('div',{class:'list-item'}, el('div',{class:'row',style:'justify-content:space-between;'}, el('div',{html:`<b>${c?.name||'Unknown'}</b> <span class='tiny'>${j.pkg} — ${j.size}${vehicleNote}</span>`}), el('div',{class:'tiny'}, j.status)), el('div',{class:'row',style:'justify-content:space-between;margin-top:.25rem;'}, el('div',{class:'tiny'}, `Total: ${Calc.total(j).toFixed(2)}`), el('div',{class:'tiny'}, paid>0? `Paid: ${paid.toFixed(2)} (Due ${due.toFixed(2)})` : 'Unpaid')), el('div',{class:'row',style:'gap:.5rem;margin-top:.4rem;'}, ...(j.status==='Quoted'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Booked')},'Book')]:[]), ...(j.status==='Booked'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'In Progress')},'Start')]:[]), ...(j.status==='In Progress'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Complete')},'Complete')]:[]), ...(j.status!=='Paid'?[el('button',{class:'pill',onclick:()=>App.takePayment(j.id)},'Take Payment')]:[]), el('button',{class:'pill',onclick:()=>UI.openPrintDetails(j.id)},'Print Quote'), el('button',{class:'pill',onclick:()=>App.deleteJob(j.id)},'Delete') )) ); } const r=document.getElementById('recentList'); r.innerHTML=''; for(const j of S.jobs.slice(0,5)){ const c=S.clients.find(x=>x.id===j.clientId); const vehicleNote=j.vehicleCount&&j.vehicleCount>1?` · ${j.vehicleCount} vehicles`:''; r.append(el('div',{class:'list-item'}, `${j.date} · ${c?.name||'Unknown'} · ${j.pkg}${vehicleNote} (${j.status})`)); } },
+  resetJobForm(){ const pkgSel=document.getElementById('jobPkg'); const first=Object.keys(S.menu.packages)[0]||''; if(pkgSel) pkgSel.value=first; const list=document.getElementById('vehiclesList'); if(list) list.innerHTML=''; this.addVehicle(); this.handlePackageChange(); document.getElementById('jobDiscType').value='none'; document.getElementById('jobDiscValue').value='0'; document.getElementById('jobDiscScope').value='job'; document.getElementById('jobNotes').value=''; this.updateTotals(); },
+  jobVehicleSummary(job){ const vehicles=Calc.vehicles(job); if(!vehicles.length) return ''; const counts={}; vehicles.forEach(v=>{ const key=v.size||'Vehicle'; counts[key]=(counts[key]||0)+1; }); return Object.entries(counts).map(([size,count])=>count>1?`${size} × ${count}`:size).join(', '); },
+  refreshJobsList(){ const list=document.getElementById('jobsList'); list.innerHTML=''; for(const j of S.jobs){ const c=S.clients.find(x=>x.id===j.clientId); const paid=(j.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0); const due=Math.max(0,Calc.total(j)-paid); const vehicleSummary=this.jobVehicleSummary(j); const subtitle=vehicleSummary?`${j.pkg} — ${vehicleSummary}`:j.pkg; list.append(el('div',{class:'list-item'}, el('div',{class:'row',style:'justify-content:space-between;'}, el('div',{html:`<b>${c?.name||'Unknown'}</b> <span class='tiny'>${subtitle}</span>`}), el('div',{class:'tiny'}, j.status)), el('div',{class:'row',style:'justify-content:space-between;margin-top:.25rem;'}, el('div',{class:'tiny'}, `Total: ${Calc.total(j).toFixed(2)}`), el('div',{class:'tiny'}, paid>0? `Paid: ${paid.toFixed(2)}${due>0?` (Due ${due.toFixed(2)})`:''}` : 'Unpaid')), el('div',{class:'row',style:'gap:.5rem;margin-top:.4rem;'}, ...(j.status==='Quoted'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Booked')},'Book')]:[]), ...(j.status==='Booked'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'In Progress')},'Start')]:[]), ...(j.status==='In Progress'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Complete')},'Complete')]:[]), ...(j.status!=='Paid'?[el('button',{class:'pill',onclick:()=>App.takePayment(j.id)},'Take Payment')]:[]), el('button',{class:'pill',onclick:()=>UI.openPrintDetails(j.id)},'Print Quote'), el('button',{class:'pill',onclick:()=>App.deleteJob(j.id)},'Delete') )) ); } const recent=document.getElementById('recentList'); if(recent){ recent.innerHTML=''; for(const j of S.jobs.slice(0,5)){ const c=S.clients.find(x=>x.id===j.clientId); const vehicleSummary=this.jobVehicleSummary(j); const summaryText=vehicleSummary?`${j.pkg} — ${vehicleSummary}`:j.pkg; recent.append(el('div',{class:'list-item'}, `${j.date} · ${c?.name||'Unknown'} · ${summaryText} (${j.status})`)); } } },
   openPrintDetails(id){
-    const j=S.jobs.find(x=>x.id===id);
-    if(!j) return;
+    const j = S.jobs.find(x => x.id === id);
+    if (!j) return;
     UI.renderPrintSheet(j);
   },
   showQuickClient(){ document.getElementById('quickClient').classList.remove('hidden'); },
@@ -416,42 +594,39 @@ const UI = {
   openMileage(){ const rows=S.mileage.map((m,i)=>`<tr><td>${m.date}</td><td>${m.from}</td><td>${m.to}</td><td>${m.why}</td><td>${m.miles}</td><td><button class='pill' onclick='UI.delMileage(${i})'>Delete</button></td></tr>`).join(''); this.modal('Mileage',(c)=>c(), el('div',{}, el('div',{class:'row'}, el('div',{}, el('label',{},'Date'), el('input',{id:'miDate',type:'date',value:today()})), el('div',{}, el('label',{},'From'), el('input',{id:'miFrom'})), el('div',{}, el('label',{},'To'), el('input',{id:'miTo'})), el('div',{}, el('label',{},'Why'), el('input',{id:'miWhy'})), el('div',{}, el('label',{},'Miles'), el('input',{id:'miMiles',type:'number',min:'0',step:'0.1'})) ), el('div',{class:'row'}, el('button',{class:'btn', onclick:()=>UI.addMileage()},'Add Entry')), el('table',{style:'width:100%;border-collapse:collapse;margin-top:.5rem;'}, el('thead',{}, el('tr',{html:'<th>Date</th><th>From</th><th>To</th><th>Why</th><th>Miles</th><th></th>'})), el('tbody',{id:'miBody',html:rows})) )); },
   addMileage(){ const e={date:document.getElementById('miDate').value||today(),from:document.getElementById('miFrom').value||'',to:document.getElementById('miTo').value||'',why:document.getElementById('miWhy').value||'',miles:Number(document.getElementById('miMiles').value||0)}; S.mileage.push(e); Storage.save(S); const tr=`<tr><td>${e.date}</td><td>${e.from}</td><td>${e.to}</td><td>${e.why}</td><td>${e.miles}</td><td><button class='pill' onclick='UI.delMileage(${S.mileage.length-1})'>Delete</button></td></tr>`; document.getElementById('miBody').insertAdjacentHTML('beforeend', tr); UI.flash('Mileage added.'); },
   delMileage(i){ if(!confirm('Delete entry?')) return; S.mileage.splice(i,1); Storage.save(S); UI.openMileage(); },
-  openMenuEditor(){ const content=el('div',{}); const table=(title,map,sizes,id)=>{ const head='<tr><th>Item</th>'+sizes.map(s=>`<th>${s}</th>`).join('')+'<th></th></tr>'; const rows=Object.entries(map).map(([n,arr])=>`<tr data-name="${n}"><td><input value="${n}"></td>`+sizes.map((s,i)=>`<td><input type='number' min='0' step='1' value='${arr[i]||0}'></td>`).join('')+`<td><button class='pill' onclick='UI.delRow("${id}","${n}")'>Delete</button></td></tr>`).join(''); return `<h4>${title}</h4><table class='table' id='${id}'><thead>${head}</thead><tbody>${rows}</tbody></table>`; }; content.innerHTML=table('Packages',S.menu.packages,S.menu.sizes,'pkgTable') + '<div class="row" style="margin:.5rem 0;"><button class="btn secondary" onclick="UI.openPkgRules()">Edit Package Rules</button></div>' + table('Add-ons',S.menu.addons,S.menu.sizes,'addonTable') + `<div class='footnote' style='margin-top:.5rem;'>${S.menu.guidance}</div>`; UI.modal('Menu Editor',(close)=>{ try{ const read=(id)=>{ const tbody=document.querySelector('#'+id+' tbody'); const rows=Array.from(tbody.querySelectorAll('tr')); const out={}; for(const r of rows){ const inputs=r.querySelectorAll('input'); const name=inputs[0].value.trim(); if(!name) continue; const prices=Array.from(inputs).slice(1).map(x=>Number(x.value||0)); out[name]=prices; } return out; }; S.menu.packages=read('pkgTable'); S.menu.addons=read('addonTable'); Storage.save(S); UI.populateSizesAndPackages(); UI.prefillBase(); UI.renderAddons(); UI.flash('Menu saved.'); }catch(e){ alert('Error saving: '+e.message); } close(); }, content, 'Save Changes', true, true); },
+  openMenuEditor(){ const content=el('div',{}); const makeTable=(title,map,sizes,id)=>{ const headers='<tr><th>Item</th>'+sizes.map(s=>`<th>${s}</th>`).join('')+'<th></th></tr>'; const rows=Object.entries(map).map(([n,arr])=>`<tr data-name="${n}"><td><input value="${n}"></td>`+sizes.map((s,i)=>`<td><input type='number' min='0' step='1' value='${arr[i]||0}'></td>`).join('')+`<td><button class='pill' onclick='UI.delRow("${id}","${n}")'>Delete</button></td></tr>`).join(''); return `<h4>${title}</h4><table class='table' id='${id}'><thead>${headers}</thead><tbody>${rows}</tbody></table>`; }; content.innerHTML = makeTable('Packages',S.menu.packages,S.menu.sizes,'pkgTable') + '<div class="row" style="margin:.5rem 0;"><button class="btn secondary" onclick="UI.openPkgRules()">Edit Package Rules</button></div>' + makeTable('Add-ons',S.menu.addons,S.menu.sizes,'addonTable') + `<div class='footnote' style='margin-top:.5rem;'>${S.menu.guidance}</div>`; UI.modal('Menu Editor',(close)=>{ try{ const read=(id)=>{ const tbody=document.querySelector('#'+id+' tbody'); const rows=Array.from(tbody.querySelectorAll('tr')); const out={}; for(const r of rows){ const inputs=r.querySelectorAll('input'); const name=inputs[0].value.trim(); if(!name) continue; const prices=Array.from(inputs).slice(1).map(x=>Number(x.value||0)); out[name]=prices; } return out; }; S.menu.packages=read('pkgTable'); S.menu.addons=read('addonTable'); Storage.save(S); UI.populateSizesAndPackages(); UI.prefillBase(); UI.renderAddons(); UI.flash('Menu saved.'); }catch(e){ alert('Error saving: '+e.message); } close(); }, content, 'Save Changes', true, true); },
   delRow(tableId,name){ const tr=document.querySelector(`#${tableId} tr[data-name="${name}"]`); if(tr) tr.remove(); },
-  openPkgRules(){ const names=Object.keys(S.menu.packages); const content=el('div',{}, el('label',{},'Select Package'), (()=>{ const s=el('select',{id:'prPkg'}); names.forEach(n=>s.append(el('option',{value:n},n))); return s; })(), el('label',{},'Lock Retail Base?'), (()=>{ const s=el('select',{id:'prLock'}); s.append(el('option',{value:'no'},'No')); s.append(el('option',{value:'yes'},'Yes')); return s; })(), el('label',{},'Included Add-ons'), (()=>{ const box=el('div',{class:'list',id:'prList'}); for(const n of Object.keys(S.menu.addons)) box.append(el('label',{}, el('input',{type:'checkbox','data-name':n,style:'margin-right:.4rem;'}), n)); return box; })() ); const sync=()=>{ const pkg=content.querySelector('#prPkg').value; const meta=pkgMeta(pkg); content.querySelector('#prLock').value=meta.lock?'yes':'no'; content.querySelectorAll('#prList input[type=checkbox]').forEach(cb=>cb.checked=!!meta.includedAddons?.includes(cb.getAttribute('data-name'))); }; UI.modal('Package Rules',(close)=>{ const pkg=content.querySelector('#prPkg').value; const lock=content.querySelector('#prLock').value==='yes'; const inc=Array.from(content.querySelectorAll('#prList input[type=checkbox]')).filter(x=>x.checked).map(x=>x.getAttribute('data-name')); S.menu.packageMeta[pkg]={lock, includedAddons:inc}; Storage.save(S); UI.prefillBase(); UI.renderAddons(); UI.flash('Rules saved.'); close(); }, content); content.querySelector('#prPkg').addEventListener('change', sync); sync(); },
-  openCustomBuilder(){ const size=document.getElementById('jobSize').value||S.menu.sizes[0]; const content=el('div',{}, el('label',{},'Package Name'), el('input',{id:'cbName', value:'Custom Package'}), el('div',{class:'row'}, el('div',{}, el('label',{}, 'Base Price for '+size), el('input',{id:'cbBase', type:'number', min:'0', step:'0.01', value:'0'})), el('div',{}, el('label',{}, 'Lock Retail Base'), el('select',{id:'cbLock'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')))), el('label',{},'Included Add-ons (optional)'), (()=>{ const box=el('div',{class:'list'}); for(const n of Object.keys(S.menu.addons)) box.append(el('label',{}, el('input',{type:'checkbox','data-name':n,style:'margin-right:.4rem;'}), n)); return box; })(), el('label',{},'Pick & Choose mode (no included items)'), el('select',{id:'cbPick'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')) ); UI.modal('Build Custom Package',(close)=>{ const name=content.querySelector('#cbName').value.trim()||'Custom Package'; const base=Number(content.querySelector('#cbBase').value||0); const lock=content.querySelector('#cbLock').value==='yes'; const pick=content.querySelector('#cbPick').value==='yes'; const inc=pick?[]:Array.from(content.querySelectorAll('input[type=checkbox][data-name]')).filter(x=>x.checked).map(x=>x.getAttribute('data-name')); const prices=S.menu.sizes.map(()=>0); prices[S.menu.sizes.indexOf(size)]=base; S.menu.packages[name]=prices; S.menu.packageMeta[name]={lock, includedAddons:inc}; Storage.save(S); UI.populateSizesAndPackages(); document.getElementById('jobPkg').value=name; UI.prefillBase(); UI.renderAddons(); UI.flash('Custom package added.'); close(); }, content, 'Use Package', true, true); },
-  openImport(){ const f=el('input',{type:'file',accept:'.json'}); f.onchange=(e)=>{ const file=e.target.files[0]; if(!file) return; const r=new FileReader(); r.onload=()=>{ try{ const data=JSON.parse(r.result); if(!data.transactions) throw new Error('Invalid backup file: missing "transactions"'); S=data; if(!S.menu.packageMeta) S.menu.packageMeta={}; Storage.save(S); location.reload(); }catch(err){ alert('Import error: '+err.message); } }; r.readAsText(file); }; f.click(); },
+  openPkgRules(){ const names=Object.keys(S.menu.packages); const content=el('div',{}, el('label',{},'Select Package'), (()=>{ const s=el('select',{id:'prPkg'}); names.forEach(n=>s.append(el('option',{value:n},n))); return s; })(), el('label',{},'Lock Retail Base?'), (()=>{ const s=el('select',{id:'prLock'}); s.append(el('option',{value:'no'},'No')); s.append(el('option',{value:'yes'},'Yes')); return s; })(), el('label',{},'Included Add-ons'), (()=>{ const box=el('div',{class:'list',id:'prList'}); for(const n of Object.keys(S.menu.addons)) box.append(el('label',{}, el('input',{type:'checkbox','data-name':n,style:'margin-right:.4rem;'}), n)); return box; })() ); const sync=()=>{ const pkg=content.querySelector('#prPkg').value; const meta=pkgMeta(pkg); content.querySelector('#prLock').value=meta.lock?'yes':'no'; content.querySelectorAll('#prList input[type=checkbox]').forEach(cb=>cb.checked=!!meta.includedAddons?.includes(cb.getAttribute('data-name'))); }; UI.modal('Package Rules',(close)=>{ const pkg=content.querySelector('#prPkg').value; const lock=content.querySelector('#prLock').value==='yes'; const inc=Array.from(content.querySelectorAll('#prList input[type=checkbox]')).filter(x=>x.checked).map(x=>x.getAttribute('data-name')); S.menu.packageMeta[S.menu.packages[pkg]?pkg:pkg]={lock, includedAddons:inc}; Storage.save(S); UI.prefillBase(); UI.renderAddons(); UI.flash('Rules saved.'); close(); }, content); content.querySelector('#prPkg').addEventListener('change', sync); sync(); },
+  openCustomBuilder(){ const size=document.querySelector('.vehicle-size')?.value||S.menu.sizes[0]; const content=el('div',{}, el('label',{},'Package Name'), el('input',{id:'cbName', value:'Custom Package'}), el('div',{class:'row'}, el('div',{}, el('label',{}, 'Base Price for '+size), el('input',{id:'cbBase',type:'number',min:'0',step:'0.01',value:'0'})), el('div',{}, el('label',{}, 'Lock Retail Base'), el('select',{id:'cbLock'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')))), el('label',{},'Included Add-ons (optional)'), (()=>{ const box=el('div',{class:'list'}); for(const n of Object.keys(S.menu.addons)) box.append(el('label',{}, el('input',{type:'checkbox','data-name':n,style:'margin-right:.4rem;'}), n)); return box; })(), el('label',{},'Pick & Choose mode (no included items)'), el('select',{id:'cbPick'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')) ); UI.modal('Build Custom Package',(close)=>{ const name=content.querySelector('#cbName').value.trim()||'Custom Package'; const base=Number(content.querySelector('#cbBase').value||0); const lock=content.querySelector('#cbLock').value==='yes'; const pick=content.querySelector('#cbPick').value==='yes'; const inc=pick?[]:Array.from(content.querySelectorAll('input[type=checkbox][data-name]')).filter(x=>x.checked).map(x=>x.getAttribute('data-name')); const prices=S.menu.sizes.map(()=>0); const idx=S.menu.sizes.indexOf(size); if(idx>=0) prices[idx]=base; else if(prices.length) prices[0]=base; S.menu.packages[name]=prices; S.menu.packageMeta[name]={lock, includedAddons:inc}; Storage.save(S); UI.populateSizesAndPackages(); document.getElementById('jobPkg').value=name; UI.handlePackageChange(); UI.flash('Custom package added.'); close(); }, content, 'Use Package', true, true); },
+  openImport(){ const file=el('input',{type:'file',accept:'.json'}); file.onchange=(e)=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const data=JSON.parse(r.result); if(!data.transactions) throw new Error('Invalid backup file: missing "transactions"'); S=data; if(!S.menu.packageMeta) S.menu.packageMeta={}; Storage.save(S); location.reload(); }catch(err){ alert('Import error: '+err.message); } }; r.readAsText(f); }; file.click(); },
   openSettings(){ const content=el('div',{}, el('h4',{},'Brand'), el('label',{},'Header Title'), el('input',{id:'stHeader', value:S.business.headerTitle||''}), el('label',{},'Business Name (on quotes)'), el('input',{id:'stBiz', value:S.business.name||''}), el('label',{},'Logo'), el('div',{class:'row'}, el('button',{class:'btn', onclick:()=>UI.pickLogo()},'Upload Logo'), el('button',{class:'btn secondary', onclick:()=>{ S.business.logoDataUrl=''; Storage.save(S); UI.initHeader(); UI.flash('Logo removed.'); }},'Remove Logo')), el('div',{class:'footnote'},'Replace install icons by swapping icon-192.png / icon-512.png in the bundle.') ); UI.modal('Settings',(close)=>{ S.business.headerTitle=content.querySelector('#stHeader').value.trim()||'POLISH CREW — Accounting'; S.business.name=content.querySelector('#stBiz').value.trim()||'Polish Crew'; Storage.save(S); UI.initHeader(); UI.flash('Settings saved.'); close(); }, content); },
   pickLogo(){ const f=el('input',{type:'file',accept:'image/*'}); f.onchange=(e)=>{ const file=e.target.files[0]; if(!file) return; const r=new FileReader(); r.onload=()=>{ S.business.logoDataUrl=r.result; Storage.save(S); UI.initHeader(); UI.flash('Logo updated.'); }; r.readAsDataURL(file); }; f.click(); },
   clientName(id){ return (S.clients.find(c=>c.id===id)||{}).name||''; },
   printQuote(){
-    const clientId=document.getElementById('jobClient').value||'';
-    const size=document.getElementById('jobSize').value;
-    const pkg=document.getElementById('jobPkg').value;
-    const base=Number(document.getElementById('jobBase').value||0);
-    const discType=document.getElementById('jobDiscType').value;
-    const discValue=Number(document.getElementById('jobDiscValue').value||0);
-    const discScope=document.getElementById('jobDiscScope').value;
-    const vehicleCount=Math.max(1, Math.floor(Number(document.getElementById('jobVehicleCount').value||1))||1);
-    const notes=document.getElementById('jobNotes').value.trim();
+    const clientId = document.getElementById('jobClient').value || '';
+    const pkg      = document.getElementById('jobPkg').value;
+    const vehicles = this.collectVehicles();
+    if(!vehicles.length) return alert('Add at least one vehicle to print');
+    const discType = document.getElementById('jobDiscType').value;
+    const discValue= Number(document.getElementById('jobDiscValue').value || 0);
+    const discScope= document.getElementById('jobDiscScope').value;
+    const notes    = document.getElementById('jobNotes').value.trim();
 
-    const addons=[];
-    document.querySelectorAll('.addon-row').forEach(row=>{
-      const checked=row.querySelector('input[type=checkbox]').checked;
-      if(!checked) return;
-      const name=row.getAttribute('data-name');
-      const price=Number(row.querySelector('input[type=number]').value||0);
-      addons.push({name,price});
-    });
-
-    const tempJob={
-      id:'preview',
-      date:new Date().toISOString().slice(0,10),
-      clientId,size,pkg,base,addons,
-      discType,discValue,discScope,vehicleCount,notes,
-      status:'Quoted',
-      payments:[]
+    const tempJob = {
+      id: 'preview',
+      date: new Date().toISOString().slice(0,10),
+      clientId,
+      pkg,
+      vehicles,
+      discType,
+      discValue,
+      discScope,
+      notes,
+      status: 'Quoted',
+      payments: []
     };
+    tempJob.size = vehicles[0]?.size || '';
+    tempJob.vehicleCount = vehicles.length;
 
     UI.renderPrintSheet(tempJob);
   },
@@ -460,36 +635,52 @@ const UI = {
   flash(msg){ const n=el('div',{style:'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#06100a;border:1px solid #163c27;color:#dff8e7;padding:.6rem 1rem;border-radius:999px;z-index:50;'}, msg); document.body.append(n); setTimeout(()=>n.remove(),1600); },
   bootError(text){ const w=el('div',{class:'card',style:'margin:1rem;border-color:#3a1515;background:#1b0c0c;'}, el('h3',{},'Boot Error'), el('div',{}, text||'Unknown error')); document.body.prepend(w); }
 };
-
+// Renders the 1-page sheet for ANY job-like object
 UI.renderPrintSheet = function(job){
-  const j=job;
-  const c=S.clients.find(x=>x.id===j.clientId);
-  const meta=(S.menu.packageMeta && S.menu.packageMeta[j.pkg]) || {includedAddons:[]};
-  const included=(meta.includedAddons||[]).map(n=>`<li>${n}</li>`).join('');
-  const vehicleCount=Calc.vehicleCount(j);
-  const addons=(j.addons||[]).map(a=>{
+  const j = job;
+  const c = S.clients.find(x => x.id === j.clientId);
+  const meta = (S.menu.packageMeta && S.menu.packageMeta[j.pkg]) || {includedAddons:[]};
+  const included = (meta.includedAddons||[]).map(n=>`<li>${n}</li>`).join('');
+  const hasVehicles = Array.isArray(j.vehicles) && j.vehicles.length;
+  const vehicles = hasVehicles ? j.vehicles.map(v=>({
+    size: v.size || '',
+    base: Number(v.base||0),
+    addons: (v.addons||[]).map(a=>({name:a.name, price:Number(a.price||0)}))
+  })) : [];
+  const legacyAddons = (!hasVehicles ? (j.addons||[]) : []).map(a=>{
     const price=Number(a.price||0);
-    const lineTotal=price*vehicleCount;
-    const priceLabel=vehicleCount>1?`$${price.toFixed(2)} ea × ${vehicleCount} = $${lineTotal.toFixed(2)}`:`$${price.toFixed(2)}`;
-    const note=vehicleCount>1?'<div style="color:#777;font-size:12px;">Per vehicle</div>':'';
+    const count=Calc.vehicleCount(j);
+    const lineTotal=price*count;
+    const priceLabel=count>1 ? `$${price.toFixed(2)} ea × ${count} = $${lineTotal.toFixed(2)}` : `$${price.toFixed(2)}`;
+    const note=count>1?'<div style="color:#777;font-size:12px;">Per vehicle</div>':'';
     return `<tr><td>${a.name}${note}</td><td style="text-align:right">${priceLabel}</td></tr>`;
   }).join('');
-  const subtotal=Calc.subtotal(j).toFixed(2);
-  const disc=Calc.discount(j).toFixed(2);
-  const total=Calc.total(j).toFixed(2);
-  const discountLabel=(j.discScope==='vehicle' && vehicleCount>1)?'Discount (per vehicle)':'Discount';
-  const paidRows=(j.payments||[]).map(p=>`<tr><td>${p.date}</td><td>${p.method||''}</td><td style="text-align:right">$${Number(p.amount||0).toFixed(2)}</td></tr>`).join('');
-  const bizName=S.business?.name||'Polish Crew';
-  const logo=S.business?.logoDataUrl||'';
-  const headerTitle=(j.status==='Paid') ? 'Receipt' : 'Quote';
-
-  const sheet=document.getElementById('printSheet');
+  const vehicleCount = hasVehicles ? vehicles.length : Calc.vehicleCount(j);
+  const vehicleSummary = UI.jobVehicleSummary(j);
+  const subtotal = Calc.subtotal(j).toFixed(2);
+  const disc = Calc.discount(j).toFixed(2);
+  const total = Calc.total(j).toFixed(2);
+  const discountLabel = (j.discScope==='vehicle' && vehicleCount>1) ? 'Discount (per vehicle)' : 'Discount';
+  const paidRows = (j.payments||[]).map(p=>`<tr><td>${p.date}</td><td>${p.method||''}</td><td style="text-align:right">$${Number(p.amount||0).toFixed(2)}</td></tr>`).join('');
+  const bizName = S.business?.name || 'Polish Crew';
+  const logo = S.business?.logoDataUrl || '';
+  const headerTitle = (j.status === 'Paid') ? 'Receipt' : 'Quote';
+  const vehicleSections = hasVehicles ? vehicles.map((v,idx)=>{
+    const addonRows = v.addons.length ? v.addons.map(a=>`<tr><td>${a.name}</td><td style="text-align:right">$${Number(a.price||0).toFixed(2)}</td></tr>`).join('') : '<tr><td style="color:#666">No add-ons</td><td></td></tr>';
+    return `<div style="margin-bottom:12px;">
+      <div style="font-weight:700;margin-bottom:4px;">Vehicle ${idx+1}: ${v.size || 'Vehicle'}</div>
+      <table style="width:100%;border-collapse:collapse;font-size:14px">
+        <tr><td>${j.pkg} base${v.size ? ' — '+v.size : ''}</td><td style="text-align:right">$${v.base.toFixed(2)}</td></tr>
+        ${addonRows}
+      </table>
+    </div>`;
+  }).join('') : '';
+  const sheet = document.getElementById('printSheet');
   if(!sheet){
     console.error('printSheet host missing');
     return;
   }
-
-  sheet.innerHTML=`
+  sheet.innerHTML = `
     <div style="max-width:800px;margin:0 auto;font:14px/1.35 Montserrat,Arial,sans-serif;color:#111">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
         ${logo ? `<img src="${logo}" style="width:48px;height:48px;border-radius:8px;border:2px solid #0a0;object-fit:cover">` : ''}
@@ -502,15 +693,15 @@ UI.renderPrintSheet = function(job){
           <div style="color:#555">Date: ${j.date}</div>
         </div>
         <div style="text-align:right">
-          <div style="font-weight:700">${c?.name||''}</div>
-          <div style="color:#555">${c?.phone||''}</div>
+          <div style="font-weight:700">${c?.name || ''}</div>
+          <div style="color:#555">${c?.phone || ''}</div>
         </div>
       </div>
 
       <hr style="border:none;border-top:1px solid #ddd;margin:8px 0 12px">
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px;">
-        <div><div style="color:#555">Package</div><div style="font-weight:700">${j.pkg} — ${j.size}${vehicleCount>1?` × ${vehicleCount} vehicles`:''}</div></div>
+        <div><div style="color:#555">Package</div><div style="font-weight:700">${j.pkg}${vehicleSummary?` — ${vehicleSummary}`:''}</div></div>
         <div><div style="color:#555">Status</div><div style="font-weight:700">${j.status}</div></div>
       </div>
 
@@ -519,10 +710,7 @@ UI.renderPrintSheet = function(job){
           <div style="font-weight:800;margin:6px 0 4px">Included with package</div>
           <ul style="margin:0 0 8px 18px;padding:0">${included || '<li>None</li>'}</ul>
 
-          <div style="font-weight:800;margin:6px 0 4px">Add-ons</div>
-          <table style="width:100%;border-collapse:collapse;font-size:14px">
-            ${addons || '<tr><td style="color:#666">None</td><td></td></tr>'}
-          </table>
+          ${hasVehicles ? `<div style=\"font-weight:800;margin:6px 0 4px\">Vehicles</div><div style=\"display:flex;flex-direction:column;gap:12px;\">${vehicleSections}</div>` : `<div style=\"font-weight:800;margin:6px 0 4px\">Add-ons</div><table style=\"width:100%;border-collapse:collapse;font-size:14px\">${legacyAddons || '<tr><td style=\"color:#666\">None</td><td></td></tr>'}</table>`}
 
           ${j.notes ? `<div style="margin-top:8px"><div style="color:#555">Notes</div><div>${j.notes}</div></div>` : ''}
         </div>
@@ -545,29 +733,16 @@ UI.renderPrintSheet = function(job){
 
       <div style="margin-top:16px;color:#666;font-size:12px">Thank you for your business.</div>
     </div>`;
-
   sheet.classList.remove('hidden');
   window.print();
-  setTimeout(()=>{
-    sheet.classList.add('hidden');
-    sheet.innerHTML='';
-  }, 300);
+  setTimeout(()=>{ sheet.classList.add('hidden'); sheet.innerHTML=''; }, 300);
 };
 
-/*** Export helpers ***/
+/*** Data export ***/
 const Data = {
   exportJSON(){ const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='pc_accounting_backup.json'; a.click(); URL.revokeObjectURL(url); },
-  exportCSV(){ const rows=[[ 'date','type','category','item','client','vendor','payment','amount','notes' ]]; for (const t of S.transactions) rows.push([ t.date||'', t.type||'', t.category||'', (t.item||'').replace(/,/g,' '), UI.clientName(t.clientId||'').replace(/,/g,' '), (t.vendor||'').replace(/,/g,' '), t.payment||'', Number(t.amount||0).toFixed(2), (t.notes||'').replace(/,/g,' ') ]); const csv=rows.map(r=>r.join(',')).join('\n'); const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='transactions.csv'; a.click(); URL.revokeObjectURL(url); }
+  exportCSV(){ const rows=[[ 'date','type','category','item','client','vendor','payment','amount','notes' ]]; for(const t of S.transactions) rows.push([ t.date||'', t.type||'', t.category||'', (t.item||'').replace(/,/g,' '), UI.clientName(t.clientId||'').replace(/,/g,' '), (t.vendor||'').replace(/,/g,' '), t.payment||'', Number(t.amount||0).toFixed(2), (t.notes||'').replace(/,/g,' ') ]); const csv=rows.map(r=>r.join(',')).join('\n'); const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='transactions.csv'; a.click(); URL.revokeObjectURL(url); }
 };
-
-function refreshMonthTotals(){
-  const now=new Date(); const ym=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  let inc=0, exp=0; for(const t of S.transactions){ if((t.date||'').startsWith(ym)){ if(t.type==='Income') inc+=Number(t.amount||0); else if(t.type==='Expense') exp+=Number(t.amount||0); } }
-  document.getElementById('mIncome').textContent=fmt(inc);
-  document.getElementById('mExpense').textContent=fmt(exp);
-  document.getElementById('mNet').textContent=fmt(inc-exp);
-}
-UI.refreshDashboard = refreshMonthTotals;
 
 window.addEventListener('load', ()=>App.init());
 </script>
