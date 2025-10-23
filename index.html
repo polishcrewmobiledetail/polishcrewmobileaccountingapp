@@ -112,9 +112,12 @@
           </div>
 
           <div class="card" style="margin-top:.6rem;">
-            <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:.4rem;">
+            <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:.4rem;gap:.5rem;flex-wrap:wrap;">
               <h3 style="margin:.25rem 0;">Vehicles</h3>
-              <button class="btn secondary" onclick="UI.addVehicle()">Add Vehicle</button>
+              <div class="row" style="gap:.5rem;flex-wrap:wrap;justify-content:flex-end;">
+                <button class="btn secondary" onclick="UI.openPackageManager()">Edit Packages</button>
+                <button class="btn secondary" onclick="UI.addVehicle()">Add Vehicle</button>
+              </div>
             </div>
             <div id="vehiclesList" class="list"></div>
             <div class="footnote">≤3 add-ons = Maintenance. 4+ or heavy soil → Full Detail upgrade.</div>
@@ -460,6 +463,28 @@ const UI = {
   initHeader(){ const logo=document.getElementById('headerLogo'); logo.src=S.business.logoDataUrl||'icon-192.png'; document.getElementById('headerTitle').textContent=S.business.headerTitle||'POLISH CREW — Accounting'; document.getElementById('openDrawer').onclick=()=>UI.toggleDrawer(true); },
   switchTab(name){ document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.getAttribute('data-tab')===name)); document.querySelectorAll('.tabpage').forEach(p=>p.classList.add('hidden')); document.getElementById(name).classList.remove('hidden'); },
   initTabs(){ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>UI.switchTab(t.getAttribute('data-tab')))); },
+  packageOptionLabel(name,size){
+    const price=Calc.base(name,size);
+    const included=(pkgMeta(name).includedAddons||[]).filter(Boolean);
+    const includeText=included.length?` • Includes: ${included.join(', ')}`:'';
+    return `${name} — ${fmt(price)}${includeText}`;
+  },
+  updatePackageSelectOptions(sel,{preferred}={}){
+    if(!sel) return;
+    const row=sel.closest('.vehicle-row');
+    const size=row?.querySelector('.vehicle-size')?.value || S.menu.sizes[0] || '';
+    const packageNames=Object.keys(S.menu.packages);
+    const desired=(preferred && S.menu.packages[preferred])?preferred:((sel.value && S.menu.packages[sel.value])?sel.value:'');
+    sel.innerHTML='';
+    packageNames.forEach(name=>sel.append(el('option',{value:name},UI.packageOptionLabel(name,size))));
+    if(desired && S.menu.packages[desired]) sel.value=desired;
+    else if(sel.options.length) sel.value=sel.options[0].value;
+  },
+  addonOptionLabel(name,size,meta){
+    const price=Calc.addonPrice(name,size);
+    const included=!!meta?.includedAddons?.includes(name);
+    return `${name} — ${fmt(price)}${included?' (Included)':''}`;
+  },
   populateClients(selectId){ const sel=document.getElementById('jobClient'); if(sel){ sel.innerHTML='<option value="">-- select client --</option>'; for(const c of S.clients){ const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; sel.appendChild(o); } if(selectId) sel.value=selectId; }
     const list=document.getElementById('clientsList');
     if(list){
@@ -573,15 +598,10 @@ const UI = {
     },content,'Done',true,true);
   },
   populateSizesAndPackages(){
-    const packageNames=Object.keys(S.menu.packages);
     document.querySelectorAll('.vehicle-package').forEach(sel=>{
+      UI.updatePackageSelectOptions(sel);
       const row=sel.closest('.vehicle-row');
-      const current=sel.value;
-      sel.innerHTML='';
-      packageNames.forEach(name=>sel.append(el('option',{value:name},name)));
-      if(current && S.menu.packages[current]) sel.value=current;
-      else if(sel.options.length) sel.value=sel.options[0].value;
-      if(row) UI.refreshVehicleRow(row,{setBase:true});
+      if(row) UI.refreshVehicleRow(row,{setBase:true, skipPackageSync:true});
     });
     document.querySelectorAll('.vehicle-size').forEach(sel=>{
       const current=sel.value;
@@ -602,11 +622,10 @@ const UI = {
   addVehicle(prefill={}){
     const list=document.getElementById('vehiclesList');
     if(!list) return;
-    const pkgOptions=Object.keys(S.menu.packages);
     const sizeOptions=S.menu.sizes;
     const sizePref=(prefill.size && sizeOptions.includes(prefill.size))?prefill.size:(sizeOptions[0]||'');
+    const pkgOptions=Object.keys(S.menu.packages);
     const pkgPref=(prefill.pkg && S.menu.packages[prefill.pkg])?prefill.pkg:(pkgOptions[0]||'');
-    const meta=pkgMeta(pkgPref);
     const baseDefault=Calc.base(pkgPref,sizePref);
     const baseValue=prefill.base!=null?Number(prefill.base):baseDefault;
     const row=el('div',{class:'list-item vehicle-row'});
@@ -636,12 +655,8 @@ const UI = {
     pkgWrap.append(el('label',{},'Package'));
     const pkgRow=el('div',{class:'row',style:'gap:.4rem;'});
     const pkgSel=el('select',{class:'vehicle-package'});
-    pkgOptions.forEach(name=>pkgSel.append(el('option',{value:name},name)));
-    if(pkgPref && S.menu.packages[pkgPref]) pkgSel.value=pkgPref;
-    else if(pkgSel.options.length) pkgSel.value=pkgSel.options[0].value;
-    const pkgCustomBtn=el('button',{class:'btn secondary',type:'button'},'Custom');
-    pkgCustomBtn.addEventListener('click',()=>UI.openCustomBuilder(row));
-    pkgRow.append(pkgSel,pkgCustomBtn);
+    UI.updatePackageSelectOptions(pkgSel,{preferred:pkgPref});
+    pkgRow.append(pkgSel);
     pkgWrap.append(pkgRow);
     header.append(pkgWrap);
 
@@ -656,7 +671,6 @@ const UI = {
     const baseWrap=el('div',{style:'flex:1;min-width:140px;'});
     baseWrap.append(el('label',{},'Base'));
     const baseInput=el('input',{type:'number',min:'0',step:'0.01',class:'vehicle-base',value:Number(baseValue||0).toFixed(2)});
-    if(meta.lock) baseInput.disabled=true;
     baseWrap.append(baseInput);
     header.append(baseWrap);
 
@@ -698,6 +712,7 @@ const UI = {
 
     syncSelectedVehicle();
 
+    UI.refreshVehicleRow(row,{skipAddons:true});
     UI.renderVehicleAddons(row, prefill.addons||null);
 
     baseInput.addEventListener('input',()=>UI.updateTotals());
@@ -719,8 +734,11 @@ const UI = {
     UI.syncVehicleRemovers();
     UI.updateTotals();
   },
-  refreshVehicleRow(row,{setBase=false}={}){
+  refreshVehicleRow(row,{setBase=false, skipAddons=false, skipPackageSync=false}={}){
     const pkgSel=row.querySelector('.vehicle-package');
+    if(pkgSel && !skipPackageSync){
+      UI.updatePackageSelectOptions(pkgSel,{preferred:pkgSel.value});
+    }
     const pkg=pkgSel?.value || '';
     const meta=pkgMeta(pkg);
     const sizeSel=row.querySelector('.vehicle-size');
@@ -732,7 +750,7 @@ const UI = {
     }
     if(baseInput) baseInput.disabled=!!meta.lock;
     row.setAttribute('data-pkg',pkg);
-    UI.renderVehicleAddons(row);
+    if(!skipAddons) UI.renderVehicleAddons(row);
   },
   renderVehicleAddons(row,preset=null){
     const host=row.querySelector('.vehicle-addons');
@@ -757,7 +775,7 @@ const UI = {
     const controlRow=el('div',{class:'row',style:'gap:.5rem;align-items:flex-end;'});
     const select=el('select',{class:'vehicle-addon-picker'});
     select.append(el('option',{value:''},'Add add-on…'));
-    Object.keys(S.menu.addons).forEach(name=>select.append(el('option',{value:name},name)));
+    Object.keys(S.menu.addons).forEach(name=>select.append(el('option',{value:name},UI.addonOptionLabel(name,size,meta))));
     const addBtn=el('button',{class:'btn secondary',type:'button'},'Add');
     controlRow.append(select,addBtn);
     host.append(controlRow);
@@ -926,10 +944,169 @@ const UI = {
   openMileage(){ const rows=S.mileage.map((m,i)=>`<tr><td>${m.date}</td><td>${m.from}</td><td>${m.to}</td><td>${m.why}</td><td>${m.miles}</td><td><button class='pill' onclick='UI.delMileage(${i})'>Delete</button></td></tr>`).join(''); this.modal('Mileage',(c)=>c(), el('div',{}, el('div',{class:'row'}, el('div',{}, el('label',{},'Date'), el('input',{id:'miDate',type:'date',value:today()})), el('div',{}, el('label',{},'From'), el('input',{id:'miFrom'})), el('div',{}, el('label',{},'To'), el('input',{id:'miTo'})), el('div',{}, el('label',{},'Why'), el('input',{id:'miWhy'})), el('div',{}, el('label',{},'Miles'), el('input',{id:'miMiles',type:'number',min:'0',step:'0.1'})) ), el('div',{class:'row'}, el('button',{class:'btn', onclick:()=>UI.addMileage()},'Add Entry')), el('table',{style:'width:100%;border-collapse:collapse;margin-top:.5rem;'}, el('thead',{}, el('tr',{html:'<th>Date</th><th>From</th><th>To</th><th>Why</th><th>Miles</th><th></th>'})), el('tbody',{id:'miBody',html:rows})) )); },
   addMileage(){ const e={date:document.getElementById('miDate').value||today(),from:document.getElementById('miFrom').value||'',to:document.getElementById('miTo').value||'',why:document.getElementById('miWhy').value||'',miles:Number(document.getElementById('miMiles').value||0)}; S.mileage.push(e); Storage.save(S); const tr=`<tr><td>${e.date}</td><td>${e.from}</td><td>${e.to}</td><td>${e.why}</td><td>${e.miles}</td><td><button class='pill' onclick='UI.delMileage(${S.mileage.length-1})'>Delete</button></td></tr>`; document.getElementById('miBody').insertAdjacentHTML('beforeend', tr); UI.flash('Mileage added.'); },
   delMileage(i){ if(!confirm('Delete entry?')) return; S.mileage.splice(i,1); Storage.save(S); UI.openMileage(); },
-  openMenuEditor(){ const content=el('div',{}); const makeTable=(title,map,sizes,id)=>{ const headers='<tr><th>Item</th>'+sizes.map(s=>`<th>${s}</th>`).join('')+'<th></th></tr>'; const rows=Object.entries(map).map(([n,arr])=>`<tr data-name="${n}"><td><input value="${n}"></td>`+sizes.map((s,i)=>`<td><input type='number' min='0' step='1' value='${arr[i]||0}'></td>`).join('')+`<td><button class='pill' onclick='UI.delRow("${id}","${n}")'>Delete</button></td></tr>`).join(''); return `<h4>${title}</h4><table class='table' id='${id}'><thead>${headers}</thead><tbody>${rows}</tbody></table>`; }; content.innerHTML = makeTable('Packages',S.menu.packages,S.menu.sizes,'pkgTable') + '<div class="row" style="margin:.5rem 0;"><button class="btn secondary" onclick="UI.openPkgRules()">Edit Package Rules</button></div>' + makeTable('Add-ons',S.menu.addons,S.menu.sizes,'addonTable') + `<div class='footnote' style='margin-top:.5rem;'>${S.menu.guidance}</div>`; UI.modal('Menu Editor',(close)=>{ try{ const read=(id)=>{ const tbody=document.querySelector('#'+id+' tbody'); const rows=Array.from(tbody.querySelectorAll('tr')); const out={}; for(const r of rows){ const inputs=r.querySelectorAll('input'); const name=inputs[0].value.trim(); if(!name) continue; const prices=Array.from(inputs).slice(1).map(x=>Number(x.value||0)); out[name]=prices; } return out; }; S.menu.packages=read('pkgTable'); S.menu.addons=read('addonTable'); Storage.save(S); UI.populateSizesAndPackages(); UI.prefillBase(); UI.renderAddons(); UI.flash('Menu saved.'); }catch(e){ alert('Error saving: '+e.message); } close(); }, content, 'Save Changes', true, true); },
+  openMenuEditor(){ const content=el('div',{}); const makeTable=(title,map,sizes,id)=>{ const headers='<tr><th>Item</th>'+sizes.map(s=>`<th>${s}</th>`).join('')+'<th></th></tr>'; const rows=Object.entries(map).map(([n,arr])=>`<tr data-name="${n}"><td><input value="${n}"></td>`+sizes.map((s,i)=>`<td><input type='number' min='0' step='1' value='${arr[i]||0}'></td>`).join('')+`<td><button class='pill' onclick='UI.delRow("${id}","${n}")'>Delete</button></td></tr>`).join(''); return `<h4>${title}</h4><table class='table' id='${id}'><thead>${headers}</thead><tbody>${rows}</tbody></table>`; }; content.innerHTML = makeTable('Packages',S.menu.packages,S.menu.sizes,'pkgTable') + '<div class="row" style="margin:.5rem 0;"><button class="btn secondary" onclick="UI.openPackageManager()">Manage Packages</button></div>' + makeTable('Add-ons',S.menu.addons,S.menu.sizes,'addonTable') + `<div class='footnote' style='margin-top:.5rem;'>${S.menu.guidance}</div>`; UI.modal('Menu Editor',(close)=>{ try{ const read=(id)=>{ const tbody=document.querySelector('#'+id+' tbody'); const rows=Array.from(tbody.querySelectorAll('tr')); const out={}; for(const r of rows){ const inputs=r.querySelectorAll('input'); const name=inputs[0].value.trim(); if(!name) continue; const prices=Array.from(inputs).slice(1).map(x=>Number(x.value||0)); out[name]=prices; } return out; }; S.menu.packages=read('pkgTable'); S.menu.addons=read('addonTable'); Storage.save(S); UI.populateSizesAndPackages(); UI.prefillBase(); UI.renderAddons(); UI.flash('Menu saved.'); }catch(e){ alert('Error saving: '+e.message); } close(); }, content, 'Save Changes', true, true); },
   delRow(tableId,name){ const tr=document.querySelector(`#${tableId} tr[data-name="${name}"]`); if(tr) tr.remove(); },
-  openPkgRules(){ const names=Object.keys(S.menu.packages); const content=el('div',{}, el('label',{},'Select Package'), (()=>{ const s=el('select',{id:'prPkg'}); names.forEach(n=>s.append(el('option',{value:n},n))); return s; })(), el('label',{},'Lock Retail Base?'), (()=>{ const s=el('select',{id:'prLock'}); s.append(el('option',{value:'no'},'No')); s.append(el('option',{value:'yes'},'Yes')); return s; })(), el('label',{},'Included Add-ons'), (()=>{ const box=el('div',{class:'list',id:'prList'}); for(const n of Object.keys(S.menu.addons)) box.append(el('label',{}, el('input',{type:'checkbox','data-name':n,style:'margin-right:.4rem;'}), n)); return box; })() ); const sync=()=>{ const pkg=content.querySelector('#prPkg').value; const meta=pkgMeta(pkg); content.querySelector('#prLock').value=meta.lock?'yes':'no'; content.querySelectorAll('#prList input[type=checkbox]').forEach(cb=>cb.checked=!!meta.includedAddons?.includes(cb.getAttribute('data-name'))); }; UI.modal('Package Rules',(close)=>{ const pkg=content.querySelector('#prPkg').value; const lock=content.querySelector('#prLock').value==='yes'; const inc=Array.from(content.querySelectorAll('#prList input[type=checkbox]')).filter(x=>x.checked).map(x=>x.getAttribute('data-name')); S.menu.packageMeta[S.menu.packages[pkg]?pkg:pkg]={lock, includedAddons:inc}; Storage.save(S); UI.prefillBase(); UI.renderAddons(); UI.flash('Rules saved.'); close(); }, content); content.querySelector('#prPkg').addEventListener('change', sync); sync(); },
-  openCustomBuilder(row=null){ const size=(row?.querySelector('.vehicle-size')?.value)||document.querySelector('.vehicle-size')?.value||S.menu.sizes[0]; const basePref=row?.querySelector('.vehicle-base')?.value||'0'; const content=el('div',{}, el('label',{},'Package Name'), el('input',{id:'cbName', value:'Custom Package'}), el('div',{class:'row'}, el('div',{}, el('label',{}, 'Base Price for '+size), el('input',{id:'cbBase',type:'number',min:'0',step:'0.01',value:basePref})), el('div',{}, el('label',{}, 'Lock Retail Base'), el('select',{id:'cbLock'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')))), el('label',{},'Included Add-ons (optional)'), (()=>{ const box=el('div',{class:'list'}); for(const n of Object.keys(S.menu.addons)) box.append(el('label',{}, el('input',{type:'checkbox','data-name':n,style:'margin-right:.4rem;'}), n)); return box; })(), el('label',{},'Pick & Choose mode (no included items)'), el('select',{id:'cbPick'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')) ); UI.modal('Build Custom Package',(close)=>{ const name=content.querySelector('#cbName').value.trim()||'Custom Package'; const base=Number(content.querySelector('#cbBase').value||0); const lock=content.querySelector('#cbLock').value==='yes'; const pick=content.querySelector('#cbPick').value==='yes'; const inc=pick?[]:Array.from(content.querySelectorAll('input[type=checkbox][data-name]')).filter(x=>x.checked).map(x=>x.getAttribute('data-name')); const prices=S.menu.sizes.map(()=>0); const idx=S.menu.sizes.indexOf(size); if(idx>=0) prices[idx]=base; else if(prices.length) prices[0]=base; S.menu.packages[name]=prices; S.menu.packageMeta[name]={lock, includedAddons:inc}; Storage.save(S); UI.populateSizesAndPackages(); if(row){ const pkgSel=row.querySelector('.vehicle-package'); if(pkgSel){ pkgSel.value=name; UI.refreshVehicleRow(row,{setBase:true}); UI.updateTotals(); } } else { const firstRow=document.querySelector('.vehicle-row'); const pkgSel=firstRow?.querySelector('.vehicle-package'); if(pkgSel){ pkgSel.value=name; UI.refreshVehicleRow(firstRow,{setBase:true}); } UI.handlePackageChange(); } UI.flash('Custom package added.'); close(); }, content, 'Use Package', true, true); },
+  openPackageManager(anchorRow=null){
+    const beforeNames=new Set(Object.keys(S.menu.packages));
+    const sizes=S.menu.sizes.slice();
+    const addonNames=Object.keys(S.menu.addons);
+    const list=el('div',{class:'list',style:'gap:1rem;'});
+    const makeCard=(cfg={})=>{
+      const nameValue=cfg.name||'';
+      const pricesArr=sizes.map((_,i)=>Number((cfg.prices||[])[i]||0));
+      const lockValue=cfg.lock?'yes':'no';
+      const includedSet=new Set((cfg.included||[]).filter(n=>addonNames.includes(n)));
+      const card=el('div',{class:'list-item',"data-package-card":'','style':'padding:1rem;display:flex;flex-direction:column;gap:.75rem;'});
+      const header=el('div',{class:'row',style:'gap:.5rem;flex-wrap:wrap;align-items:flex-end;'});
+      const nameWrap=el('div',{style:'flex:1;min-width:220px;'});
+      const nameInput=el('input',{class:'pkg-name',value:nameValue,placeholder:'Package name'});
+      nameWrap.append(el('label',{},'Name'), nameInput);
+      header.append(nameWrap);
+      const lockWrap=el('div',{style:'flex:0;min-width:160px;'});
+      const lockSel=el('select',{class:'pkg-lock'});
+      lockSel.append(el('option',{value:'no'},'Lock Base: No'));
+      lockSel.append(el('option',{value:'yes'},'Lock Base: Yes'));
+      lockSel.value=lockValue;
+      lockWrap.append(el('label',{},'Lock Retail Base'), lockSel);
+      header.append(lockWrap);
+      const removeWrap=el('div',{style:'flex:0;min-width:120px;'});
+      removeWrap.append(el('label',{},'\u00a0'));
+      const removeBtn=el('button',{class:'btn secondary',type:'button'},'Delete');
+      removeBtn.addEventListener('click',()=>{
+        if(confirm('Delete this package?')) card.remove();
+      });
+      removeWrap.append(removeBtn);
+      header.append(removeWrap);
+      card.append(header);
+
+      const priceRow=el('div',{class:'row',style:'gap:.5rem;flex-wrap:wrap;'});
+      sizes.forEach((size,idx)=>{
+        const wrap=el('div',{style:'flex:1;min-width:140px;'});
+        const input=el('input',{class:'pkg-price',type:'number',min:'0',step:'0.01',value:pricesArr[idx].toFixed(2)});
+        wrap.append(el('label',{},size), input);
+        priceRow.append(wrap);
+      });
+      card.append(priceRow);
+
+      const addonSection=el('div',{class:'list',style:'gap:.4rem;'});
+      addonSection.append(el('label',{},'Included Add-ons'));
+      const pickerRow=el('div',{class:'row',style:'gap:.5rem;align-items:flex-end;'});
+      const picker=el('select',{class:'pkg-addon-picker'});
+      picker.append(el('option',{value:''},'Include add-on…'));
+      addonNames.forEach(name=>picker.append(el('option',{value:name},`${name} — ${fmt(Calc.addonPrice(name,sizes[0]||''))}`)));
+      const addBtn=el('button',{class:'btn secondary',type:'button'},'Include');
+      pickerRow.append(picker,addBtn);
+      addonSection.append(pickerRow);
+      const includedList=el('div',{class:'list',style:'gap:.4rem;'});
+      addonSection.append(includedList);
+      card.append(addonSection);
+
+      const refreshOptions=()=>{
+        Array.from(picker.options).forEach(opt=>{
+          if(!opt.value) return;
+          opt.disabled=includedSet.has(opt.value);
+        });
+      };
+      const renderIncluded=()=>{
+        includedList.innerHTML='';
+        if(!includedSet.size){
+          includedList.append(el('div',{class:'tiny',style:'color:#7d8787;'},'None selected.'));
+          return;
+        }
+        includedSet.forEach(name=>{
+          const row=el('div',{class:'list-item pkg-included-item','data-name':name,style:'opacity:.6;display:flex;align-items:center;gap:.5rem;'});
+          row.append(el('div',{style:'flex:1;'}, name));
+          const remove=el('button',{class:'btn secondary',type:'button'},'Remove');
+          remove.addEventListener('click',()=>{
+            includedSet.delete(name);
+            renderIncluded();
+            refreshOptions();
+          });
+          row.append(remove);
+          includedList.append(row);
+        });
+      };
+      const includeCurrent=()=>{
+        const value=picker.value;
+        if(!value) return;
+        includedSet.add(value);
+        picker.value='';
+        renderIncluded();
+        refreshOptions();
+      };
+      addBtn.addEventListener('click',includeCurrent);
+      picker.addEventListener('change',()=>{ if(picker.value) includeCurrent(); });
+      renderIncluded();
+      refreshOptions();
+
+      return card;
+    };
+    const ensureUniqueName=(base)=>{
+      const existing=new Set(Array.from(list.querySelectorAll('.pkg-name')).map(inp=>inp.value.trim()).filter(Boolean));
+      let attempt=(base||'New Package').trim();
+      let counter=2;
+      while(existing.has(attempt)){
+        attempt=`${base} ${counter++}`;
+      }
+      return attempt;
+    };
+    Object.keys(S.menu.packages).forEach(name=>{
+      list.append(makeCard({name, prices:S.menu.packages[name], lock:pkgMeta(name).lock, included:pkgMeta(name).includedAddons||[]}));
+    });
+    if(!list.children.length){
+      list.append(makeCard({name:ensureUniqueName('New Package'), prices:sizes.map(()=>0), lock:false, included:[]}));
+    }
+    const addBtn=el('button',{class:'btn secondary',type:'button'},'Add Package');
+    addBtn.addEventListener('click',()=>{
+      list.append(makeCard({name:ensureUniqueName('New Package'), prices:sizes.map(()=>0), lock:false, included:[]}));
+      list.lastChild?.querySelector('.pkg-name')?.focus();
+    });
+    const content=el('div',{}, list, el('div',{class:'row',style:'justify-content:flex-end;margin-top:.5rem;'}, addBtn));
+    UI.modal('Manage Packages',(close)=>{
+      const cards=Array.from(list.querySelectorAll('[data-package-card]'));
+      if(!cards.length){ alert('Add at least one package.'); return; }
+      const used=new Set();
+      const nextPackages={};
+      const nextMeta={};
+      for(const card of cards){
+        const nameInput=card.querySelector('.pkg-name');
+        const name=(nameInput?.value||'').trim();
+        if(!name){ alert('Package name is required.'); nameInput?.focus(); return; }
+        if(used.has(name)){ alert(`Duplicate package name: ${name}`); nameInput?.focus(); return; }
+        used.add(name);
+        const prices=Array.from(card.querySelectorAll('.pkg-price')).map(input=>Number(input.value||0));
+        while(prices.length<sizes.length) prices.push(0);
+        const lock=card.querySelector('.pkg-lock')?.value==='yes';
+        const included=Array.from(card.querySelectorAll('.pkg-included-item')).map(node=>node.getAttribute('data-name')).filter(Boolean);
+        nextPackages[name]=prices;
+        nextMeta[name]={lock, includedAddons:included};
+      }
+      S.menu.packages=nextPackages;
+      S.menu.packageMeta=nextMeta;
+      Storage.save(S);
+      UI.populateSizesAndPackages();
+      const newNames=Object.keys(nextPackages).filter(n=>!beforeNames.has(n));
+      if(anchorRow && anchorRow.isConnected){
+        const pkgSel=anchorRow.querySelector('.vehicle-package');
+        if(newNames.length===1 && pkgSel){
+          pkgSel.value=newNames[0];
+          UI.refreshVehicleRow(anchorRow,{setBase:true});
+        } else {
+          UI.refreshVehicleRow(anchorRow,{setBase:true});
+        }
+      } else if(newNames.length===1){
+        const firstRow=document.querySelector('.vehicle-row');
+        const pkgSel=firstRow?.querySelector('.vehicle-package');
+        if(pkgSel){
+          pkgSel.value=newNames[0];
+          UI.refreshVehicleRow(firstRow,{setBase:true});
+        }
+      }
+      UI.updateTotals();
+      UI.flash('Packages updated.');
+      close();
+    }, content, 'Save Packages', true, true);
+  },
   openImport(){ const file=el('input',{type:'file',accept:'.json'}); file.onchange=(e)=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const data=JSON.parse(r.result); if(!data.transactions) throw new Error('Invalid backup file: missing "transactions"'); S=data; if(!S.menu.packageMeta) S.menu.packageMeta={}; Storage.save(S); location.reload(); }catch(err){ alert('Import error: '+err.message); } }; r.readAsText(f); }; file.click(); },
   openSettings(){ const content=el('div',{}, el('h4',{},'Brand'), el('label',{},'Header Title'), el('input',{id:'stHeader', value:S.business.headerTitle||''}), el('label',{},'Business Name (on quotes)'), el('input',{id:'stBiz', value:S.business.name||''}), el('label',{},'Logo'), el('div',{class:'row'}, el('button',{class:'btn', onclick:()=>UI.pickLogo()},'Upload Logo'), el('button',{class:'btn secondary', onclick:()=>{ S.business.logoDataUrl=''; Storage.save(S); UI.initHeader(); UI.flash('Logo removed.'); }},'Remove Logo')), el('div',{class:'footnote'},'Replace install icons by swapping icon-192.png / icon-512.png in the bundle.') ); UI.modal('Settings',(close)=>{ S.business.headerTitle=content.querySelector('#stHeader').value.trim()||'POLISH CREW — Accounting'; S.business.name=content.querySelector('#stBiz').value.trim()||'Polish Crew'; Storage.save(S); UI.initHeader(); UI.flash('Settings saved.'); close(); }, content); },
   pickLogo(){ const f=el('input',{type:'file',accept:'image/*'}); f.onchange=(e)=>{ const file=e.target.files[0]; if(!file) return; const r=new FileReader(); r.onload=()=>{ S.business.logoDataUrl=r.result; Storage.save(S); UI.initHeader(); UI.flash('Logo updated.'); }; r.readAsDataURL(file); }; f.click(); },
