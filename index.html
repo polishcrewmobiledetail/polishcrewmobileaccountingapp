@@ -238,7 +238,6 @@ const DEFAULT_SIZES = ["Coupe","Sedan","Crossover","SUV/Truck","XL/Lifted"];
 const DEFAULT_MENU = {
   sizes: DEFAULT_SIZES,
   packages: {
-    "Exterior Wash Only": [40,45,50,55,65],
     "Interior Clean Only": [45,50,55,60,70],
     "In & Out Combo": [70,75,85,95,110],
     "Quick In & Out": [65,70,80,90,100],
@@ -319,7 +318,8 @@ const Calc = {
         size: v.size || job.size || S.menu.sizes[0],
         base: Number(v.base||0),
         addons: (v.addons||[]).map(a=>({name:a.name, price:Number(a.price||0)})),
-        pkg: v.pkg || job.pkg || ''
+        pkg: v.pkg || job.pkg || '',
+        label: v.label || ''
       }));
     }
     const count=Math.max(1, Number(job.vehicleCount||1));
@@ -362,10 +362,15 @@ const Calc = {
 /*** App ***/
 const App = {
   init(){
+    this.normalizeClients();
     UI.initHeader();
     UI.initTabs();
     UI.populateClients();
     UI.populateSizesAndPackages();
+    const clientSel=document.getElementById('jobClient');
+    if(clientSel){
+      clientSel.addEventListener('change',()=>UI.onClientChange());
+    }
     document.getElementById('jobDiscType').addEventListener('change',()=>UI.updateTotals());
     document.getElementById('jobDiscValue').addEventListener('input',()=>UI.updateTotals());
     document.getElementById('jobDiscScope').addEventListener('change',()=>UI.updateTotals());
@@ -374,10 +379,59 @@ const App = {
     UI.refreshDashboard();
     if('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js');
   },
-  addClient(){ const name=document.getElementById('cName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(), name, phone:document.getElementById('cPhone').value.trim(), notes:document.getElementById('cNotes').value.trim(), discount:{type:document.getElementById('cDiscType').value, value:Number(document.getElementById('cDiscValue').value||0)}}; S.clients.push(c); Storage.save(S); UI.populateClients(); UI.flash('Client added.'); document.getElementById('cName').value='';document.getElementById('cPhone').value='';document.getElementById('cNotes').value='';document.getElementById('cDiscType').value='none';document.getElementById('cDiscValue').value='0'; },
-  addQuickClient(){ const name=document.getElementById('qcName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(), name, phone:document.getElementById('qcPhone').value.trim(), notes:document.getElementById('qcNotes').value.trim(), discount:{type:document.getElementById('qcDiscType').value, value:Number(document.getElementById('qcDiscValue').value||0)}}; S.clients.push(c); Storage.save(S); UI.populateClients(c.id); UI.hideQuickClient(); UI.flash('Client added.'); },
-  saveJob(){ const clientId=document.getElementById('jobClient').value; const pkg=document.getElementById('jobPkg').value; if(!clientId||!pkg) return alert('Client and package are required'); const vehicles=UI.collectVehicles(); if(!vehicles.length) return alert('Add at least one vehicle'); const discType=document.getElementById('jobDiscType').value; const discValue=Number(document.getElementById('jobDiscValue').value||0); const discScope=document.getElementById('jobDiscScope').value; const notes=document.getElementById('jobNotes').value.trim(); const job={id:uid(), date:today(), clientId,pkg,vehicles,discType,discValue,discScope,notes,status:"Quoted",payments:[]}; job.size=vehicles[0]?.size||''; job.vehicleCount=vehicles.length; S.jobs.unshift(job); Storage.save(S); UI.refreshJobsList(); UI.resetJobForm(); UI.flash('Quote saved.'); },
-  updateJobStatus(id,next){ const j=S.jobs.find(x=>x.id===id); if(!j) return; j.status=next; Storage.save(S); UI.refreshJobsList(); UI.flash('Status: '+next); },
+  normalizeClients(){
+    S.clients = Array.isArray(S.clients) ? S.clients : [];
+    for(const c of S.clients){
+      if(!c.discount) c.discount={type:'none', value:0};
+      if(!Array.isArray(c.vehicles)) c.vehicles=[];
+      for(const v of c.vehicles){
+        if(!v.id) v.id=uid();
+        if(!v.lastService) v.lastService=null;
+        if(!Array.isArray(v.history)) v.history=[];
+      }
+    }
+  },
+  addClient(){ const name=document.getElementById('cName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(), name, phone:document.getElementById('cPhone').value.trim(), notes:document.getElementById('cNotes').value.trim(), discount:{type:document.getElementById('cDiscType').value, value:Number(document.getElementById('cDiscValue').value||0)}, vehicles:[]}; S.clients.push(c); Storage.save(S); UI.populateClients(); UI.flash('Client added.'); document.getElementById('cName').value='';document.getElementById('cPhone').value='';document.getElementById('cNotes').value='';document.getElementById('cDiscType').value='none';document.getElementById('cDiscValue').value='0'; },
+  addQuickClient(){ const name=document.getElementById('qcName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(), name, phone:document.getElementById('qcPhone').value.trim(), notes:document.getElementById('qcNotes').value.trim(), discount:{type:document.getElementById('qcDiscType').value, value:Number(document.getElementById('qcDiscValue').value||0)}, vehicles:[]}; S.clients.push(c); Storage.save(S); UI.populateClients(c.id); UI.hideQuickClient(); UI.flash('Client added.'); UI.onClientChange(); },
+  syncClientVehicles(job,{updateLastService=false}={}){
+    const client=S.clients.find(x=>x.id===job.clientId);
+    if(!client) return;
+    if(!Array.isArray(client.vehicles)) client.vehicles=[];
+    for(const vehicle of job.vehicles||[]){
+      const label=(vehicle.label||'').trim();
+      const candidateId=vehicle.clientVehicleId||vehicle.vehicleId||'';
+      let record=null;
+      if(candidateId){
+        record=client.vehicles.find(v=>v.id===candidateId);
+      }
+      if(!record && label){
+        record=client.vehicles.find(v=>(v.label||'').toLowerCase()===label.toLowerCase());
+      }
+      if(record){
+        if(label) record.label=label;
+        if(vehicle.size) record.size=vehicle.size;
+      } else if(label){
+        record={id:candidateId||uid(), label, size:vehicle.size||'', lastService:null, history:[]};
+        client.vehicles.push(record);
+      } else {
+        continue;
+      }
+      if(!Array.isArray(record.history)) record.history=[];
+      if(updateLastService){
+        const serviceInfo={jobId:job.id, date:job.date, pkg:vehicle.pkg||job.pkg||'', addons:(vehicle.addons||[]).map(a=>a.name).filter(Boolean)};
+        record.lastService=serviceInfo;
+        record.history.unshift(serviceInfo);
+        if(record.history.length>20) record.history.length=20;
+      }
+    }
+    Storage.save(S);
+    UI.populateClients(job.clientId);
+  },
+  saveJob(){ const clientId=document.getElementById('jobClient').value; const pkg=document.getElementById('jobPkg').value; if(!clientId||!pkg) return alert('Client and package are required'); const vehicles=UI.collectVehicles(); if(!vehicles.length) return alert('Add at least one vehicle'); const discType=document.getElementById('jobDiscType').value; const discValue=Number(document.getElementById('jobDiscValue').value||0); const discScope=document.getElementById('jobDiscScope').value; const notes=document.getElementById('jobNotes').value.trim(); const job={id:uid(), date:today(), clientId,pkg,vehicles,discType,discValue,discScope,notes,status:"Quoted",payments:[]}; job.size=vehicles[0]?.size||''; job.vehicleCount=vehicles.length; S.jobs.unshift(job); Storage.save(S); this.syncClientVehicles(job); UI.refreshJobsList(); UI.resetJobForm(); UI.flash('Quote saved.'); },
+  updateJobStatus(id,next){ const j=S.jobs.find(x=>x.id===id); if(!j) return; j.status=next; if(next==='Complete'||next==='Paid'){ this.syncClientVehicles(j,{updateLastService:true}); }
+    else { Storage.save(S); UI.populateClients(j.clientId); }
+    UI.refreshJobsList();
+    UI.flash('Status: '+next); },
   takePayment(id){
     const j=S.jobs.find(x=>x.id===id);
     if(!j) return;
@@ -393,12 +447,14 @@ const App = {
       const vehicleLabel=UI.jobVehicleSummary(j);
       const pkgLabel=UI.jobPackageLabel(j);
       const itemLabel=vehicleLabel?`${pkgLabel} — ${vehicleLabel}`:pkgLabel;
-      S.transactions.push({id:uid(), type:'Income', date:today(), category:'Package', item:itemLabel, clientId:j.clientId, vendor:'', payment:method, amount:Calc.total(j), notes:'Discount: '+(j.discType||'none')+' '+(j.discValue||0)});
+      S.transactions.push({id:uid(), type:'Income', date:today(), category:'Package', item:itemLabel, clientId=j.clientId, vendor:'', payment:method, amount:Calc.total(j), notes:'Discount: '+(j.discType||'none')+' '+(j.discValue||0)});
+      this.syncClientVehicles(j,{updateLastService:true});
       UI.flash('Paid in full. Income posted.');
     } else {
+      Storage.save(S);
+      UI.populateClients(j.clientId);
       UI.flash('Partial payment recorded.');
     }
-    Storage.save(S);
     UI.refreshJobsList();
     UI.refreshDashboard();
   },
@@ -411,7 +467,118 @@ const UI = {
   initHeader(){ const logo=document.getElementById('headerLogo'); logo.src=S.business.logoDataUrl||'icon-192.png'; document.getElementById('headerTitle').textContent=S.business.headerTitle||'POLISH CREW — Accounting'; document.getElementById('openDrawer').onclick=()=>UI.toggleDrawer(true); },
   switchTab(name){ document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.getAttribute('data-tab')===name)); document.querySelectorAll('.tabpage').forEach(p=>p.classList.add('hidden')); document.getElementById(name).classList.remove('hidden'); },
   initTabs(){ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>UI.switchTab(t.getAttribute('data-tab')))); },
-  populateClients(selectId){ const sel=document.getElementById('jobClient'); sel.innerHTML='<option value="">-- select client --</option>'; for(const c of S.clients){ const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; sel.appendChild(o); } if(selectId) sel.value=selectId; const list=document.getElementById('clientsList'); list.innerHTML=''; for(const c of S.clients){ const li=el('div',{class:'list-item'}, el('div',{html:`<b>${c.name}</b> <span class='tiny'>${c.phone||''}</span>`}), el('div',{class:'tiny'},c.notes||'')); list.append(li); } },
+  populateClients(selectId){ const sel=document.getElementById('jobClient'); if(sel){ sel.innerHTML='<option value="">-- select client --</option>'; for(const c of S.clients){ const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; sel.appendChild(o); } if(selectId) sel.value=selectId; }
+    const list=document.getElementById('clientsList');
+    if(list){
+      list.innerHTML='';
+      for(const c of S.clients){
+        const vehicles=Array.isArray(c.vehicles)?c.vehicles:[];
+        const vehicleRows=vehicles.length?vehicles.map(v=>{
+          const service=v.lastService;
+          const addonsLabel=service?.addons&&service.addons.length?` (${service.addons.join(', ')})`:'';
+          const pkgLabel=service?.pkg?` — ${service.pkg}`:'';
+          const serviceText=service?`Last service: ${service.date||'Unknown date'}${pkgLabel}${addonsLabel}`:'No service recorded yet.';
+          return el('div',{class:'tiny'},`${v.label||'Vehicle'}${v.size?` · ${v.size}`:''} · ${serviceText}`);
+        }):[el('div',{class:'tiny'},'No vehicles saved yet.')];
+        const header=el('div',{class:'row',style:'justify-content:space-between;align-items:flex-start;gap:.5rem;'},
+          el('div',{html:`<b>${c.name}</b> <span class='tiny'>${c.phone||''}</span>`}),
+          el('button',{class:'pill',onclick:()=>UI.openClientVehicles(c.id)},'Manage Vehicles')
+        );
+        const body=el('div',{}, ...vehicleRows, ...(c.notes?[el('div',{class:'tiny'},c.notes)]:[]));
+        const li=el('div',{class:'list-item'}, header, body);
+        list.append(li);
+      }
+    }
+    UI.refreshClientVehicleOptions();
+  },
+  refreshClientVehicleOptions(){
+    const clientId=document.getElementById('jobClient')?.value || '';
+    const client=S.clients.find(c=>c.id===clientId);
+    const vehicles=client?.vehicles||[];
+    document.querySelectorAll('.vehicle-row').forEach(row=>{
+      const sel=row.querySelector('.vehicle-existing');
+      if(!sel) return;
+      const current=sel.value;
+      sel.innerHTML='';
+      sel.append(el('option',{value:''}, clientId?'New vehicle':'Select client first'));
+      vehicles.forEach(v=>sel.append(el('option',{value:v.id},v.label||'Unnamed Vehicle')));
+      if(current && vehicles.some(v=>v.id===current)) sel.value=current;
+      else sel.value='';
+      if(sel.value){ row.setAttribute('data-client-vehicle-id', sel.value); }
+      else row.removeAttribute('data-client-vehicle-id');
+    });
+  },
+  onClientChange(){
+    UI.refreshClientVehicleOptions();
+  },
+  openClientVehicles(id){
+    const client=S.clients.find(c=>c.id===id);
+    if(!client) return;
+    if(!Array.isArray(client.vehicles)) client.vehicles=[];
+    const list=el('div',{class:'list',style:'gap:.5rem;'});
+    const renderList=()=>{
+      list.innerHTML='';
+      if(!client.vehicles.length){
+        list.append(el('div',{class:'tiny'},'No vehicles saved yet.'));
+        return;
+      }
+      client.vehicles.forEach(v=>{
+        if(!v.id) v.id=uid();
+        const item=el('div',{class:'list-item'});
+        const header=el('div',{class:'row',style:'gap:.5rem;flex-wrap:wrap;align-items:flex-end;'});
+        const labelWrap=el('div',{style:'flex:1;min-width:200px;'});
+        labelWrap.append(el('label',{},'Vehicle'), el('input',{value:v.label||'',placeholder:'Year / Make / Model',oninput:(e)=>{ v.label=e.target.value.trim(); }}));
+        const sizeWrap=el('div',{style:'flex:1;min-width:160px;'});
+        const sizeSel=el('select',{});
+        sizeSel.append(el('option',{value:''},'Size not set'));
+        S.menu.sizes.forEach(s=>sizeSel.append(el('option',{value:s},s)));
+        sizeSel.value=v.size||'';
+        sizeSel.addEventListener('change',()=>{ v.size=sizeSel.value; });
+        sizeWrap.append(el('label',{},'Size'), sizeSel);
+        const removeBtn=el('button',{class:'btn secondary',type:'button'},'Remove');
+        removeBtn.addEventListener('click',()=>{
+          if(confirm('Remove this vehicle?')){
+            client.vehicles=client.vehicles.filter(x=>x.id!==v.id);
+            renderList();
+          }
+        });
+        header.append(labelWrap,sizeWrap,removeBtn);
+        item.append(header);
+        const service=v.lastService;
+        const addonsLabel=service?.addons&&service.addons.length?` (${service.addons.join(', ')})`:'';
+        const pkgLabel=service?.pkg?` — ${service.pkg}`:'';
+        item.append(el('div',{class:'tiny',style:'margin-top:.25rem;'}, service?`Last service: ${service.date||'Unknown date'}${pkgLabel}${addonsLabel}`:'No recorded service yet.'));
+        list.append(item);
+      });
+    };
+    renderList();
+    const addLabel=el('input',{placeholder:'Year / Make / Model'});
+    const addSize=el('select',{});
+    addSize.append(el('option',{value:''},'Size not set'));
+    S.menu.sizes.forEach(s=>addSize.append(el('option',{value:s},s)));
+    const addButton=el('button',{class:'btn',type:'button'},'Add Vehicle');
+    addButton.addEventListener('click',()=>{
+      const label=addLabel.value.trim();
+      if(!label) return alert('Vehicle description required');
+      client.vehicles.push({id:uid(), label, size:addSize.value||'', lastService:null, history:[]});
+      addLabel.value='';
+      addSize.value='';
+      renderList();
+    });
+    const content=el('div',{}, list, el('div',{class:'row',style:'gap:.5rem;margin-top:.75rem;align-items:flex-end;flex-wrap:wrap;'},
+      el('div',{style:'flex:1;min-width:220px;'}, el('label',{},'Vehicle'), addLabel),
+      el('div',{style:'flex:1;min-width:160px;'}, el('label',{},'Size'), addSize),
+      addButton
+    ));
+    UI.modal('Client Vehicles',(close)=>{
+      client.vehicles=client.vehicles.filter(v=>(v.label||'').trim());
+      Storage.save(S);
+      UI.populateClients(client.id);
+      UI.refreshClientVehicleOptions();
+      UI.flash('Vehicles updated.');
+      close();
+    },content,'Done',true,true);
+  },
   populateSizesAndPackages(){
     const pkg=document.getElementById('jobPkg');
     const currentPkg=pkg?.value;
@@ -481,6 +648,26 @@ const UI = {
     const row=el('div',{class:'list-item vehicle-row','data-autopkg':prefill.pkg?'false':'true'});
     const header=el('div',{class:'row',style:'gap:.5rem;flex-wrap:wrap;align-items:flex-end;'});
 
+    const clientId=document.getElementById('jobClient')?.value || '';
+    const client=S.clients.find(c=>c.id===clientId);
+    const knownVehicles=client?.vehicles||[];
+    const labelPref=(prefill.label||'');
+    const clientVehicleIdPref=prefill.clientVehicleId||prefill.vehicleId||'';
+    const vehicleWrap=el('div',{style:'flex:1;min-width:240px;'});
+    vehicleWrap.append(el('label',{},'Vehicle'));
+    const vehicleRow=el('div',{class:'row',style:'gap:.4rem;'});
+    const vehicleSel=el('select',{class:'vehicle-existing'});
+    vehicleSel.append(el('option',{value:''}, clientId?'New vehicle':'Select client first'));
+    knownVehicles.forEach(v=>vehicleSel.append(el('option',{value:v.id},v.label||'Unnamed Vehicle')));
+    if(clientVehicleIdPref && knownVehicles.some(v=>v.id===clientVehicleIdPref)) vehicleSel.value=clientVehicleIdPref;
+    const vehicleInput=el('input',{class:'vehicle-label',placeholder:'Year / Make / Model',value:labelPref});
+    if(vehicleSel.value) row.setAttribute('data-client-vehicle-id', vehicleSel.value);
+    if(labelPref) row.setAttribute('data-vehicle-label', labelPref);
+    vehicleInput.addEventListener('input',()=>{ row.setAttribute('data-vehicle-label', vehicleInput.value.trim()); });
+    vehicleRow.append(vehicleSel,vehicleInput);
+    vehicleWrap.append(vehicleRow);
+    header.append(vehicleWrap);
+
     const pkgWrap=el('div',{style:'flex:1;min-width:200px;'});
     pkgWrap.append(el('label',{},'Package'));
     const pkgRow=el('div',{class:'row',style:'gap:.4rem;'});
@@ -520,6 +707,34 @@ const UI = {
     row.append(addonsHost);
     list.append(row);
 
+    const syncSelectedVehicle=()=>{
+      const selectedId=vehicleSel.value;
+      if(selectedId && client){
+        const record=client.vehicles.find(v=>v.id===selectedId);
+        if(record){
+          if(record.label){
+            vehicleInput.value=record.label;
+            row.setAttribute('data-vehicle-label', record.label);
+          }
+          if(record.size && sizeOptions.includes(record.size)){
+            sizeSel.value=record.size;
+          }
+        }
+        row.setAttribute('data-client-vehicle-id', selectedId);
+      } else {
+        row.removeAttribute('data-client-vehicle-id');
+      }
+    };
+
+    vehicleSel.addEventListener('change',()=>{
+      syncSelectedVehicle();
+      row.setAttribute('data-autopkg','false');
+      UI.refreshVehicleRow(row,{setBase:true});
+      UI.updateTotals();
+    });
+
+    syncSelectedVehicle();
+
     UI.renderVehicleAddons(row, prefill.addons||null);
 
     baseInput.addEventListener('input',()=>UI.updateTotals());
@@ -527,6 +742,7 @@ const UI = {
     pkgSel.addEventListener('change',()=>{ row.setAttribute('data-autopkg','false'); UI.refreshVehicleRow(row,{setBase:true}); UI.updateTotals(); });
 
     UI.syncVehicleRemovers();
+    UI.refreshClientVehicleOptions();
     UI.updateTotals();
   },
   removeVehicle(row){
@@ -674,13 +890,18 @@ const UI = {
       const size=row.querySelector('.vehicle-size')?.value || '';
       const base=Number(row.querySelector('.vehicle-base')?.value||0);
       const pkg=row.querySelector('.vehicle-package')?.value || '';
+      const label=row.querySelector('.vehicle-label')?.value.trim() || '';
+      const clientVehicleId=row.querySelector('.vehicle-existing')?.value || '';
       const addons=Array.from(row.querySelectorAll('.vehicle-addon-row')).map(aRow=>{
         const priceInput=aRow.querySelector('input[type=number]');
         const name=aRow.getAttribute('data-name');
         const price=Number(priceInput?.value||0);
         return {name, price};
       }).filter(a=>a && a.name);
-      return {size, base, addons, pkg};
+      const vehicle={size, base, addons, pkg};
+      if(label) vehicle.label=label;
+      if(clientVehicleId) vehicle.clientVehicleId=clientVehicleId;
+      return vehicle;
     });
   },
   updateTotals(){
@@ -772,7 +993,8 @@ UI.renderPrintSheet = function(job){
     size: v.size || '',
     base: Number(v.base||0),
     addons: (v.addons||[]).map(a=>({name:a.name, price:Number(a.price||0)})),
-    pkg: v.pkg || j.pkg || ''
+    pkg: v.pkg || j.pkg || '',
+    label: v.label || ''
   })) : [];
   const pkgLabel = UI.jobPackageLabel(j);
   const packageNames = hasVehicles ? vehicles.map(v=>v.pkg).filter(Boolean) : [j.pkg].filter(Boolean);
@@ -803,8 +1025,9 @@ UI.renderPrintSheet = function(job){
   const vehicleSections = hasVehicles ? vehicles.map((v,idx)=>{
     const addonRows = v.addons.length ? v.addons.map(a=>`<tr><td>${a.name}</td><td style="text-align:right">$${Number(a.price||0).toFixed(2)}</td></tr>`).join('') : '<tr><td style="color:#666">No add-ons</td><td></td></tr>';
     const pkgName = v.pkg || pkgLabel || (j.pkg || 'Package');
+    const headingName = v.label ? `${v.label}${v.size ? ' ('+v.size+')' : ''}` : (v.size || 'Vehicle');
     return `<div style="margin-bottom:12px;">
-      <div style="font-weight:700;margin-bottom:4px;">Vehicle ${idx+1}: ${v.size || 'Vehicle'}${pkgName?` — ${pkgName}`:''}</div>
+      <div style="font-weight:700;margin-bottom:4px;">Vehicle ${idx+1}: ${headingName}${pkgName?` — ${pkgName}`:''}</div>
       <table style="width:100%;border-collapse:collapse;font-size:14px">
         <tr><td>${pkgName || 'Package'} base${v.size ? ' — '+v.size : ''}</td><td style="text-align:right">$${v.base.toFixed(2)}</td></tr>
         ${addonRows}
