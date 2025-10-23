@@ -111,21 +111,6 @@
             <div class="row"><button class="btn" onclick="App.addQuickClient()">Save Client</button><button class="btn secondary" onclick="UI.hideQuickClient()">Cancel</button></div>
           </div>
 
-          <div class="row">
-            <div style="flex:1;">
-              <label>Package</label>
-              <div class="row" style="gap:.4rem;">
-                <select id="jobPkg" onchange="UI.handlePackageChange()"></select>
-                <button class="btn secondary" onclick="UI.openCustomBuilder()">Build Custom</button>
-              </div>
-            </div>
-          </div>
-
-          <div id="includedPanel" class="card hidden" style="margin-top:.4rem;">
-            <div class="tiny">Included with this package:</div>
-            <div id="includedList" class="row"></div>
-          </div>
-
           <div class="card" style="margin-top:.6rem;">
             <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:.4rem;">
               <h3 style="margin:.25rem 0;">Vehicles</h3>
@@ -226,7 +211,7 @@
       <div class="list">
         <div class="list-item" onclick="UI.openSettings()">Settings ›</div>
       </div>
-      <div class="footnote">Build cache: <b>pcwa-v2.0.0</b></div>
+      <div class="footnote">Build cache: <b>pcwa-v2.2.0</b></div>
     </div>
   </div>
 
@@ -238,28 +223,29 @@ const DEFAULT_SIZES = ["Coupe","Sedan","Crossover","SUV/Truck","XL/Lifted"];
 const DEFAULT_MENU = {
   sizes: DEFAULT_SIZES,
   packages: {
+    "Exterior Wash Only": [40,45,50,55,65],
     "Interior Clean Only": [45,50,55,60,70],
     "In & Out Combo": [70,75,85,95,110],
     "Quick In & Out": [65,70,80,90,100],
     "Maintenance Detail": [100,110,120,130,145],
     "Full Detail": [125,140,155,175,200],
-    "Dog Hair / Stain Focus (Interior)": [100,110,120,130,150]
+    "Dog Hair / Stain Focus": [100,110,120,130,150]
   },
   addons: {
-    "Wheels & Tires (deep clean)": [12,12,15,18,20],
-    "Exterior Brush Detail": [15,15,20,25,25],
-    "Interior Brush Detail": [15,15,20,25,25],
-    "Interior Protectant": [10,10,15,20,20],
-    "Dog Hair Removal (range)": [30,35,60,80,100],
-    "Spot Stain Clean (1–3)": [28,33,38,45,50],
-    "Odor Neutralizer": [25,25,30,35,35],
-    "Engine Bay Clean": [40,45,50,60,60],
-    "Trim Restore": [25,25,30,35,35],
-    "Spray Wax": [12,12,15,20,25],
-    "Paste Wax": [22,25,30,35,35],
-    "Spray Sealant (3–6 mo)": [32,35,40,45,45],
-    "Spray Ceramic (6–12 mo)": [42,45,50,55,55],
-    "Clay & Iron Decon": [48,50,55,65,65]
+    "Wheels & Tires — Deep clean wheels, barrels, tires + gloss dressing": [15,15,20,20,20],
+    "Exterior Brush Detail": [20,20,22,25,25],
+    "Interior Brush Detail": [20,20,22,25,25],
+    "Interior Protectant": [15,15,18,20,20],
+    "Dog Hair Removal": [60,80,100,120,130],
+    "Spot Stain Clean": [30,35,40,45,50],
+    "Odor Neutralizer": [30,30,32,35,35],
+    "Engine Bay Clean": [45,45,50,55,60],
+    "Trim Restore": [25,28,30,32,35],
+    "Spray Wax": [15,15,18,20,25],
+    "Paste Wax": [25,27,30,33,35],
+    "Spray Sealant": [35,38,40,43,45],
+    "Spray Ceramic": [45,48,50,53,55],
+    "Clay & Iron Decon": [50,55,60,65,65]
   },
   guidance: "≤3 add-ons = Maintenance. 4+ or heavy soil → Full Detail upgrade.",
   packageMeta: {} // name -> {lock:boolean, includedAddons:string[]}
@@ -434,7 +420,7 @@ const App = {
     Storage.save(S);
     UI.populateClients(job.clientId);
   },
-  saveJob(){ const clientId=document.getElementById('jobClient').value; const pkg=document.getElementById('jobPkg').value; if(!clientId||!pkg) return alert('Client and package are required'); const vehicles=UI.collectVehicles(); if(!vehicles.length) return alert('Add at least one vehicle'); const discType=document.getElementById('jobDiscType').value; const discValue=Number(document.getElementById('jobDiscValue').value||0); const discScope=document.getElementById('jobDiscScope').value; const notes=document.getElementById('jobNotes').value.trim(); const job={id:uid(), date:today(), clientId,pkg,vehicles,discType,discValue,discScope,notes,status:"Quoted",payments:[]}; job.size=vehicles[0]?.size||''; job.vehicleCount=vehicles.length; S.jobs.unshift(job); Storage.save(S); this.syncClientVehicles(job); UI.refreshJobsList(); UI.resetJobForm(); UI.flash('Quote saved.'); },
+  saveJob(){ const clientId=document.getElementById('jobClient').value; if(!clientId) return alert('Client is required'); const vehicles=UI.collectVehicles(); if(!vehicles.length) return alert('Add at least one vehicle'); if(vehicles.some(v=>!v.pkg)) return alert('Select a package for each vehicle'); const discType=document.getElementById('jobDiscType').value; const discValue=Number(document.getElementById('jobDiscValue').value||0); const discScope=document.getElementById('jobDiscScope').value; const notes=document.getElementById('jobNotes').value.trim(); const primaryPkg=vehicles[0]?.pkg||''; const job={id:uid(), date:today(), clientId,pkg:primaryPkg,vehicles,discType,discValue,discScope,notes,status:"Quoted",payments:[]}; job.size=vehicles[0]?.size||''; job.vehicleCount=vehicles.length; S.jobs.unshift(job); Storage.save(S); this.syncClientVehicles(job); UI.refreshJobsList(); UI.resetJobForm(); UI.flash('Quote saved.'); },
   updateJobStatus(id,next){ const j=S.jobs.find(x=>x.id===id); if(!j) return; j.status=next; if(next==='Complete'||next==='Paid'){ this.syncClientVehicles(j,{updateLastService:true}); }
     else { Storage.save(S); UI.populateClients(j.clientId); }
     UI.refreshJobsList();
@@ -454,7 +440,7 @@ const App = {
       const vehicleLabel=UI.jobVehicleSummary(j);
       const pkgLabel=UI.jobPackageLabel(j);
       const itemLabel=vehicleLabel?`${pkgLabel} — ${vehicleLabel}`:pkgLabel;
-      S.transactions.push({id:uid(), type:'Income', date:today(), category:'Package', item:itemLabel, clientId=j.clientId, vendor:'', payment:method, amount:Calc.total(j), notes:'Discount: '+(j.discType||'none')+' '+(j.discValue||0)});
+      S.transactions.push({id:uid(), type:'Income', date:today(), category:'Package', item:itemLabel, clientId:j.clientId, vendor:'', payment:method, amount:Calc.total(j), notes:'Discount: '+(j.discType||'none')+' '+(j.discValue||0)});
       this.syncClientVehicles(j,{updateLastService:true});
       UI.flash('Paid in full. Income posted.');
     } else {
@@ -587,22 +573,13 @@ const UI = {
     },content,'Done',true,true);
   },
   populateSizesAndPackages(){
-    const pkg=document.getElementById('jobPkg');
-    const currentPkg=pkg?.value;
-    if(pkg){
-      pkg.innerHTML='';
-      Object.keys(S.menu.packages).forEach(name=>pkg.append(el('option',{value:name},name)));
-      if(currentPkg && S.menu.packages[currentPkg]) pkg.value=currentPkg;
-      else if(pkg.options.length) pkg.value=pkg.options[0].value;
-    }
-    const jobPkgValue=pkg?.value || '';
+    const packageNames=Object.keys(S.menu.packages);
     document.querySelectorAll('.vehicle-package').forEach(sel=>{
       const row=sel.closest('.vehicle-row');
       const current=sel.value;
       sel.innerHTML='';
-      Object.keys(S.menu.packages).forEach(name=>sel.append(el('option',{value:name},name)));
+      packageNames.forEach(name=>sel.append(el('option',{value:name},name)));
       if(current && S.menu.packages[current]) sel.value=current;
-      else if(jobPkgValue && S.menu.packages[jobPkgValue]) sel.value=jobPkgValue;
       else if(sel.options.length) sel.value=sel.options[0].value;
       if(row) UI.refreshVehicleRow(row,{setBase:true});
     });
@@ -615,27 +592,8 @@ const UI = {
     });
   },
   handlePackageChange(){
-    const pkg=document.getElementById('jobPkg')?.value || '';
-    const meta=pkgMeta(pkg);
-    const panel=document.getElementById('includedPanel');
-    const list=document.getElementById('includedList');
-    if(panel && list){
-      list.innerHTML='';
-      if(meta.includedAddons && meta.includedAddons.length){
-        panel.classList.remove('hidden');
-        meta.includedAddons.forEach(n=>list.append(el('span',{class:'pill'},n)));
-      } else {
-        panel.classList.add('hidden');
-      }
-    }
     document.querySelectorAll('.vehicle-row').forEach(row=>{
-      const pkgSel=row.querySelector('.vehicle-package');
-      if(pkgSel){
-        if((row.getAttribute('data-autopkg')==='true' || !pkgSel.value) && pkgSel.querySelector(`option[value="${pkg}"]`)){
-          pkgSel.value=pkg;
-        }
-        UI.refreshVehicleRow(row,{setBase:true});
-      }
+      UI.refreshVehicleRow(row,{setBase:true});
     });
     UI.updateTotals();
   },
@@ -645,14 +603,13 @@ const UI = {
     const list=document.getElementById('vehiclesList');
     if(!list) return;
     const pkgOptions=Object.keys(S.menu.packages);
-    const defaultPkgSel=document.getElementById('jobPkg')?.value || '';
     const sizeOptions=S.menu.sizes;
     const sizePref=(prefill.size && sizeOptions.includes(prefill.size))?prefill.size:(sizeOptions[0]||'');
-    const pkgPref=(prefill.pkg && S.menu.packages[prefill.pkg])?prefill.pkg:(defaultPkgSel && S.menu.packages[defaultPkgSel]?defaultPkgSel:(pkgOptions[0]||''));
+    const pkgPref=(prefill.pkg && S.menu.packages[prefill.pkg])?prefill.pkg:(pkgOptions[0]||'');
     const meta=pkgMeta(pkgPref);
     const baseDefault=Calc.base(pkgPref,sizePref);
     const baseValue=prefill.base!=null?Number(prefill.base):baseDefault;
-    const row=el('div',{class:'list-item vehicle-row','data-autopkg':prefill.pkg?'false':'true'});
+    const row=el('div',{class:'list-item vehicle-row'});
     const header=el('div',{class:'row',style:'gap:.5rem;flex-wrap:wrap;align-items:flex-end;'});
 
     const clientId=document.getElementById('jobClient')?.value || '';
@@ -735,7 +692,6 @@ const UI = {
 
     vehicleSel.addEventListener('change',()=>{
       syncSelectedVehicle();
-      row.setAttribute('data-autopkg','false');
       UI.refreshVehicleRow(row,{setBase:true});
       UI.updateTotals();
     });
@@ -745,8 +701,8 @@ const UI = {
     UI.renderVehicleAddons(row, prefill.addons||null);
 
     baseInput.addEventListener('input',()=>UI.updateTotals());
-    sizeSel.addEventListener('change',()=>{ row.setAttribute('data-autopkg','false'); UI.refreshVehicleRow(row,{setBase:true}); UI.updateTotals(); });
-    pkgSel.addEventListener('change',()=>{ row.setAttribute('data-autopkg','false'); UI.refreshVehicleRow(row,{setBase:true}); UI.updateTotals(); });
+    sizeSel.addEventListener('change',()=>{ UI.refreshVehicleRow(row,{setBase:true}); UI.updateTotals(); });
+    pkgSel.addEventListener('change',()=>{ UI.refreshVehicleRow(row,{setBase:true}); UI.updateTotals(); });
 
     UI.syncVehicleRemovers();
     UI.refreshClientVehicleOptions();
@@ -765,7 +721,7 @@ const UI = {
   },
   refreshVehicleRow(row,{setBase=false}={}){
     const pkgSel=row.querySelector('.vehicle-package');
-    const pkg=pkgSel?.value || document.getElementById('jobPkg')?.value || '';
+    const pkg=pkgSel?.value || '';
     const meta=pkgMeta(pkg);
     const sizeSel=row.querySelector('.vehicle-size');
     const baseInput=row.querySelector('.vehicle-base');
@@ -782,7 +738,7 @@ const UI = {
     const host=row.querySelector('.vehicle-addons');
     if(!host) return;
     const pkgSel=row.querySelector('.vehicle-package');
-    const pkg=pkgSel?.value || document.getElementById('jobPkg')?.value || '';
+    const pkg=pkgSel?.value || '';
     const size=row.querySelector('.vehicle-size')?.value || S.menu.sizes[0] || '';
     const meta=pkgMeta(pkg);
     const previous=new Map();
@@ -912,9 +868,10 @@ const UI = {
     });
   },
   updateTotals(){
+    const vehicles=this.collectVehicles();
     const job={
-      pkg:document.getElementById('jobPkg')?.value || '',
-      vehicles:this.collectVehicles(),
+      pkg:vehicles[0]?.pkg || '',
+      vehicles,
       discType:document.getElementById('jobDiscType').value,
       discValue:Number(document.getElementById('jobDiscValue').value||0),
       discScope:document.getElementById('jobDiscScope').value
@@ -926,8 +883,27 @@ const UI = {
     document.getElementById('jobDiscount').textContent=fmt(discount);
     document.getElementById('jobTotal').textContent=fmt(total);
   },
+  refreshDashboard(){
+    const month=today().slice(0,7);
+    let income=0;
+    let expense=0;
+    for(const t of S.transactions){
+      const date=(t.date||'').slice(0,7);
+      if(date!==month) continue;
+      const amount=Number(t.amount||0);
+      if(t.type==='Income') income+=amount;
+      else if(t.type==='Expense') expense+=amount;
+    }
+    const net=income-expense;
+    const incomeEl=document.getElementById('mIncome');
+    const expenseEl=document.getElementById('mExpense');
+    const netEl=document.getElementById('mNet');
+    if(incomeEl) incomeEl.textContent=fmt(income);
+    if(expenseEl) expenseEl.textContent=fmt(expense);
+    if(netEl) netEl.textContent=fmt(net);
+  },
   quickDisc(type,val){ document.getElementById('jobDiscType').value=type; document.getElementById('jobDiscValue').value=val; UI.updateTotals(); },
-  resetJobForm(){ const pkgSel=document.getElementById('jobPkg'); const first=Object.keys(S.menu.packages)[0]||''; if(pkgSel) pkgSel.value=first; const list=document.getElementById('vehiclesList'); if(list) list.innerHTML=''; this.addVehicle(); this.handlePackageChange(); document.getElementById('jobDiscType').value='none'; document.getElementById('jobDiscValue').value='0'; document.getElementById('jobDiscScope').value='job'; document.getElementById('jobNotes').value=''; this.updateTotals(); },
+  resetJobForm(){ const list=document.getElementById('vehiclesList'); if(list) list.innerHTML=''; this.addVehicle(); this.handlePackageChange(); document.getElementById('jobDiscType').value='none'; document.getElementById('jobDiscValue').value='0'; document.getElementById('jobDiscScope').value='job'; document.getElementById('jobNotes').value=''; this.updateTotals(); },
   jobVehicleSummary(job){ const vehicles=Calc.vehicles(job); if(!vehicles.length) return ''; const counts={}; vehicles.forEach(v=>{ const key=v.size||'Vehicle'; counts[key]=(counts[key]||0)+1; }); return Object.entries(counts).map(([size,count])=>count>1?`${size} × ${count}`:size).join(', '); },
   jobPackageLabel(job){
     const vehicles=Calc.vehicles(job);
@@ -953,26 +929,26 @@ const UI = {
   openMenuEditor(){ const content=el('div',{}); const makeTable=(title,map,sizes,id)=>{ const headers='<tr><th>Item</th>'+sizes.map(s=>`<th>${s}</th>`).join('')+'<th></th></tr>'; const rows=Object.entries(map).map(([n,arr])=>`<tr data-name="${n}"><td><input value="${n}"></td>`+sizes.map((s,i)=>`<td><input type='number' min='0' step='1' value='${arr[i]||0}'></td>`).join('')+`<td><button class='pill' onclick='UI.delRow("${id}","${n}")'>Delete</button></td></tr>`).join(''); return `<h4>${title}</h4><table class='table' id='${id}'><thead>${headers}</thead><tbody>${rows}</tbody></table>`; }; content.innerHTML = makeTable('Packages',S.menu.packages,S.menu.sizes,'pkgTable') + '<div class="row" style="margin:.5rem 0;"><button class="btn secondary" onclick="UI.openPkgRules()">Edit Package Rules</button></div>' + makeTable('Add-ons',S.menu.addons,S.menu.sizes,'addonTable') + `<div class='footnote' style='margin-top:.5rem;'>${S.menu.guidance}</div>`; UI.modal('Menu Editor',(close)=>{ try{ const read=(id)=>{ const tbody=document.querySelector('#'+id+' tbody'); const rows=Array.from(tbody.querySelectorAll('tr')); const out={}; for(const r of rows){ const inputs=r.querySelectorAll('input'); const name=inputs[0].value.trim(); if(!name) continue; const prices=Array.from(inputs).slice(1).map(x=>Number(x.value||0)); out[name]=prices; } return out; }; S.menu.packages=read('pkgTable'); S.menu.addons=read('addonTable'); Storage.save(S); UI.populateSizesAndPackages(); UI.prefillBase(); UI.renderAddons(); UI.flash('Menu saved.'); }catch(e){ alert('Error saving: '+e.message); } close(); }, content, 'Save Changes', true, true); },
   delRow(tableId,name){ const tr=document.querySelector(`#${tableId} tr[data-name="${name}"]`); if(tr) tr.remove(); },
   openPkgRules(){ const names=Object.keys(S.menu.packages); const content=el('div',{}, el('label',{},'Select Package'), (()=>{ const s=el('select',{id:'prPkg'}); names.forEach(n=>s.append(el('option',{value:n},n))); return s; })(), el('label',{},'Lock Retail Base?'), (()=>{ const s=el('select',{id:'prLock'}); s.append(el('option',{value:'no'},'No')); s.append(el('option',{value:'yes'},'Yes')); return s; })(), el('label',{},'Included Add-ons'), (()=>{ const box=el('div',{class:'list',id:'prList'}); for(const n of Object.keys(S.menu.addons)) box.append(el('label',{}, el('input',{type:'checkbox','data-name':n,style:'margin-right:.4rem;'}), n)); return box; })() ); const sync=()=>{ const pkg=content.querySelector('#prPkg').value; const meta=pkgMeta(pkg); content.querySelector('#prLock').value=meta.lock?'yes':'no'; content.querySelectorAll('#prList input[type=checkbox]').forEach(cb=>cb.checked=!!meta.includedAddons?.includes(cb.getAttribute('data-name'))); }; UI.modal('Package Rules',(close)=>{ const pkg=content.querySelector('#prPkg').value; const lock=content.querySelector('#prLock').value==='yes'; const inc=Array.from(content.querySelectorAll('#prList input[type=checkbox]')).filter(x=>x.checked).map(x=>x.getAttribute('data-name')); S.menu.packageMeta[S.menu.packages[pkg]?pkg:pkg]={lock, includedAddons:inc}; Storage.save(S); UI.prefillBase(); UI.renderAddons(); UI.flash('Rules saved.'); close(); }, content); content.querySelector('#prPkg').addEventListener('change', sync); sync(); },
-  openCustomBuilder(row=null){ const size=(row?.querySelector('.vehicle-size')?.value)||document.querySelector('.vehicle-size')?.value||S.menu.sizes[0]; const basePref=row?.querySelector('.vehicle-base')?.value||'0'; const content=el('div',{}, el('label',{},'Package Name'), el('input',{id:'cbName', value:'Custom Package'}), el('div',{class:'row'}, el('div',{}, el('label',{}, 'Base Price for '+size), el('input',{id:'cbBase',type:'number',min:'0',step:'0.01',value:basePref})), el('div',{}, el('label',{}, 'Lock Retail Base'), el('select',{id:'cbLock'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')))), el('label',{},'Included Add-ons (optional)'), (()=>{ const box=el('div',{class:'list'}); for(const n of Object.keys(S.menu.addons)) box.append(el('label',{}, el('input',{type:'checkbox','data-name':n,style:'margin-right:.4rem;'}), n)); return box; })(), el('label',{},'Pick & Choose mode (no included items)'), el('select',{id:'cbPick'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')) ); UI.modal('Build Custom Package',(close)=>{ const name=content.querySelector('#cbName').value.trim()||'Custom Package'; const base=Number(content.querySelector('#cbBase').value||0); const lock=content.querySelector('#cbLock').value==='yes'; const pick=content.querySelector('#cbPick').value==='yes'; const inc=pick?[]:Array.from(content.querySelectorAll('input[type=checkbox][data-name]')).filter(x=>x.checked).map(x=>x.getAttribute('data-name')); const prices=S.menu.sizes.map(()=>0); const idx=S.menu.sizes.indexOf(size); if(idx>=0) prices[idx]=base; else if(prices.length) prices[0]=base; S.menu.packages[name]=prices; S.menu.packageMeta[name]={lock, includedAddons:inc}; Storage.save(S); UI.populateSizesAndPackages(); if(row){ const pkgSel=row.querySelector('.vehicle-package'); if(pkgSel){ pkgSel.value=name; row.setAttribute('data-autopkg','false'); UI.refreshVehicleRow(row,{setBase:true}); UI.updateTotals(); } } else { const jobPkg=document.getElementById('jobPkg'); if(jobPkg){ jobPkg.value=name; } UI.handlePackageChange(); } UI.flash('Custom package added.'); close(); }, content, 'Use Package', true, true); },
+  openCustomBuilder(row=null){ const size=(row?.querySelector('.vehicle-size')?.value)||document.querySelector('.vehicle-size')?.value||S.menu.sizes[0]; const basePref=row?.querySelector('.vehicle-base')?.value||'0'; const content=el('div',{}, el('label',{},'Package Name'), el('input',{id:'cbName', value:'Custom Package'}), el('div',{class:'row'}, el('div',{}, el('label',{}, 'Base Price for '+size), el('input',{id:'cbBase',type:'number',min:'0',step:'0.01',value:basePref})), el('div',{}, el('label',{}, 'Lock Retail Base'), el('select',{id:'cbLock'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')))), el('label',{},'Included Add-ons (optional)'), (()=>{ const box=el('div',{class:'list'}); for(const n of Object.keys(S.menu.addons)) box.append(el('label',{}, el('input',{type:'checkbox','data-name':n,style:'margin-right:.4rem;'}), n)); return box; })(), el('label',{},'Pick & Choose mode (no included items)'), el('select',{id:'cbPick'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')) ); UI.modal('Build Custom Package',(close)=>{ const name=content.querySelector('#cbName').value.trim()||'Custom Package'; const base=Number(content.querySelector('#cbBase').value||0); const lock=content.querySelector('#cbLock').value==='yes'; const pick=content.querySelector('#cbPick').value==='yes'; const inc=pick?[]:Array.from(content.querySelectorAll('input[type=checkbox][data-name]')).filter(x=>x.checked).map(x=>x.getAttribute('data-name')); const prices=S.menu.sizes.map(()=>0); const idx=S.menu.sizes.indexOf(size); if(idx>=0) prices[idx]=base; else if(prices.length) prices[0]=base; S.menu.packages[name]=prices; S.menu.packageMeta[name]={lock, includedAddons:inc}; Storage.save(S); UI.populateSizesAndPackages(); if(row){ const pkgSel=row.querySelector('.vehicle-package'); if(pkgSel){ pkgSel.value=name; UI.refreshVehicleRow(row,{setBase:true}); UI.updateTotals(); } } else { const firstRow=document.querySelector('.vehicle-row'); const pkgSel=firstRow?.querySelector('.vehicle-package'); if(pkgSel){ pkgSel.value=name; UI.refreshVehicleRow(firstRow,{setBase:true}); } UI.handlePackageChange(); } UI.flash('Custom package added.'); close(); }, content, 'Use Package', true, true); },
   openImport(){ const file=el('input',{type:'file',accept:'.json'}); file.onchange=(e)=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const data=JSON.parse(r.result); if(!data.transactions) throw new Error('Invalid backup file: missing "transactions"'); S=data; if(!S.menu.packageMeta) S.menu.packageMeta={}; Storage.save(S); location.reload(); }catch(err){ alert('Import error: '+err.message); } }; r.readAsText(f); }; file.click(); },
   openSettings(){ const content=el('div',{}, el('h4',{},'Brand'), el('label',{},'Header Title'), el('input',{id:'stHeader', value:S.business.headerTitle||''}), el('label',{},'Business Name (on quotes)'), el('input',{id:'stBiz', value:S.business.name||''}), el('label',{},'Logo'), el('div',{class:'row'}, el('button',{class:'btn', onclick:()=>UI.pickLogo()},'Upload Logo'), el('button',{class:'btn secondary', onclick:()=>{ S.business.logoDataUrl=''; Storage.save(S); UI.initHeader(); UI.flash('Logo removed.'); }},'Remove Logo')), el('div',{class:'footnote'},'Replace install icons by swapping icon-192.png / icon-512.png in the bundle.') ); UI.modal('Settings',(close)=>{ S.business.headerTitle=content.querySelector('#stHeader').value.trim()||'POLISH CREW — Accounting'; S.business.name=content.querySelector('#stBiz').value.trim()||'Polish Crew'; Storage.save(S); UI.initHeader(); UI.flash('Settings saved.'); close(); }, content); },
   pickLogo(){ const f=el('input',{type:'file',accept:'image/*'}); f.onchange=(e)=>{ const file=e.target.files[0]; if(!file) return; const r=new FileReader(); r.onload=()=>{ S.business.logoDataUrl=r.result; Storage.save(S); UI.initHeader(); UI.flash('Logo updated.'); }; r.readAsDataURL(file); }; f.click(); },
   clientName(id){ return (S.clients.find(c=>c.id===id)||{}).name||''; },
   printQuote(){
     const clientId = document.getElementById('jobClient').value || '';
-    const pkg      = document.getElementById('jobPkg').value;
     const vehicles = this.collectVehicles();
     if(!vehicles.length) return alert('Add at least one vehicle to print');
     const discType = document.getElementById('jobDiscType').value;
     const discValue= Number(document.getElementById('jobDiscValue').value || 0);
     const discScope= document.getElementById('jobDiscScope').value;
     const notes    = document.getElementById('jobNotes').value.trim();
+    const primaryPkg = vehicles[0]?.pkg || '';
 
     const tempJob = {
       id: 'preview',
       date: new Date().toISOString().slice(0,10),
       clientId,
-      pkg,
+      pkg: primaryPkg,
       vehicles,
       discType,
       discValue,
