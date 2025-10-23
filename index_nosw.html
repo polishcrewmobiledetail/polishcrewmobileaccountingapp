@@ -274,16 +274,23 @@ const DEFAULT_BIZ = { name:"Polish Crew", headerTitle:"POLISH CREW — Accountin
 
 const AppState = { business: DEFAULT_BIZ, clients: [], menu: DEFAULT_MENU, jobs: [], transactions: [], mileage: [], settings: DEFAULT_SETTINGS };
 
+function cloneData(obj){
+  if(typeof structuredClone === 'function'){
+    return structuredClone(obj);
+  }
+  return JSON.parse(JSON.stringify(obj));
+}
+
 const Storage = {
   key: "pc_accounting_v2",
   load() {
     try {
       const raw = localStorage.getItem(this.key);
-      if (!raw) return structuredClone(AppState);
+      if (!raw) return cloneData(AppState);
       const parsed = JSON.parse(raw);
-      if (!parsed.settings) parsed.settings = structuredClone(DEFAULT_SETTINGS);
-      if (!parsed.menu) parsed.menu = structuredClone(DEFAULT_MENU);
-      if (!parsed.business) parsed.business = structuredClone(DEFAULT_BIZ);
+      if (!parsed.settings) parsed.settings = cloneData(DEFAULT_SETTINGS);
+      if (!parsed.menu) parsed.menu = cloneData(DEFAULT_MENU);
+      if (!parsed.business) parsed.business = cloneData(DEFAULT_BIZ);
       if (!parsed.transactions) parsed.transactions = [];
       if (!parsed.clients) parsed.clients = [];
       if (!parsed.jobs) parsed.jobs = [];
@@ -292,7 +299,7 @@ const Storage = {
       return parsed;
     } catch(e) {
       UI.bootError("Failed to load saved data: " + e.message);
-      return structuredClone(AppState);
+      return cloneData(AppState);
     }
   },
   save(state) { localStorage.setItem(this.key, JSON.stringify(state)); }
