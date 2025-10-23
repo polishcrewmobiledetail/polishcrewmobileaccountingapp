@@ -36,6 +36,12 @@
   .hidden{display:none}
   .vehicle-addon-row[data-included="true"]{opacity:.6;}
   .vehicle-addon-row[data-included="true"] input{pointer-events:none;opacity:.7;}
+  .menu-pkg-card{background:linear-gradient(180deg,#121418,#0c0d10);border:1px solid #1a1e21;border-radius:16px;padding:.75rem;display:flex;flex-direction:column;gap:.6rem;}
+  .menu-pkg-card .pkg-name{width:100%;}
+  .menu-pkg-card .pkg-addon-options{display:flex;flex-wrap:wrap;gap:.4rem;}
+  .pkg-addon-option{display:inline-flex;align-items:center;gap:.35rem;padding:.25rem .6rem;border:1px solid #1b1f22;border-radius:999px;background:#0a0c0f;font-size:.8rem;cursor:pointer;}
+  .pkg-addon-option[data-selected="true"]{opacity:.6;}
+  .pkg-addon-option input{margin:0;}
   .footnote{font-size:.8rem;color:#8ea59a}
   .drawer {position:fixed;right:0;top:0;height:100%;width:min(92vw,420px);transform:translateX(100%);transition:transform .25s ease;background:#050607;border-left:1px solid #14171a;z-index:20;display:flex;flex-direction:column}
   .drawer.open{transform:translateX(0)}
@@ -944,9 +950,144 @@ const UI = {
   openMileage(){ const rows=S.mileage.map((m,i)=>`<tr><td>${m.date}</td><td>${m.from}</td><td>${m.to}</td><td>${m.why}</td><td>${m.miles}</td><td><button class='pill' onclick='UI.delMileage(${i})'>Delete</button></td></tr>`).join(''); this.modal('Mileage',(c)=>c(), el('div',{}, el('div',{class:'row'}, el('div',{}, el('label',{},'Date'), el('input',{id:'miDate',type:'date',value:today()})), el('div',{}, el('label',{},'From'), el('input',{id:'miFrom'})), el('div',{}, el('label',{},'To'), el('input',{id:'miTo'})), el('div',{}, el('label',{},'Why'), el('input',{id:'miWhy'})), el('div',{}, el('label',{},'Miles'), el('input',{id:'miMiles',type:'number',min:'0',step:'0.1'})) ), el('div',{class:'row'}, el('button',{class:'btn', onclick:()=>UI.addMileage()},'Add Entry')), el('table',{style:'width:100%;border-collapse:collapse;margin-top:.5rem;'}, el('thead',{}, el('tr',{html:'<th>Date</th><th>From</th><th>To</th><th>Why</th><th>Miles</th><th></th>'})), el('tbody',{id:'miBody',html:rows})) )); },
   addMileage(){ const e={date:document.getElementById('miDate').value||today(),from:document.getElementById('miFrom').value||'',to:document.getElementById('miTo').value||'',why:document.getElementById('miWhy').value||'',miles:Number(document.getElementById('miMiles').value||0)}; S.mileage.push(e); Storage.save(S); const tr=`<tr><td>${e.date}</td><td>${e.from}</td><td>${e.to}</td><td>${e.why}</td><td>${e.miles}</td><td><button class='pill' onclick='UI.delMileage(${S.mileage.length-1})'>Delete</button></td></tr>`; document.getElementById('miBody').insertAdjacentHTML('beforeend', tr); UI.flash('Mileage added.'); },
   delMileage(i){ if(!confirm('Delete entry?')) return; S.mileage.splice(i,1); Storage.save(S); UI.openMileage(); },
-  openMenuEditor(){ const content=el('div',{}); const makeTable=(title,map,sizes,id)=>{ const headers='<tr><th>Item</th>'+sizes.map(s=>`<th>${s}</th>`).join('')+'<th></th></tr>'; const rows=Object.entries(map).map(([n,arr])=>`<tr data-name="${n}"><td><input value="${n}"></td>`+sizes.map((s,i)=>`<td><input type='number' min='0' step='1' value='${arr[i]||0}'></td>`).join('')+`<td><button class='pill' onclick='UI.delRow("${id}","${n}")'>Delete</button></td></tr>`).join(''); return `<h4>${title}</h4><table class='table' id='${id}'><thead>${headers}</thead><tbody>${rows}</tbody></table>`; }; content.innerHTML = makeTable('Packages',S.menu.packages,S.menu.sizes,'pkgTable') + '<div class="row" style="margin:.5rem 0;"><button class="btn secondary" onclick="UI.openPkgRules()">Edit Package Rules</button></div>' + makeTable('Add-ons',S.menu.addons,S.menu.sizes,'addonTable') + `<div class='footnote' style='margin-top:.5rem;'>${S.menu.guidance}</div>`; UI.modal('Menu Editor',(close)=>{ try{ const read=(id)=>{ const tbody=document.querySelector('#'+id+' tbody'); const rows=Array.from(tbody.querySelectorAll('tr')); const out={}; for(const r of rows){ const inputs=r.querySelectorAll('input'); const name=inputs[0].value.trim(); if(!name) continue; const prices=Array.from(inputs).slice(1).map(x=>Number(x.value||0)); out[name]=prices; } return out; }; S.menu.packages=read('pkgTable'); S.menu.addons=read('addonTable'); Storage.save(S); UI.populateSizesAndPackages(); UI.prefillBase(); UI.renderAddons(); UI.flash('Menu saved.'); }catch(e){ alert('Error saving: '+e.message); } close(); }, content, 'Save Changes', true, true); },
+  openMenuEditor(){
+    const content=el('div',{});
+    const pkgHeader=el('h4',{},'Packages');
+    const pkgList=el('div',{id:'pkgEditor',class:'list',style:'gap:.75rem;'});
+    const createAddonOption=(name,checked=false)=>{
+      const option=el('label',{class:'pkg-addon-option','data-name':name,'data-selected':checked?'true':'false'});
+      const cb=el('input',{type:'checkbox',value:name});
+      cb.checked=checked;
+      cb.addEventListener('change',()=>option.setAttribute('data-selected',cb.checked?'true':'false'));
+      option.append(cb, name);
+      return option;
+    };
+    const createCard=(name,prices=[],meta={lock:false,includedAddons:[]})=>{
+      const card=el('div',{class:'menu-pkg-card'});
+      const header=el('div',{class:'row',style:'gap:.5rem;align-items:center;'});
+      const nameWrap=el('div',{style:'flex:1;'});
+      const nameInput=el('input',{class:'pkg-name',value:name,placeholder:'Package name'});
+      nameWrap.append(nameInput);
+      header.append(nameWrap);
+      const removeBtn=el('button',{class:'btn secondary',type:'button'},'Remove');
+      removeBtn.addEventListener('click',()=>{
+        if(pkgList.querySelectorAll('.menu-pkg-card').length<=1){
+          UI.flash('At least one package required.');
+          return;
+        }
+        card.remove();
+      });
+      header.append(removeBtn);
+      card.append(header);
+
+      const priceGrid=el('div',{class:'grid',style:'gap:.5rem;'});
+      S.menu.sizes.forEach((size,i)=>{
+        const col=el('div',{});
+        col.append(el('label',{},size));
+        col.append(el('input',{type:'number',class:'pkg-price','data-size-index':i,min:'0',step:'0.01',value:Number(prices[i]||0).toFixed(2)}));
+        priceGrid.append(col);
+      });
+      card.append(priceGrid);
+
+      const lockRow=el('div',{class:'row',style:'gap:.5rem;align-items:center;'});
+      lockRow.append(el('label',{style:'flex:1;'},'Lock Retail Base?'));
+      const lockSelect=el('select',{class:'pkg-lock'});
+      lockSelect.append(el('option',{value:'no',selected:!meta.lock},'No'));
+      lockSelect.append(el('option',{value:'yes',selected:meta.lock},'Yes'));
+      lockRow.append(lockSelect);
+      card.append(lockRow);
+
+      card.append(el('label',{},'Included Add-ons'));
+      const addonWrap=el('div',{class:'pkg-addon-options'});
+      Object.keys(S.menu.addons).forEach(addonName=>{
+        const checked=!!meta.includedAddons?.includes(addonName);
+        addonWrap.append(createAddonOption(addonName,checked));
+      });
+      card.append(addonWrap);
+
+      return card;
+    };
+
+    const existingPackages=Object.entries(S.menu.packages);
+    if(existingPackages.length){
+      existingPackages.forEach(([name,prices])=>pkgList.append(createCard(name,prices,pkgMeta(name))));
+    } else {
+      pkgList.append(createCard('New Package',S.menu.sizes.map(()=>0),{lock:false,includedAddons:[]}));
+    }
+
+    const addPackageBtn=el('button',{class:'btn secondary',type:'button'},'Add Package');
+    addPackageBtn.addEventListener('click',()=>{
+      const base='New Package';
+      const currentNames=new Set(Array.from(pkgList.querySelectorAll('.pkg-name')).map(inp=>inp.value.trim()).filter(Boolean));
+      let candidate=base;
+      let idx=2;
+      while(currentNames.has(candidate)){
+        candidate=`${base} ${idx++}`;
+      }
+      pkgList.append(createCard(candidate,S.menu.sizes.map(()=>0),{lock:false,includedAddons:[]}));
+    });
+
+    content.append(pkgHeader);
+    content.append(pkgList);
+    content.append(el('div',{class:'row',style:'margin:.5rem 0;'},addPackageBtn));
+
+    const makeTable=(title,map,sizes,id)=>{
+      const headers='<tr><th>Item</th>'+sizes.map(s=>`<th>${s}</th>`).join('')+'<th></th></tr>';
+      const rows=Object.entries(map).map(([n,arr])=>`<tr data-name="${n}"><td><input value="${n}"></td>`+sizes.map((s,i)=>`<td><input type='number' min='0' step='1' value='${Number(arr[i]||0)}'></td>`).join('')+`<td><button class='pill' onclick='UI.delRow("${id}","${n}")'>Delete</button></td></tr>`).join('');
+      return `<h4>${title}</h4><table class='table' id='${id}'><thead>${headers}</thead><tbody>${rows}</tbody></table>`;
+    };
+
+    const addonSection=el('div',{html:makeTable('Add-ons',S.menu.addons,S.menu.sizes,'addonTable')});
+    content.append(addonSection);
+    content.append(el('div',{class:'footnote',style:'margin-top:.5rem;'},S.menu.guidance));
+
+    const readAddons=()=>{
+      const tbody=document.querySelector('#addonTable tbody');
+      if(!tbody) return {};
+      const rows=Array.from(tbody.querySelectorAll('tr'));
+      const out={};
+      for(const r of rows){
+        const inputs=r.querySelectorAll('input');
+        const name=inputs[0].value.trim();
+        if(!name) continue;
+        const prices=Array.from(inputs).slice(1).map(x=>Number(x.value||0));
+        out[name]=prices;
+      }
+      return out;
+    };
+
+    UI.modal('Menu Editor',(close)=>{
+      try{
+        const packages={};
+        const meta={};
+        pkgList.querySelectorAll('.menu-pkg-card').forEach(card=>{
+          const name=(card.querySelector('.pkg-name')?.value||'').trim();
+          if(!name) return;
+          const prices=S.menu.sizes.map((_,i)=>{
+            const input=card.querySelector(`.pkg-price[data-size-index="${i}"]`);
+            return Number(input?.value||0);
+          });
+          packages[name]=prices;
+          const lock=card.querySelector('.pkg-lock')?.value==='yes';
+          const included=Array.from(card.querySelectorAll('.pkg-addon-option input[type=checkbox]')).filter(cb=>cb.checked).map(cb=>cb.value);
+          meta[name]={lock,includedAddons:included};
+        });
+        if(!Object.keys(packages).length) throw new Error('At least one package is required.');
+        S.menu.packages=packages;
+        S.menu.packageMeta=meta;
+        S.menu.addons=readAddons();
+        Storage.save(S);
+        UI.populateSizesAndPackages();
+        UI.prefillBase();
+        UI.renderAddons();
+        UI.flash('Menu saved.');
+        close();
+      }catch(e){
+        alert('Error saving: '+e.message);
+      }
+    }, content, 'Save Changes', true, true);
+  },
   delRow(tableId,name){ const tr=document.querySelector(`#${tableId} tr[data-name="${name}"]`); if(tr) tr.remove(); },
-  openPkgRules(){ const names=Object.keys(S.menu.packages); const content=el('div',{}, el('label',{},'Select Package'), (()=>{ const s=el('select',{id:'prPkg'}); names.forEach(n=>s.append(el('option',{value:n},n))); return s; })(), el('label',{},'Lock Retail Base?'), (()=>{ const s=el('select',{id:'prLock'}); s.append(el('option',{value:'no'},'No')); s.append(el('option',{value:'yes'},'Yes')); return s; })(), el('label',{},'Included Add-ons'), (()=>{ const box=el('div',{class:'list',id:'prList'}); for(const n of Object.keys(S.menu.addons)) box.append(el('label',{}, el('input',{type:'checkbox','data-name':n,style:'margin-right:.4rem;'}), n)); return box; })() ); const sync=()=>{ const pkg=content.querySelector('#prPkg').value; const meta=pkgMeta(pkg); content.querySelector('#prLock').value=meta.lock?'yes':'no'; content.querySelectorAll('#prList input[type=checkbox]').forEach(cb=>cb.checked=!!meta.includedAddons?.includes(cb.getAttribute('data-name'))); }; UI.modal('Package Rules',(close)=>{ const pkg=content.querySelector('#prPkg').value; const lock=content.querySelector('#prLock').value==='yes'; const inc=Array.from(content.querySelectorAll('#prList input[type=checkbox]')).filter(x=>x.checked).map(x=>x.getAttribute('data-name')); S.menu.packageMeta[S.menu.packages[pkg]?pkg:pkg]={lock, includedAddons:inc}; Storage.save(S); UI.prefillBase(); UI.renderAddons(); UI.flash('Rules saved.'); close(); }, content); content.querySelector('#prPkg').addEventListener('change', sync); sync(); },
   openCustomBuilder(row=null){ const size=(row?.querySelector('.vehicle-size')?.value)||document.querySelector('.vehicle-size')?.value||S.menu.sizes[0]; const basePref=row?.querySelector('.vehicle-base')?.value||'0'; const content=el('div',{}, el('label',{},'Package Name'), el('input',{id:'cbName', value:'Custom Package'}), el('div',{class:'row'}, el('div',{}, el('label',{}, 'Base Price for '+size), el('input',{id:'cbBase',type:'number',min:'0',step:'0.01',value:basePref})), el('div',{}, el('label',{}, 'Lock Retail Base'), el('select',{id:'cbLock'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')))), el('label',{},'Included Add-ons (optional)'), (()=>{ const box=el('div',{class:'list'}); for(const n of Object.keys(S.menu.addons)) box.append(el('label',{}, el('input',{type:'checkbox','data-name':n,style:'margin-right:.4rem;'}), n)); return box; })(), el('label',{},'Pick & Choose mode (no included items)'), el('select',{id:'cbPick'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')) ); UI.modal('Build Custom Package',(close)=>{ const name=content.querySelector('#cbName').value.trim()||'Custom Package'; const base=Number(content.querySelector('#cbBase').value||0); const lock=content.querySelector('#cbLock').value==='yes'; const pick=content.querySelector('#cbPick').value==='yes'; const inc=pick?[]:Array.from(content.querySelectorAll('input[type=checkbox][data-name]')).filter(x=>x.checked).map(x=>x.getAttribute('data-name')); const prices=S.menu.sizes.map(()=>0); const idx=S.menu.sizes.indexOf(size); if(idx>=0) prices[idx]=base; else if(prices.length) prices[0]=base; S.menu.packages[name]=prices; S.menu.packageMeta[name]={lock, includedAddons:inc}; Storage.save(S); UI.populateSizesAndPackages(); if(row){ const pkgSel=row.querySelector('.vehicle-package'); if(pkgSel){ pkgSel.value=name; UI.refreshVehicleRow(row,{setBase:true}); UI.updateTotals(); } } else { const firstRow=document.querySelector('.vehicle-row'); const pkgSel=firstRow?.querySelector('.vehicle-package'); if(pkgSel){ pkgSel.value=name; UI.refreshVehicleRow(firstRow,{setBase:true}); } UI.handlePackageChange(); } UI.flash('Custom package added.'); close(); }, content, 'Use Package', true, true); },
   openImport(){ const file=el('input',{type:'file',accept:'.json'}); file.onchange=(e)=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const data=JSON.parse(r.result); if(!data.transactions) throw new Error('Invalid backup file: missing "transactions"'); S=data; if(!S.menu.packageMeta) S.menu.packageMeta={}; Storage.save(S); location.reload(); }catch(err){ alert('Import error: '+err.message); } }; r.readAsText(f); }; file.click(); },
   openSettings(){ const content=el('div',{}, el('h4',{},'Brand'), el('label',{},'Header Title'), el('input',{id:'stHeader', value:S.business.headerTitle||''}), el('label',{},'Business Name (on quotes)'), el('input',{id:'stBiz', value:S.business.name||''}), el('label',{},'Logo'), el('div',{class:'row'}, el('button',{class:'btn', onclick:()=>UI.pickLogo()},'Upload Logo'), el('button',{class:'btn secondary', onclick:()=>{ S.business.logoDataUrl=''; Storage.save(S); UI.initHeader(); UI.flash('Logo removed.'); }},'Remove Logo')), el('div',{class:'footnote'},'Replace install icons by swapping icon-192.png / icon-512.png in the bundle.') ); UI.modal('Settings',(close)=>{ S.business.headerTitle=content.querySelector('#stHeader').value.trim()||'POLISH CREW — Accounting'; S.business.name=content.querySelector('#stBiz').value.trim()||'Polish Crew'; Storage.save(S); UI.initHeader(); UI.flash('Settings saved.'); close(); }, content); },
