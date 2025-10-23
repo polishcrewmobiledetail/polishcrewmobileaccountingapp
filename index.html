@@ -34,6 +34,8 @@
   .list-item{padding:.5rem .6rem;border:1px solid #171a1d;background:#0a0c0f;border-radius:10px}
   .tiny{font-size:.8rem;color:#aab5b5}
   .hidden{display:none}
+  .vehicle-addon-row[data-included="true"]{opacity:.6;}
+  .vehicle-addon-row[data-included="true"] input{pointer-events:none;opacity:.7;}
   .footnote{font-size:.8rem;color:#8ea59a}
   .drawer {position:fixed;right:0;top:0;height:100%;width:min(92vw,420px);transform:translateX(100%);transition:transform .25s ease;background:#050607;border-left:1px solid #14171a;z-index:20;display:flex;flex-direction:column}
   .drawer.open{transform:translateX(0)}
@@ -110,15 +112,13 @@
           </div>
 
           <div class="row">
-            <div><label>Vehicle Size</label><select id="jobSize" onchange="UI.prefillBase()"></select></div>
-            <div>
+            <div style="flex:1;">
               <label>Package</label>
               <div class="row" style="gap:.4rem;">
-                <select id="jobPkg" onchange="UI.prefillBase()"></select>
+                <select id="jobPkg" onchange="UI.handlePackageChange()"></select>
                 <button class="btn secondary" onclick="UI.openCustomBuilder()">Build Custom</button>
               </div>
             </div>
-            <div><label>Base</label><input id="jobBase" type="number" min="0" step="0.01"></div>
           </div>
 
           <div id="includedPanel" class="card hidden" style="margin-top:.4rem;">
@@ -127,13 +127,16 @@
           </div>
 
           <div class="card" style="margin-top:.6rem;">
-            <h3>Add-ons</h3>
-            <div id="addonsList" class="list"></div>
+            <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:.4rem;">
+              <h3 style="margin:.25rem 0;">Vehicles</h3>
+              <button class="btn secondary" onclick="UI.addVehicle()">Add Vehicle</button>
+            </div>
+            <div id="vehiclesList" class="list"></div>
             <div class="footnote">≤3 add-ons = Maintenance. 4+ or heavy soil → Full Detail upgrade.</div>
           </div>
 
-          <div class="row" style="margin-top:.6rem;align-items:flex-start;">
-            <div>
+          <div class="row" style="margin-top:.6rem;align-items:flex-start;gap:1rem;">
+            <div style="flex:1;">
               <label>Discount</label>
               <div class="row">
                 <select id="jobDiscType"><option value="none">None</option><option value="%">%</option><option value="$">$</option></select>
@@ -152,11 +155,7 @@
                   <option value="vehicle">Per vehicle</option>
                 </select>
               </div>
-            </div>
-            <div>
-              <label>Vehicles</label>
-              <input id="jobVehicleCount" type="number" min="1" step="1" value="1">
-              <div class="tiny" style="margin-top:.25rem;">Use per-vehicle to repeat discounts for each car.</div>
+              <div class="tiny" style="margin-top:.25rem;">Per-vehicle discounts are applied to each vehicle individually.</div>
             </div>
             <div style="flex:1;"><label>Notes</label><textarea id="jobNotes" placeholder="Any special conditions, soil level, etc."></textarea></div>
           </div>
@@ -239,7 +238,6 @@ const DEFAULT_SIZES = ["Coupe","Sedan","Crossover","SUV/Truck","XL/Lifted"];
 const DEFAULT_MENU = {
   sizes: DEFAULT_SIZES,
   packages: {
-    "Exterior Wash Only": [40,45,50,55,65],
     "Interior Clean Only": [45,50,55,60,70],
     "In & Out Combo": [70,75,85,95,110],
     "Quick In & Out": [65,70,80,90,100],
@@ -276,16 +274,23 @@ const DEFAULT_BIZ = { name:"Polish Crew", headerTitle:"POLISH CREW — Accountin
 
 const AppState = { business: DEFAULT_BIZ, clients: [], menu: DEFAULT_MENU, jobs: [], transactions: [], mileage: [], settings: DEFAULT_SETTINGS };
 
+function cloneData(obj){
+  if(typeof structuredClone === 'function'){
+    return structuredClone(obj);
+  }
+  return JSON.parse(JSON.stringify(obj));
+}
+
 const Storage = {
   key: "pc_accounting_v2",
   load() {
     try {
       const raw = localStorage.getItem(this.key);
-      if (!raw) return structuredClone(AppState);
+      if (!raw) return cloneData(AppState);
       const parsed = JSON.parse(raw);
-      if (!parsed.settings) parsed.settings = structuredClone(DEFAULT_SETTINGS);
-      if (!parsed.menu) parsed.menu = structuredClone(DEFAULT_MENU);
-      if (!parsed.business) parsed.business = structuredClone(DEFAULT_BIZ);
+      if (!parsed.settings) parsed.settings = cloneData(DEFAULT_SETTINGS);
+      if (!parsed.menu) parsed.menu = cloneData(DEFAULT_MENU);
+      if (!parsed.business) parsed.business = cloneData(DEFAULT_BIZ);
       if (!parsed.transactions) parsed.transactions = [];
       if (!parsed.clients) parsed.clients = [];
       if (!parsed.jobs) parsed.jobs = [];
@@ -294,7 +299,7 @@ const Storage = {
       return parsed;
     } catch(e) {
       UI.bootError("Failed to load saved data: " + e.message);
-      return structuredClone(AppState);
+      return cloneData(AppState);
     }
   },
   save(state) { localStorage.setItem(this.key, JSON.stringify(state)); }
@@ -313,24 +318,47 @@ const Calc = {
   sizeIndex(size){ return S.menu.sizes.indexOf(size); },
   base(pkg,size){ const i=this.sizeIndex(size); return (S.menu.packages[pkg]||[])[i]||0; },
   addonPrice(name,size){ const i=this.sizeIndex(size); return (S.menu.addons[name]||[])[i]||0; },
-  vehicleCount(job){ return Math.max(1, Number(job.vehicleCount||1)); },
-  perVehicleSubtotal(job){ const add=(job.addons||[]).reduce((t,a)=>t+Number(a.price||0),0); return Number(job.base||0)+add; },
-  subtotal(job){ return this.perVehicleSubtotal(job) * this.vehicleCount(job); },
+  vehicleSubtotal(vehicle){ const add=(vehicle.addons||[]).reduce((t,a)=>t+Number(a.price||0),0); return Number(vehicle.base||0)+add; },
+  vehicles(job){
+    if(job.vehicles && job.vehicles.length){
+      return job.vehicles.map(v=>({
+        size: v.size || job.size || S.menu.sizes[0],
+        base: Number(v.base||0),
+        addons: (v.addons||[]).map(a=>({name:a.name, price:Number(a.price||0)})),
+        pkg: v.pkg || job.pkg || '',
+        label: v.label || ''
+      }));
+    }
+    const count=Math.max(1, Number(job.vehicleCount||1));
+    const base=Number(job.base||0);
+    const size=job.size || S.menu.sizes[0];
+    const addons=(job.addons||[]).map(a=>({name:a.name, price:Number(a.price||0)}));
+    return Array.from({length:count},()=>({
+      size,
+      base,
+      addons: addons.map(a=>({name:a.name, price:Number(a.price||0)})),
+      pkg: job.pkg || ''
+    }));
+  },
+  vehicleCount(job){ return this.vehicles(job).length; },
+  subtotal(job){ return this.vehicles(job).reduce((t,v)=>t+this.vehicleSubtotal(v),0); },
   discount(job){
     const discType = job.discType;
     if(!discType || discType==='none') return 0;
     const value = Number(job.discValue||0);
     if(!value) return 0;
     const scope = job.discScope==='vehicle' ? 'vehicle' : 'job';
-    const perVehicleSub = this.perVehicleSubtotal(job);
+    const vehicles = this.vehicles(job);
+    if(!vehicles.length) return 0;
     const subtotal = this.subtotal(job);
     if(discType==='%'){
       const pct = value/100;
       if(pct<=0) return 0;
-      return (scope==='vehicle' ? perVehicleSub * this.vehicleCount(job) : subtotal) * pct;
+      if(scope==='vehicle') return vehicles.reduce((sum,v)=>sum+this.vehicleSubtotal(v)*pct,0);
+      return subtotal * pct;
     }
     if(discType==='$'){
-      if(scope==='vehicle') return Math.min(perVehicleSub, value) * this.vehicleCount(job);
+      if(scope==='vehicle') return vehicles.reduce((sum,v)=>sum+Math.min(this.vehicleSubtotal(v), value),0);
       return Math.min(subtotal, value);
     }
     return 0;
@@ -341,26 +369,102 @@ const Calc = {
 /*** App ***/
 const App = {
   init(){
+    this.normalizeClients();
     UI.initHeader();
     UI.initTabs();
     UI.populateClients();
     UI.populateSizesAndPackages();
-    UI.renderAddons();
-    document.getElementById('jobBase').addEventListener('input',()=>UI.updateTotals());
+    const clientSel=document.getElementById('jobClient');
+    if(clientSel){
+      clientSel.addEventListener('change',()=>UI.onClientChange());
+    }
     document.getElementById('jobDiscType').addEventListener('change',()=>UI.updateTotals());
     document.getElementById('jobDiscValue').addEventListener('input',()=>UI.updateTotals());
     document.getElementById('jobDiscScope').addEventListener('change',()=>UI.updateTotals());
-    document.getElementById('jobVehicleCount').addEventListener('input',()=>UI.updateTotals());
     UI.resetJobForm();
     UI.refreshJobsList();
     UI.refreshDashboard();
     if('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js');
   },
-  addClient(){ const name=document.getElementById('cName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(), name, phone:document.getElementById('cPhone').value.trim(), notes:document.getElementById('cNotes').value.trim(), discount:{type:document.getElementById('cDiscType').value, value:Number(document.getElementById('cDiscValue').value||0)}}; S.clients.push(c); Storage.save(S); UI.populateClients(); UI.flash('Client added.'); document.getElementById('cName').value='';document.getElementById('cPhone').value='';document.getElementById('cNotes').value='';document.getElementById('cDiscType').value='none';document.getElementById('cDiscValue').value='0'; },
-  addQuickClient(){ const name=document.getElementById('qcName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(), name, phone:document.getElementById('qcPhone').value.trim(), notes:document.getElementById('qcNotes').value.trim(), discount:{type:document.getElementById('qcDiscType').value, value:Number(document.getElementById('qcDiscValue').value||0)}}; S.clients.push(c); Storage.save(S); UI.populateClients(c.id); UI.hideQuickClient(); UI.flash('Client added.'); },
-  saveJob(){ const clientId=document.getElementById('jobClient').value; const size=document.getElementById('jobSize').value; const pkg=document.getElementById('jobPkg').value; if(!clientId||!size||!pkg) return alert('Client, size, and package are required'); const base=Number(document.getElementById('jobBase').value||0); const discType=document.getElementById('jobDiscType').value; const discValue=Number(document.getElementById('jobDiscValue').value||0); const discScope=document.getElementById('jobDiscScope').value; const vehicleCount=Math.max(1, Math.floor(Number(document.getElementById('jobVehicleCount').value||1))||1); const notes=document.getElementById('jobNotes').value.trim(); const addons=[]; document.querySelectorAll('.addon-row').forEach(row=>{ const cb=row.querySelector('input[type=checkbox]'); const name=row.getAttribute('data-name'); const price=Number(row.querySelector('input[type=number]').value||0); if(cb.checked) addons.push({name,price}); }); const job={id:uid(), date:today(), clientId,size,pkg,base,addons,discType,discValue,discScope,vehicleCount,notes,status:"Quoted",payments:[]}; S.jobs.unshift(job); Storage.save(S); UI.refreshJobsList(); UI.resetJobForm(); UI.flash('Quote saved.'); },
-  updateJobStatus(id,next){ const j=S.jobs.find(x=>x.id===id); if(!j) return; j.status=next; Storage.save(S); UI.refreshJobsList(); UI.flash('Status: '+next); },
-  takePayment(id){ const j=S.jobs.find(x=>x.id===id); if(!j) return; const paid=(j.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0); const due=Math.max(0,Calc.total(j)-paid); const amount=Number(prompt('Amount received', due.toFixed(2))||0); if(amount<=0) return; const method=prompt('Method (Cash/Card/Zelle/Venmo/CashApp/Bank)','Cash')||'Cash'; j.payments.push({date:today(),method,amount}); const paid2=j.payments.reduce((t,p)=>t+Number(p.amount||0),0); if(paid2+1e-6>=Calc.total(j)){ j.status='Paid'; S.transactions.push({id:uid(), type:'Income', date:today(), category:'Package', item:j.pkg+' — '+j.size, clientId:j.clientId, vendor:'', payment:method, amount:Calc.total(j), notes:'Discount: '+(j.discType||'none')+' '+(j.discValue||0)}); UI.flash('Paid in full. Income posted.'); } else UI.flash('Partial payment recorded.'); Storage.save(S); UI.refreshJobsList(); UI.refreshDashboard(); },
+  normalizeClients(){
+    S.clients = Array.isArray(S.clients) ? S.clients : [];
+    for(const c of S.clients){
+      if(!c.discount) c.discount={type:'none', value:0};
+      if(!Array.isArray(c.vehicles)) c.vehicles=[];
+      for(const v of c.vehicles){
+        if(!v.id) v.id=uid();
+        if(!v.lastService) v.lastService=null;
+        if(!Array.isArray(v.history)) v.history=[];
+      }
+    }
+  },
+  addClient(){ const name=document.getElementById('cName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(), name, phone:document.getElementById('cPhone').value.trim(), notes:document.getElementById('cNotes').value.trim(), discount:{type:document.getElementById('cDiscType').value, value:Number(document.getElementById('cDiscValue').value||0)}, vehicles:[]}; S.clients.push(c); Storage.save(S); UI.populateClients(); UI.flash('Client added.'); document.getElementById('cName').value='';document.getElementById('cPhone').value='';document.getElementById('cNotes').value='';document.getElementById('cDiscType').value='none';document.getElementById('cDiscValue').value='0'; },
+  addQuickClient(){ const name=document.getElementById('qcName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(), name, phone:document.getElementById('qcPhone').value.trim(), notes:document.getElementById('qcNotes').value.trim(), discount:{type:document.getElementById('qcDiscType').value, value:Number(document.getElementById('qcDiscValue').value||0)}, vehicles:[]}; S.clients.push(c); Storage.save(S); UI.populateClients(c.id); UI.hideQuickClient(); UI.flash('Client added.'); UI.onClientChange(); },
+  syncClientVehicles(job,{updateLastService=false}={}){
+    const client=S.clients.find(x=>x.id===job.clientId);
+    if(!client) return;
+    if(!Array.isArray(client.vehicles)) client.vehicles=[];
+    for(const vehicle of job.vehicles||[]){
+      const label=(vehicle.label||'').trim();
+      const candidateId=vehicle.clientVehicleId||vehicle.vehicleId||'';
+      let record=null;
+      if(candidateId){
+        record=client.vehicles.find(v=>v.id===candidateId);
+      }
+      if(!record && label){
+        record=client.vehicles.find(v=>(v.label||'').toLowerCase()===label.toLowerCase());
+      }
+      if(record){
+        if(label) record.label=label;
+        if(vehicle.size) record.size=vehicle.size;
+      } else if(label){
+        record={id:candidateId||uid(), label, size:vehicle.size||'', lastService:null, history:[]};
+        client.vehicles.push(record);
+      } else {
+        continue;
+      }
+      if(!Array.isArray(record.history)) record.history=[];
+      if(updateLastService){
+        const serviceInfo={jobId:job.id, date:job.date, pkg:vehicle.pkg||job.pkg||'', addons:(vehicle.addons||[]).map(a=>a.name).filter(Boolean)};
+        record.lastService=serviceInfo;
+        record.history.unshift(serviceInfo);
+        if(record.history.length>20) record.history.length=20;
+      }
+    }
+    Storage.save(S);
+    UI.populateClients(job.clientId);
+  },
+  saveJob(){ const clientId=document.getElementById('jobClient').value; const pkg=document.getElementById('jobPkg').value; if(!clientId||!pkg) return alert('Client and package are required'); const vehicles=UI.collectVehicles(); if(!vehicles.length) return alert('Add at least one vehicle'); const discType=document.getElementById('jobDiscType').value; const discValue=Number(document.getElementById('jobDiscValue').value||0); const discScope=document.getElementById('jobDiscScope').value; const notes=document.getElementById('jobNotes').value.trim(); const job={id:uid(), date:today(), clientId,pkg,vehicles,discType,discValue,discScope,notes,status:"Quoted",payments:[]}; job.size=vehicles[0]?.size||''; job.vehicleCount=vehicles.length; S.jobs.unshift(job); Storage.save(S); this.syncClientVehicles(job); UI.refreshJobsList(); UI.resetJobForm(); UI.flash('Quote saved.'); },
+  updateJobStatus(id,next){ const j=S.jobs.find(x=>x.id===id); if(!j) return; j.status=next; if(next==='Complete'||next==='Paid'){ this.syncClientVehicles(j,{updateLastService:true}); }
+    else { Storage.save(S); UI.populateClients(j.clientId); }
+    UI.refreshJobsList();
+    UI.flash('Status: '+next); },
+  takePayment(id){
+    const j=S.jobs.find(x=>x.id===id);
+    if(!j) return;
+    const paid=(j.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0);
+    const due=Math.max(0,Calc.total(j)-paid);
+    const amount=Number(prompt('Amount received', due.toFixed(2))||0);
+    if(amount<=0) return;
+    const method=prompt('Method (Cash/Card/Zelle/Venmo/CashApp/Bank)','Cash')||'Cash';
+    j.payments.push({date:today(),method,amount});
+    const paid2=j.payments.reduce((t,p)=>t+Number(p.amount||0),0);
+    if(paid2+1e-6>=Calc.total(j)){
+      j.status='Paid';
+      const vehicleLabel=UI.jobVehicleSummary(j);
+      const pkgLabel=UI.jobPackageLabel(j);
+      const itemLabel=vehicleLabel?`${pkgLabel} — ${vehicleLabel}`:pkgLabel;
+      S.transactions.push({id:uid(), type:'Income', date:today(), category:'Package', item:itemLabel, clientId=j.clientId, vendor:'', payment:method, amount:Calc.total(j), notes:'Discount: '+(j.discType||'none')+' '+(j.discValue||0)});
+      this.syncClientVehicles(j,{updateLastService:true});
+      UI.flash('Paid in full. Income posted.');
+    } else {
+      Storage.save(S);
+      UI.populateClients(j.clientId);
+      UI.flash('Partial payment recorded.');
+    }
+    UI.refreshJobsList();
+    UI.refreshDashboard();
+  },
   deleteJob(id){ if(!confirm('Delete this job?')) return; S.jobs=S.jobs.filter(x=>x.id!==id); Storage.save(S); UI.refreshJobsList(); },
   addExpenseRecord(rec){ S.transactions.push(rec); Storage.save(S); UI.refreshDashboard(); }
 };
@@ -370,37 +474,469 @@ const UI = {
   initHeader(){ const logo=document.getElementById('headerLogo'); logo.src=S.business.logoDataUrl||'icon-192.png'; document.getElementById('headerTitle').textContent=S.business.headerTitle||'POLISH CREW — Accounting'; document.getElementById('openDrawer').onclick=()=>UI.toggleDrawer(true); },
   switchTab(name){ document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.getAttribute('data-tab')===name)); document.querySelectorAll('.tabpage').forEach(p=>p.classList.add('hidden')); document.getElementById(name).classList.remove('hidden'); },
   initTabs(){ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>UI.switchTab(t.getAttribute('data-tab')))); },
-  populateClients(selectId){ const sel=document.getElementById('jobClient'); sel.innerHTML='<option value="">-- select client --</option>'; for(const c of S.clients){ const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; sel.appendChild(o); } if(selectId) sel.value=selectId; const list=document.getElementById('clientsList'); list.innerHTML=''; for(const c of S.clients){ const li=el('div',{class:'list-item'}, el('div',{html:`<b>${c.name}</b> <span class='tiny'>${c.phone||''}</span>`}), el('div',{class:'tiny'},c.notes||'')); list.append(li); } },
-  populateSizesAndPackages(){ const size=document.getElementById('jobSize'); size.innerHTML=''; S.menu.sizes.forEach(s=>size.append(el('option',{value:s},s))); const pkg=document.getElementById('jobPkg'); pkg.innerHTML=''; Object.keys(S.menu.packages).forEach(p=>pkg.append(el('option',{value:p},p))); },
-  prefillBase(){ const size=document.getElementById('jobSize').value; const pkg=document.getElementById('jobPkg').value; const b=Calc.base(pkg,size); const meta=pkgMeta(pkg); const baseInp=document.getElementById('jobBase'); baseInp.value=b.toFixed(2); baseInp.disabled=!!meta.lock; // included panel
-    const inc=meta.includedAddons||[]; const panel=document.getElementById('includedPanel'); const list=document.getElementById('includedList'); list.innerHTML=''; if(inc.length){ panel.classList.remove('hidden'); for(const n of inc) list.append(el('span',{class:'pill'},n)); } else panel.classList.add('hidden'); this.renderAddons(); this.updateTotals(); },
-  renderAddons(){ const host=document.getElementById('addonsList'); host.innerHTML=''; const size=document.getElementById('jobSize').value||S.menu.sizes[0]; const selPkg=document.getElementById('jobPkg').value; const meta=pkgMeta(selPkg); for(const [name,arr] of Object.entries(S.menu.addons)){ const price=Calc.addonPrice(name,size); const included=meta.includedAddons?.includes(name); const row=el('div',{class:'list-item addon-row','data-name':name}, el('div',{class:'row'}, el('input',{type:'checkbox', ...(included?{checked:true,disabled:true}:{}), style:'flex:0;width:22px;height:22px;'}), el('div',{style:'flex:1;font-weight:800;'}, name + (included?' — Included':'')), el('input',{type:'number', min:'0', step:'0.01', value:(included? '0.00' : price.toFixed(2)), ...(included?{disabled:true}:{}), style:'flex:0;width:120px;'}) )); host.append(row); } document.querySelectorAll('#addonsList input').forEach(i=>i.addEventListener('input',()=>UI.updateTotals())); document.querySelectorAll('#addonsList input[type=checkbox]').forEach(i=>i.addEventListener('change',()=>UI.updateTotals())); },
+  populateClients(selectId){ const sel=document.getElementById('jobClient'); if(sel){ sel.innerHTML='<option value="">-- select client --</option>'; for(const c of S.clients){ const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; sel.appendChild(o); } if(selectId) sel.value=selectId; }
+    const list=document.getElementById('clientsList');
+    if(list){
+      list.innerHTML='';
+      for(const c of S.clients){
+        const vehicles=Array.isArray(c.vehicles)?c.vehicles:[];
+        const vehicleRows=vehicles.length?vehicles.map(v=>{
+          const service=v.lastService;
+          const addonsLabel=service?.addons&&service.addons.length?` (${service.addons.join(', ')})`:'';
+          const pkgLabel=service?.pkg?` — ${service.pkg}`:'';
+          const serviceText=service?`Last service: ${service.date||'Unknown date'}${pkgLabel}${addonsLabel}`:'No service recorded yet.';
+          return el('div',{class:'tiny'},`${v.label||'Vehicle'}${v.size?` · ${v.size}`:''} · ${serviceText}`);
+        }):[el('div',{class:'tiny'},'No vehicles saved yet.')];
+        const header=el('div',{class:'row',style:'justify-content:space-between;align-items:flex-start;gap:.5rem;'},
+          el('div',{html:`<b>${c.name}</b> <span class='tiny'>${c.phone||''}</span>`}),
+          el('button',{class:'pill',onclick:()=>UI.openClientVehicles(c.id)},'Manage Vehicles')
+        );
+        const body=el('div',{}, ...vehicleRows, ...(c.notes?[el('div',{class:'tiny'},c.notes)]:[]));
+        const li=el('div',{class:'list-item'}, header, body);
+        list.append(li);
+      }
+    }
+    UI.refreshClientVehicleOptions();
+  },
+  refreshClientVehicleOptions(){
+    const clientId=document.getElementById('jobClient')?.value || '';
+    const client=S.clients.find(c=>c.id===clientId);
+    const vehicles=client?.vehicles||[];
+    document.querySelectorAll('.vehicle-row').forEach(row=>{
+      const sel=row.querySelector('.vehicle-existing');
+      if(!sel) return;
+      const current=sel.value;
+      sel.innerHTML='';
+      sel.append(el('option',{value:''}, clientId?'New vehicle':'Select client first'));
+      vehicles.forEach(v=>sel.append(el('option',{value:v.id},v.label||'Unnamed Vehicle')));
+      if(current && vehicles.some(v=>v.id===current)) sel.value=current;
+      else sel.value='';
+      if(sel.value){ row.setAttribute('data-client-vehicle-id', sel.value); }
+      else row.removeAttribute('data-client-vehicle-id');
+    });
+  },
+  onClientChange(){
+    UI.refreshClientVehicleOptions();
+  },
+  openClientVehicles(id){
+    const client=S.clients.find(c=>c.id===id);
+    if(!client) return;
+    if(!Array.isArray(client.vehicles)) client.vehicles=[];
+    const list=el('div',{class:'list',style:'gap:.5rem;'});
+    const renderList=()=>{
+      list.innerHTML='';
+      if(!client.vehicles.length){
+        list.append(el('div',{class:'tiny'},'No vehicles saved yet.'));
+        return;
+      }
+      client.vehicles.forEach(v=>{
+        if(!v.id) v.id=uid();
+        const item=el('div',{class:'list-item'});
+        const header=el('div',{class:'row',style:'gap:.5rem;flex-wrap:wrap;align-items:flex-end;'});
+        const labelWrap=el('div',{style:'flex:1;min-width:200px;'});
+        labelWrap.append(el('label',{},'Vehicle'), el('input',{value:v.label||'',placeholder:'Year / Make / Model',oninput:(e)=>{ v.label=e.target.value.trim(); }}));
+        const sizeWrap=el('div',{style:'flex:1;min-width:160px;'});
+        const sizeSel=el('select',{});
+        sizeSel.append(el('option',{value:''},'Size not set'));
+        S.menu.sizes.forEach(s=>sizeSel.append(el('option',{value:s},s)));
+        sizeSel.value=v.size||'';
+        sizeSel.addEventListener('change',()=>{ v.size=sizeSel.value; });
+        sizeWrap.append(el('label',{},'Size'), sizeSel);
+        const removeBtn=el('button',{class:'btn secondary',type:'button'},'Remove');
+        removeBtn.addEventListener('click',()=>{
+          if(confirm('Remove this vehicle?')){
+            client.vehicles=client.vehicles.filter(x=>x.id!==v.id);
+            renderList();
+          }
+        });
+        header.append(labelWrap,sizeWrap,removeBtn);
+        item.append(header);
+        const service=v.lastService;
+        const addonsLabel=service?.addons&&service.addons.length?` (${service.addons.join(', ')})`:'';
+        const pkgLabel=service?.pkg?` — ${service.pkg}`:'';
+        item.append(el('div',{class:'tiny',style:'margin-top:.25rem;'}, service?`Last service: ${service.date||'Unknown date'}${pkgLabel}${addonsLabel}`:'No recorded service yet.'));
+        list.append(item);
+      });
+    };
+    renderList();
+    const addLabel=el('input',{placeholder:'Year / Make / Model'});
+    const addSize=el('select',{});
+    addSize.append(el('option',{value:''},'Size not set'));
+    S.menu.sizes.forEach(s=>addSize.append(el('option',{value:s},s)));
+    const addButton=el('button',{class:'btn',type:'button'},'Add Vehicle');
+    addButton.addEventListener('click',()=>{
+      const label=addLabel.value.trim();
+      if(!label) return alert('Vehicle description required');
+      client.vehicles.push({id:uid(), label, size:addSize.value||'', lastService:null, history:[]});
+      addLabel.value='';
+      addSize.value='';
+      renderList();
+    });
+    const content=el('div',{}, list, el('div',{class:'row',style:'gap:.5rem;margin-top:.75rem;align-items:flex-end;flex-wrap:wrap;'},
+      el('div',{style:'flex:1;min-width:220px;'}, el('label',{},'Vehicle'), addLabel),
+      el('div',{style:'flex:1;min-width:160px;'}, el('label',{},'Size'), addSize),
+      addButton
+    ));
+    UI.modal('Client Vehicles',(close)=>{
+      client.vehicles=client.vehicles.filter(v=>(v.label||'').trim());
+      Storage.save(S);
+      UI.populateClients(client.id);
+      UI.refreshClientVehicleOptions();
+      UI.flash('Vehicles updated.');
+      close();
+    },content,'Done',true,true);
+  },
+  populateSizesAndPackages(){
+    const pkg=document.getElementById('jobPkg');
+    const currentPkg=pkg?.value;
+    if(pkg){
+      pkg.innerHTML='';
+      Object.keys(S.menu.packages).forEach(name=>pkg.append(el('option',{value:name},name)));
+      if(currentPkg && S.menu.packages[currentPkg]) pkg.value=currentPkg;
+      else if(pkg.options.length) pkg.value=pkg.options[0].value;
+    }
+    const jobPkgValue=pkg?.value || '';
+    document.querySelectorAll('.vehicle-package').forEach(sel=>{
+      const row=sel.closest('.vehicle-row');
+      const current=sel.value;
+      sel.innerHTML='';
+      Object.keys(S.menu.packages).forEach(name=>sel.append(el('option',{value:name},name)));
+      if(current && S.menu.packages[current]) sel.value=current;
+      else if(jobPkgValue && S.menu.packages[jobPkgValue]) sel.value=jobPkgValue;
+      else if(sel.options.length) sel.value=sel.options[0].value;
+      if(row) UI.refreshVehicleRow(row,{setBase:true});
+    });
+    document.querySelectorAll('.vehicle-size').forEach(sel=>{
+      const current=sel.value;
+      sel.innerHTML='';
+      S.menu.sizes.forEach(size=>sel.append(el('option',{value:size},size)));
+      if(S.menu.sizes.includes(current)) sel.value=current;
+      else if(S.menu.sizes.length) sel.value=S.menu.sizes[0];
+    });
+  },
+  handlePackageChange(){
+    const pkg=document.getElementById('jobPkg')?.value || '';
+    const meta=pkgMeta(pkg);
+    const panel=document.getElementById('includedPanel');
+    const list=document.getElementById('includedList');
+    if(panel && list){
+      list.innerHTML='';
+      if(meta.includedAddons && meta.includedAddons.length){
+        panel.classList.remove('hidden');
+        meta.includedAddons.forEach(n=>list.append(el('span',{class:'pill'},n)));
+      } else {
+        panel.classList.add('hidden');
+      }
+    }
+    document.querySelectorAll('.vehicle-row').forEach(row=>{
+      const pkgSel=row.querySelector('.vehicle-package');
+      if(pkgSel){
+        if((row.getAttribute('data-autopkg')==='true' || !pkgSel.value) && pkgSel.querySelector(`option[value="${pkg}"]`)){
+          pkgSel.value=pkg;
+        }
+        UI.refreshVehicleRow(row,{setBase:true});
+      }
+    });
+    UI.updateTotals();
+  },
+  prefillBase(){ this.handlePackageChange(); },
+  renderAddons(){ this.handlePackageChange(); },
+  addVehicle(prefill={}){
+    const list=document.getElementById('vehiclesList');
+    if(!list) return;
+    const pkgOptions=Object.keys(S.menu.packages);
+    const defaultPkgSel=document.getElementById('jobPkg')?.value || '';
+    const sizeOptions=S.menu.sizes;
+    const sizePref=(prefill.size && sizeOptions.includes(prefill.size))?prefill.size:(sizeOptions[0]||'');
+    const pkgPref=(prefill.pkg && S.menu.packages[prefill.pkg])?prefill.pkg:(defaultPkgSel && S.menu.packages[defaultPkgSel]?defaultPkgSel:(pkgOptions[0]||''));
+    const meta=pkgMeta(pkgPref);
+    const baseDefault=Calc.base(pkgPref,sizePref);
+    const baseValue=prefill.base!=null?Number(prefill.base):baseDefault;
+    const row=el('div',{class:'list-item vehicle-row','data-autopkg':prefill.pkg?'false':'true'});
+    const header=el('div',{class:'row',style:'gap:.5rem;flex-wrap:wrap;align-items:flex-end;'});
+
+    const clientId=document.getElementById('jobClient')?.value || '';
+    const client=S.clients.find(c=>c.id===clientId);
+    const knownVehicles=client?.vehicles||[];
+    const labelPref=(prefill.label||'');
+    const clientVehicleIdPref=prefill.clientVehicleId||prefill.vehicleId||'';
+    const vehicleWrap=el('div',{style:'flex:1;min-width:240px;'});
+    vehicleWrap.append(el('label',{},'Vehicle'));
+    const vehicleRow=el('div',{class:'row',style:'gap:.4rem;'});
+    const vehicleSel=el('select',{class:'vehicle-existing'});
+    vehicleSel.append(el('option',{value:''}, clientId?'New vehicle':'Select client first'));
+    knownVehicles.forEach(v=>vehicleSel.append(el('option',{value:v.id},v.label||'Unnamed Vehicle')));
+    if(clientVehicleIdPref && knownVehicles.some(v=>v.id===clientVehicleIdPref)) vehicleSel.value=clientVehicleIdPref;
+    const vehicleInput=el('input',{class:'vehicle-label',placeholder:'Year / Make / Model',value:labelPref});
+    if(vehicleSel.value) row.setAttribute('data-client-vehicle-id', vehicleSel.value);
+    if(labelPref) row.setAttribute('data-vehicle-label', labelPref);
+    vehicleInput.addEventListener('input',()=>{ row.setAttribute('data-vehicle-label', vehicleInput.value.trim()); });
+    vehicleRow.append(vehicleSel,vehicleInput);
+    vehicleWrap.append(vehicleRow);
+    header.append(vehicleWrap);
+
+    const pkgWrap=el('div',{style:'flex:1;min-width:200px;'});
+    pkgWrap.append(el('label',{},'Package'));
+    const pkgRow=el('div',{class:'row',style:'gap:.4rem;'});
+    const pkgSel=el('select',{class:'vehicle-package'});
+    pkgOptions.forEach(name=>pkgSel.append(el('option',{value:name},name)));
+    if(pkgPref && S.menu.packages[pkgPref]) pkgSel.value=pkgPref;
+    else if(pkgSel.options.length) pkgSel.value=pkgSel.options[0].value;
+    const pkgCustomBtn=el('button',{class:'btn secondary',type:'button'},'Custom');
+    pkgCustomBtn.addEventListener('click',()=>UI.openCustomBuilder(row));
+    pkgRow.append(pkgSel,pkgCustomBtn);
+    pkgWrap.append(pkgRow);
+    header.append(pkgWrap);
+
+    const sizeWrap=el('div',{style:'flex:1;min-width:160px;'});
+    sizeWrap.append(el('label',{},'Vehicle Size'));
+    const sizeSel=el('select',{class:'vehicle-size'});
+    sizeOptions.forEach(s=>sizeSel.append(el('option',{value:s},s)));
+    if(sizePref) sizeSel.value=sizePref;
+    sizeWrap.append(sizeSel);
+    header.append(sizeWrap);
+
+    const baseWrap=el('div',{style:'flex:1;min-width:140px;'});
+    baseWrap.append(el('label',{},'Base'));
+    const baseInput=el('input',{type:'number',min:'0',step:'0.01',class:'vehicle-base',value:Number(baseValue||0).toFixed(2)});
+    if(meta.lock) baseInput.disabled=true;
+    baseWrap.append(baseInput);
+    header.append(baseWrap);
+
+    const removeWrap=el('div',{style:'flex:0;'});
+    removeWrap.append(el('label',{},'\u00a0'));
+    const removeBtn=el('button',{class:'btn secondary vehicle-remove',onclick:()=>UI.removeVehicle(row)},'Remove');
+    removeWrap.append(removeBtn);
+    header.append(removeWrap);
+
+    row.append(header);
+    const addonsHost=el('div',{class:'list vehicle-addons',style:'margin-top:.6rem;gap:.4rem;'});
+    row.append(addonsHost);
+    list.append(row);
+
+    const syncSelectedVehicle=()=>{
+      const selectedId=vehicleSel.value;
+      if(selectedId && client){
+        const record=client.vehicles.find(v=>v.id===selectedId);
+        if(record){
+          if(record.label){
+            vehicleInput.value=record.label;
+            row.setAttribute('data-vehicle-label', record.label);
+          }
+          if(record.size && sizeOptions.includes(record.size)){
+            sizeSel.value=record.size;
+          }
+        }
+        row.setAttribute('data-client-vehicle-id', selectedId);
+      } else {
+        row.removeAttribute('data-client-vehicle-id');
+      }
+    };
+
+    vehicleSel.addEventListener('change',()=>{
+      syncSelectedVehicle();
+      row.setAttribute('data-autopkg','false');
+      UI.refreshVehicleRow(row,{setBase:true});
+      UI.updateTotals();
+    });
+
+    syncSelectedVehicle();
+
+    UI.renderVehicleAddons(row, prefill.addons||null);
+
+    baseInput.addEventListener('input',()=>UI.updateTotals());
+    sizeSel.addEventListener('change',()=>{ row.setAttribute('data-autopkg','false'); UI.refreshVehicleRow(row,{setBase:true}); UI.updateTotals(); });
+    pkgSel.addEventListener('change',()=>{ row.setAttribute('data-autopkg','false'); UI.refreshVehicleRow(row,{setBase:true}); UI.updateTotals(); });
+
+    UI.syncVehicleRemovers();
+    UI.refreshClientVehicleOptions();
+    UI.updateTotals();
+  },
+  removeVehicle(row){
+    const list=document.getElementById('vehiclesList');
+    if(!list) return;
+    if(list.querySelectorAll('.vehicle-row').length<=1){
+      UI.flash('At least one vehicle required.');
+      return;
+    }
+    row.remove();
+    UI.syncVehicleRemovers();
+    UI.updateTotals();
+  },
+  refreshVehicleRow(row,{setBase=false}={}){
+    const pkgSel=row.querySelector('.vehicle-package');
+    const pkg=pkgSel?.value || document.getElementById('jobPkg')?.value || '';
+    const meta=pkgMeta(pkg);
+    const sizeSel=row.querySelector('.vehicle-size');
+    const baseInput=row.querySelector('.vehicle-base');
+    const size=sizeSel?.value || S.menu.sizes[0] || '';
+    if(setBase && baseInput){
+      const base=Calc.base(pkg,size);
+      baseInput.value=Number(base||0).toFixed(2);
+    }
+    if(baseInput) baseInput.disabled=!!meta.lock;
+    row.setAttribute('data-pkg',pkg);
+    UI.renderVehicleAddons(row);
+  },
+  renderVehicleAddons(row,preset=null){
+    const host=row.querySelector('.vehicle-addons');
+    if(!host) return;
+    const pkgSel=row.querySelector('.vehicle-package');
+    const pkg=pkgSel?.value || document.getElementById('jobPkg')?.value || '';
+    const size=row.querySelector('.vehicle-size')?.value || S.menu.sizes[0] || '';
+    const meta=pkgMeta(pkg);
+    const previous=new Map();
+    if(preset){
+      (preset||[]).forEach(a=>previous.set(a.name,{price:Number(a.price||0), included:a.included || meta.includedAddons?.includes(a.name)}));
+    } else {
+      host.querySelectorAll('.vehicle-addon-row').forEach(node=>{
+        const name=node.getAttribute('data-name');
+        const price=node.querySelector('input[type=number]');
+        const included=node.getAttribute('data-included')==='true';
+        previous.set(name,{price:Number(price?.value||0), included});
+      });
+    }
+    host.innerHTML='';
+
+    const controlRow=el('div',{class:'row',style:'gap:.5rem;align-items:flex-end;'});
+    const select=el('select',{class:'vehicle-addon-picker'});
+    select.append(el('option',{value:''},'Add add-on…'));
+    Object.keys(S.menu.addons).forEach(name=>select.append(el('option',{value:name},name)));
+    const addBtn=el('button',{class:'btn secondary',type:'button'},'Add');
+    controlRow.append(select,addBtn);
+    host.append(controlRow);
+
+    const selectedWrap=el('div',{class:'list vehicle-addon-selected',style:'margin-top:.5rem;gap:.4rem;'});
+    host.append(selectedWrap);
+
+    const chosen=new Set();
+    const refreshOptions=()=>{
+      Array.from(select.options).forEach(opt=>{
+        if(!opt.value) return;
+        opt.disabled=chosen.has(opt.value);
+      });
+    };
+
+    const addRow=(name,info={})=>{
+      if(!name || !S.menu.addons[name] || chosen.has(name)) return;
+      const included=info.included || !!meta.includedAddons?.includes(name);
+      const basePrice=Calc.addonPrice(name,size);
+      const priceVal=included?0:(info.price!=null?Number(info.price):basePrice);
+      const rowEl=el('div',{class:'list-item vehicle-addon-row','data-name':name,'data-included':included?'true':'false'});
+      const rowContent=el('div',{class:'row',style:'align-items:center;gap:.5rem;'});
+      rowContent.append(el('div',{style:'flex:1;font-weight:800;'}, name + (included?' — Included':'')));
+      const priceInput=el('input',{type:'number',min:'0',step:'0.01',value:Number(priceVal||0).toFixed(2),style:'flex:0;width:120px;'});
+      if(included) priceInput.disabled=true;
+      const setStoredPrice=(val)=>previous.set(name,{price:val, included});
+      setStoredPrice(Number(priceVal||0));
+      priceInput.addEventListener('input',()=>{
+        setStoredPrice(Number(priceInput.value||0));
+        UI.updateTotals();
+      });
+      rowContent.append(priceInput);
+      if(included){
+        rowContent.append(el('span',{class:'pill',style:'flex:0 0 auto;'},'Included'));
+      } else {
+        const removeBtn=el('button',{class:'btn secondary',type:'button'},'Remove');
+        removeBtn.addEventListener('click',()=>{
+          chosen.delete(name);
+          rowEl.remove();
+          previous.delete(name);
+          refreshOptions();
+          UI.updateTotals();
+        });
+        rowContent.append(removeBtn);
+      }
+      rowEl.append(rowContent);
+      selectedWrap.append(rowEl);
+      chosen.add(name);
+      refreshOptions();
+      UI.updateTotals();
+    };
+
+    const includedSet=new Set(meta.includedAddons||[]);
+    const initialMap=new Map();
+    previous.forEach((info,name)=>{
+      const included=includedSet.has(name) || info.included;
+      initialMap.set(name,{name, price:included?0:Number(info.price||0), included});
+    });
+    includedSet.forEach(name=>{
+      if(!initialMap.has(name)) initialMap.set(name,{name, price:0, included:true});
+      else {
+        const item=initialMap.get(name);
+        initialMap.set(name,{name, price:0, included:true});
+      }
+    });
+    initialMap.forEach(item=>addRow(item.name,item));
+
+    addBtn.addEventListener('click',()=>{
+      const value=select.value;
+      if(!value) return;
+      addRow(value,previous.get(value)||{});
+      select.value='';
+      refreshOptions();
+    });
+    select.addEventListener('change',()=>{
+      if(!select.value) return;
+      addRow(select.value,previous.get(select.value)||{});
+      select.value='';
+      refreshOptions();
+    });
+
+    refreshOptions();
+  },
+  syncVehicleRemovers(){
+    const rows=document.querySelectorAll('.vehicle-row');
+    rows.forEach(row=>{
+      const btn=row.querySelector('.vehicle-remove');
+      if(btn) btn.classList.toggle('hidden', rows.length<=1);
+    });
+  },
+  collectVehicles(){
+    return Array.from(document.querySelectorAll('.vehicle-row')).map(row=>{
+      const size=row.querySelector('.vehicle-size')?.value || '';
+      const base=Number(row.querySelector('.vehicle-base')?.value||0);
+      const pkg=row.querySelector('.vehicle-package')?.value || '';
+      const label=row.querySelector('.vehicle-label')?.value.trim() || '';
+      const clientVehicleId=row.querySelector('.vehicle-existing')?.value || '';
+      const addons=Array.from(row.querySelectorAll('.vehicle-addon-row')).map(aRow=>{
+        const priceInput=aRow.querySelector('input[type=number]');
+        const name=aRow.getAttribute('data-name');
+        const price=Number(priceInput?.value||0);
+        return {name, price};
+      }).filter(a=>a && a.name);
+      const vehicle={size, base, addons, pkg};
+      if(label) vehicle.label=label;
+      if(clientVehicleId) vehicle.clientVehicleId=clientVehicleId;
+      return vehicle;
+    });
+  },
   updateTotals(){
-    const scope=document.getElementById('jobDiscScope').value;
-    const rawCount=Number(document.getElementById('jobVehicleCount').value||1);
-    const count=Math.max(1, Math.floor(rawCount)||1);
-    if(count!==rawCount) document.getElementById('jobVehicleCount').value=count;
     const job={
-      base:Number(document.getElementById('jobBase').value||0),
-      addons:Array.from(document.querySelectorAll('.addon-row')).map(r=>({
-        checked:r.querySelector('input[type=checkbox]').checked,
-        price:Number(r.querySelector('input[type=number]').value||0),
-        name:r.getAttribute('data-name')
-      })).filter(x=>x.checked),
+      pkg:document.getElementById('jobPkg')?.value || '',
+      vehicles:this.collectVehicles(),
       discType:document.getElementById('jobDiscType').value,
       discValue:Number(document.getElementById('jobDiscValue').value||0),
-      discScope:scope,
-      vehicleCount:count
+      discScope:document.getElementById('jobDiscScope').value
     };
     const subtotal=Calc.subtotal(job);
     const discount=Calc.discount(job);
+    const total=Calc.total(job);
     document.getElementById('jobSubtotal').textContent=fmt(subtotal);
     document.getElementById('jobDiscount').textContent=fmt(discount);
-    document.getElementById('jobTotal').textContent=fmt(subtotal-discount);
+    document.getElementById('jobTotal').textContent=fmt(total);
   },
   quickDisc(type,val){ document.getElementById('jobDiscType').value=type; document.getElementById('jobDiscValue').value=val; UI.updateTotals(); },
-  resetJobForm(){ document.getElementById('jobSize').value=S.menu.sizes[0]; document.getElementById('jobPkg').value=Object.keys(S.menu.packages)[0]; UI.prefillBase(); document.getElementById('jobDiscType').value='none'; document.getElementById('jobDiscValue').value='0'; document.getElementById('jobDiscScope').value='job'; document.getElementById('jobVehicleCount').value='1'; document.getElementById('jobNotes').value=''; this.updateTotals(); },
-  refreshJobsList(){ const list=document.getElementById('jobsList'); list.innerHTML=''; for(const j of S.jobs){ const c=S.clients.find(x=>x.id===j.clientId); const paid=(j.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0); const due=Math.max(0,Calc.total(j)-paid); const vehicleNote=j.vehicleCount&&j.vehicleCount>1?` · ${j.vehicleCount} vehicles`:''; list.append(el('div',{class:'list-item'}, el('div',{class:'row',style:'justify-content:space-between;'}, el('div',{html:`<b>${c?.name||'Unknown'}</b> <span class='tiny'>${j.pkg} — ${j.size}${vehicleNote}</span>`}), el('div',{class:'tiny'}, j.status)), el('div',{class:'row',style:'justify-content:space-between;margin-top:.25rem;'}, el('div',{class:'tiny'}, `Total: ${Calc.total(j).toFixed(2)}`), el('div',{class:'tiny'}, paid>0? `Paid: ${paid.toFixed(2)} (Due ${due.toFixed(2)})` : 'Unpaid')), el('div',{class:'row',style:'gap:.5rem;margin-top:.4rem;'}, ...(j.status==='Quoted'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Booked')},'Book')]:[]), ...(j.status==='Booked'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'In Progress')},'Start')]:[]), ...(j.status==='In Progress'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Complete')},'Complete')]:[]), ...(j.status!=='Paid'?[el('button',{class:'pill',onclick:()=>App.takePayment(j.id)},'Take Payment')]:[]), el('button',{class:'pill',onclick:()=>UI.openPrintDetails(j.id)},'Print Quote'), el('button',{class:'pill',onclick:()=>App.deleteJob(j.id)},'Delete') )) ); } const r=document.getElementById('recentList'); r.innerHTML=''; for(const j of S.jobs.slice(0,5)){ const c=S.clients.find(x=>x.id===j.clientId); const vehicleNote=j.vehicleCount&&j.vehicleCount>1?` · ${j.vehicleCount} vehicles`:''; r.append(el('div',{class:'list-item'}, `${j.date} · ${c?.name||'Unknown'} · ${j.pkg}${vehicleNote} (${j.status})`)); } },
+  resetJobForm(){ const pkgSel=document.getElementById('jobPkg'); const first=Object.keys(S.menu.packages)[0]||''; if(pkgSel) pkgSel.value=first; const list=document.getElementById('vehiclesList'); if(list) list.innerHTML=''; this.addVehicle(); this.handlePackageChange(); document.getElementById('jobDiscType').value='none'; document.getElementById('jobDiscValue').value='0'; document.getElementById('jobDiscScope').value='job'; document.getElementById('jobNotes').value=''; this.updateTotals(); },
+  jobVehicleSummary(job){ const vehicles=Calc.vehicles(job); if(!vehicles.length) return ''; const counts={}; vehicles.forEach(v=>{ const key=v.size||'Vehicle'; counts[key]=(counts[key]||0)+1; }); return Object.entries(counts).map(([size,count])=>count>1?`${size} × ${count}`:size).join(', '); },
+  jobPackageLabel(job){
+    const vehicles=Calc.vehicles(job);
+    const names=[...new Set(vehicles.map(v=>v.pkg).filter(Boolean))];
+    if(names.length===1) return names[0];
+    if(names.length>1) return 'Multiple Packages';
+    return job.pkg || '';
+  },
+  refreshJobsList(){ const list=document.getElementById('jobsList'); list.innerHTML=''; for(const j of S.jobs){ const c=S.clients.find(x=>x.id===j.clientId); const paid=(j.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0); const due=Math.max(0,Calc.total(j)-paid); const vehicleSummary=this.jobVehicleSummary(j); const pkgLabel=this.jobPackageLabel(j); const subtitle=vehicleSummary?`${pkgLabel} — ${vehicleSummary}`:pkgLabel; list.append(el('div',{class:'list-item'}, el('div',{class:'row',style:'justify-content:space-between;'}, el('div',{html:`<b>${c?.name||'Unknown'}</b> <span class='tiny'>${subtitle}</span>`}), el('div',{class:'tiny'}, j.status)), el('div',{class:'row',style:'justify-content:space-between;margin-top:.25rem;'}, el('div',{class:'tiny'}, `Total: ${Calc.total(j).toFixed(2)}`), el('div',{class:'tiny'}, paid>0? `Paid: ${paid.toFixed(2)}${due>0?` (Due ${due.toFixed(2)})`:''}` : 'Unpaid')), el('div',{class:'row',style:'gap:.5rem;margin-top:.4rem;'}, ...(j.status==='Quoted'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Booked')},'Book')]:[]), ...(j.status==='Booked'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'In Progress')},'Start')]:[]), ...(j.status==='In Progress'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Complete')},'Complete')]:[]), ...(j.status!=='Paid'?[el('button',{class:'pill',onclick:()=>App.takePayment(j.id)},'Take Payment')]:[]), el('button',{class:'pill',onclick:()=>UI.openPrintDetails(j.id)},'Print Quote'), el('button',{class:'pill',onclick:()=>App.deleteJob(j.id)},'Delete') )) ); } const recent=document.getElementById('recentList'); if(recent){ recent.innerHTML=''; for(const j of S.jobs.slice(0,5)){ const c=S.clients.find(x=>x.id===j.clientId); const vehicleSummary=this.jobVehicleSummary(j); const pkgLabel=this.jobPackageLabel(j); const summaryText=vehicleSummary?`${pkgLabel} — ${vehicleSummary}`:pkgLabel; recent.append(el('div',{class:'list-item'}, `${j.date} · ${c?.name||'Unknown'} · ${summaryText} (${j.status})`)); } } },
   openPrintDetails(id){
     const j = S.jobs.find(x => x.id === id);
     if (!j) return;
@@ -417,40 +953,36 @@ const UI = {
   openMenuEditor(){ const content=el('div',{}); const makeTable=(title,map,sizes,id)=>{ const headers='<tr><th>Item</th>'+sizes.map(s=>`<th>${s}</th>`).join('')+'<th></th></tr>'; const rows=Object.entries(map).map(([n,arr])=>`<tr data-name="${n}"><td><input value="${n}"></td>`+sizes.map((s,i)=>`<td><input type='number' min='0' step='1' value='${arr[i]||0}'></td>`).join('')+`<td><button class='pill' onclick='UI.delRow("${id}","${n}")'>Delete</button></td></tr>`).join(''); return `<h4>${title}</h4><table class='table' id='${id}'><thead>${headers}</thead><tbody>${rows}</tbody></table>`; }; content.innerHTML = makeTable('Packages',S.menu.packages,S.menu.sizes,'pkgTable') + '<div class="row" style="margin:.5rem 0;"><button class="btn secondary" onclick="UI.openPkgRules()">Edit Package Rules</button></div>' + makeTable('Add-ons',S.menu.addons,S.menu.sizes,'addonTable') + `<div class='footnote' style='margin-top:.5rem;'>${S.menu.guidance}</div>`; UI.modal('Menu Editor',(close)=>{ try{ const read=(id)=>{ const tbody=document.querySelector('#'+id+' tbody'); const rows=Array.from(tbody.querySelectorAll('tr')); const out={}; for(const r of rows){ const inputs=r.querySelectorAll('input'); const name=inputs[0].value.trim(); if(!name) continue; const prices=Array.from(inputs).slice(1).map(x=>Number(x.value||0)); out[name]=prices; } return out; }; S.menu.packages=read('pkgTable'); S.menu.addons=read('addonTable'); Storage.save(S); UI.populateSizesAndPackages(); UI.prefillBase(); UI.renderAddons(); UI.flash('Menu saved.'); }catch(e){ alert('Error saving: '+e.message); } close(); }, content, 'Save Changes', true, true); },
   delRow(tableId,name){ const tr=document.querySelector(`#${tableId} tr[data-name="${name}"]`); if(tr) tr.remove(); },
   openPkgRules(){ const names=Object.keys(S.menu.packages); const content=el('div',{}, el('label',{},'Select Package'), (()=>{ const s=el('select',{id:'prPkg'}); names.forEach(n=>s.append(el('option',{value:n},n))); return s; })(), el('label',{},'Lock Retail Base?'), (()=>{ const s=el('select',{id:'prLock'}); s.append(el('option',{value:'no'},'No')); s.append(el('option',{value:'yes'},'Yes')); return s; })(), el('label',{},'Included Add-ons'), (()=>{ const box=el('div',{class:'list',id:'prList'}); for(const n of Object.keys(S.menu.addons)) box.append(el('label',{}, el('input',{type:'checkbox','data-name':n,style:'margin-right:.4rem;'}), n)); return box; })() ); const sync=()=>{ const pkg=content.querySelector('#prPkg').value; const meta=pkgMeta(pkg); content.querySelector('#prLock').value=meta.lock?'yes':'no'; content.querySelectorAll('#prList input[type=checkbox]').forEach(cb=>cb.checked=!!meta.includedAddons?.includes(cb.getAttribute('data-name'))); }; UI.modal('Package Rules',(close)=>{ const pkg=content.querySelector('#prPkg').value; const lock=content.querySelector('#prLock').value==='yes'; const inc=Array.from(content.querySelectorAll('#prList input[type=checkbox]')).filter(x=>x.checked).map(x=>x.getAttribute('data-name')); S.menu.packageMeta[S.menu.packages[pkg]?pkg:pkg]={lock, includedAddons:inc}; Storage.save(S); UI.prefillBase(); UI.renderAddons(); UI.flash('Rules saved.'); close(); }, content); content.querySelector('#prPkg').addEventListener('change', sync); sync(); },
-  openCustomBuilder(){ const size=document.getElementById('jobSize').value||S.menu.sizes[0]; const content=el('div',{}, el('label',{},'Package Name'), el('input',{id:'cbName', value:'Custom Package'}), el('div',{class:'row'}, el('div',{}, el('label',{}, 'Base Price for '+size), el('input',{id:'cbBase',type:'number',min:'0',step:'0.01',value:'0'})), el('div',{}, el('label',{}, 'Lock Retail Base'), el('select',{id:'cbLock'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')))), el('label',{},'Included Add-ons (optional)'), (()=>{ const box=el('div',{class:'list'}); for(const n of Object.keys(S.menu.addons)) box.append(el('label',{}, el('input',{type:'checkbox','data-name':n,style:'margin-right:.4rem;'}), n)); return box; })(), el('label',{},'Pick & Choose mode (no included items)'), el('select',{id:'cbPick'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')) ); UI.modal('Build Custom Package',(close)=>{ const name=content.querySelector('#cbName').value.trim()||'Custom Package'; const base=Number(content.querySelector('#cbBase').value||0); const lock=content.querySelector('#cbLock').value==='yes'; const pick=content.querySelector('#cbPick').value==='yes'; const inc=pick?[]:Array.from(content.querySelectorAll('input[type=checkbox][data-name]')).filter(x=>x.checked).map(x=>x.getAttribute('data-name')); const prices=S.menu.sizes.map(()=>0); prices[S.menu.sizes.indexOf(size)]=base; S.menu.packages[name]=prices; S.menu.packageMeta[name]={lock, includedAddons:inc}; Storage.save(S); UI.populateSizesAndPackages(); document.getElementById('jobPkg').value=name; UI.prefillBase(); UI.renderAddons(); UI.flash('Custom package added.'); close(); }, content, 'Use Package', true, true); },
+  openCustomBuilder(row=null){ const size=(row?.querySelector('.vehicle-size')?.value)||document.querySelector('.vehicle-size')?.value||S.menu.sizes[0]; const basePref=row?.querySelector('.vehicle-base')?.value||'0'; const content=el('div',{}, el('label',{},'Package Name'), el('input',{id:'cbName', value:'Custom Package'}), el('div',{class:'row'}, el('div',{}, el('label',{}, 'Base Price for '+size), el('input',{id:'cbBase',type:'number',min:'0',step:'0.01',value:basePref})), el('div',{}, el('label',{}, 'Lock Retail Base'), el('select',{id:'cbLock'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')))), el('label',{},'Included Add-ons (optional)'), (()=>{ const box=el('div',{class:'list'}); for(const n of Object.keys(S.menu.addons)) box.append(el('label',{}, el('input',{type:'checkbox','data-name':n,style:'margin-right:.4rem;'}), n)); return box; })(), el('label',{},'Pick & Choose mode (no included items)'), el('select',{id:'cbPick'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')) ); UI.modal('Build Custom Package',(close)=>{ const name=content.querySelector('#cbName').value.trim()||'Custom Package'; const base=Number(content.querySelector('#cbBase').value||0); const lock=content.querySelector('#cbLock').value==='yes'; const pick=content.querySelector('#cbPick').value==='yes'; const inc=pick?[]:Array.from(content.querySelectorAll('input[type=checkbox][data-name]')).filter(x=>x.checked).map(x=>x.getAttribute('data-name')); const prices=S.menu.sizes.map(()=>0); const idx=S.menu.sizes.indexOf(size); if(idx>=0) prices[idx]=base; else if(prices.length) prices[0]=base; S.menu.packages[name]=prices; S.menu.packageMeta[name]={lock, includedAddons:inc}; Storage.save(S); UI.populateSizesAndPackages(); if(row){ const pkgSel=row.querySelector('.vehicle-package'); if(pkgSel){ pkgSel.value=name; row.setAttribute('data-autopkg','false'); UI.refreshVehicleRow(row,{setBase:true}); UI.updateTotals(); } } else { const jobPkg=document.getElementById('jobPkg'); if(jobPkg){ jobPkg.value=name; } UI.handlePackageChange(); } UI.flash('Custom package added.'); close(); }, content, 'Use Package', true, true); },
   openImport(){ const file=el('input',{type:'file',accept:'.json'}); file.onchange=(e)=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const data=JSON.parse(r.result); if(!data.transactions) throw new Error('Invalid backup file: missing "transactions"'); S=data; if(!S.menu.packageMeta) S.menu.packageMeta={}; Storage.save(S); location.reload(); }catch(err){ alert('Import error: '+err.message); } }; r.readAsText(f); }; file.click(); },
   openSettings(){ const content=el('div',{}, el('h4',{},'Brand'), el('label',{},'Header Title'), el('input',{id:'stHeader', value:S.business.headerTitle||''}), el('label',{},'Business Name (on quotes)'), el('input',{id:'stBiz', value:S.business.name||''}), el('label',{},'Logo'), el('div',{class:'row'}, el('button',{class:'btn', onclick:()=>UI.pickLogo()},'Upload Logo'), el('button',{class:'btn secondary', onclick:()=>{ S.business.logoDataUrl=''; Storage.save(S); UI.initHeader(); UI.flash('Logo removed.'); }},'Remove Logo')), el('div',{class:'footnote'},'Replace install icons by swapping icon-192.png / icon-512.png in the bundle.') ); UI.modal('Settings',(close)=>{ S.business.headerTitle=content.querySelector('#stHeader').value.trim()||'POLISH CREW — Accounting'; S.business.name=content.querySelector('#stBiz').value.trim()||'Polish Crew'; Storage.save(S); UI.initHeader(); UI.flash('Settings saved.'); close(); }, content); },
   pickLogo(){ const f=el('input',{type:'file',accept:'image/*'}); f.onchange=(e)=>{ const file=e.target.files[0]; if(!file) return; const r=new FileReader(); r.onload=()=>{ S.business.logoDataUrl=r.result; Storage.save(S); UI.initHeader(); UI.flash('Logo updated.'); }; r.readAsDataURL(file); }; f.click(); },
   clientName(id){ return (S.clients.find(c=>c.id===id)||{}).name||''; },
   printQuote(){
-    // Build a temporary job from the current form (no save needed)
     const clientId = document.getElementById('jobClient').value || '';
-    const size     = document.getElementById('jobSize').value;
     const pkg      = document.getElementById('jobPkg').value;
-    const base     = Number(document.getElementById('jobBase').value || 0);
+    const vehicles = this.collectVehicles();
+    if(!vehicles.length) return alert('Add at least one vehicle to print');
     const discType = document.getElementById('jobDiscType').value;
     const discValue= Number(document.getElementById('jobDiscValue').value || 0);
     const discScope= document.getElementById('jobDiscScope').value;
-    const vehicleCount = Math.max(1, Math.floor(Number(document.getElementById('jobVehicleCount').value || 1)) || 1);
     const notes    = document.getElementById('jobNotes').value.trim();
-
-    const addons = [];
-    document.querySelectorAll('.addon-row').forEach(row=>{
-      const checked = row.querySelector('input[type=checkbox]').checked;
-      if (!checked) return;
-      const name  = row.getAttribute('data-name');
-      const price = Number(row.querySelector('input[type=number]').value || 0);
-      addons.push({name, price});
-    });
 
     const tempJob = {
       id: 'preview',
       date: new Date().toISOString().slice(0,10),
-      clientId, size, pkg, base, addons,
-      discType, discValue, discScope, vehicleCount, notes,
+      clientId,
+      pkg,
+      vehicles,
+      discType,
+      discValue,
+      discScope,
+      notes,
       status: 'Quoted',
       payments: []
     };
+    tempJob.size = vehicles[0]?.size || '';
+    tempJob.vehicleCount = vehicles.length;
 
     UI.renderPrintSheet(tempJob);
   },
@@ -463,16 +995,32 @@ const UI = {
 UI.renderPrintSheet = function(job){
   const j = job;
   const c = S.clients.find(x => x.id === j.clientId);
-  const meta = (S.menu.packageMeta && S.menu.packageMeta[j.pkg]) || {includedAddons:[]};
-  const included = (meta.includedAddons||[]).map(n=>`<li>${n}</li>`).join('');
-  const vehicleCount = Calc.vehicleCount(j);
-  const addons = (j.addons||[]).map(a=>{
+  const hasVehicles = Array.isArray(j.vehicles) && j.vehicles.length;
+  const vehicles = hasVehicles ? j.vehicles.map(v=>({
+    size: v.size || '',
+    base: Number(v.base||0),
+    addons: (v.addons||[]).map(a=>({name:a.name, price:Number(a.price||0)})),
+    pkg: v.pkg || j.pkg || '',
+    label: v.label || ''
+  })) : [];
+  const pkgLabel = UI.jobPackageLabel(j);
+  const packageNames = hasVehicles ? vehicles.map(v=>v.pkg).filter(Boolean) : [j.pkg].filter(Boolean);
+  const uniquePackages = [...new Set(packageNames)];
+  const metaSource = uniquePackages.length===1 ? uniquePackages[0] : (uniquePackages.length===0 ? (j.pkg||'') : '');
+  const meta = metaSource && S.menu.packageMeta ? (S.menu.packageMeta[metaSource] || {includedAddons:[]}) : {includedAddons:[]};
+  const included = uniquePackages.length>1
+    ? '<li>Varies by vehicle</li>'
+    : (meta.includedAddons||[]).map(n=>`<li>${n}</li>`).join('');
+  const legacyAddons = (!hasVehicles ? (j.addons||[]) : []).map(a=>{
     const price=Number(a.price||0);
-    const lineTotal=price*vehicleCount;
-    const priceLabel=vehicleCount>1 ? `$${price.toFixed(2)} ea × ${vehicleCount} = $${lineTotal.toFixed(2)}` : `$${price.toFixed(2)}`;
-    const note=vehicleCount>1?'<div style="color:#777;font-size:12px;">Per vehicle</div>':'';
+    const count=Calc.vehicleCount(j);
+    const lineTotal=price*count;
+    const priceLabel=count>1 ? `$${price.toFixed(2)} ea × ${count} = $${lineTotal.toFixed(2)}` : `$${price.toFixed(2)}`;
+    const note=count>1?'<div style="color:#777;font-size:12px;">Per vehicle</div>':'';
     return `<tr><td>${a.name}${note}</td><td style="text-align:right">${priceLabel}</td></tr>`;
   }).join('');
+  const vehicleCount = hasVehicles ? vehicles.length : Calc.vehicleCount(j);
+  const vehicleSummary = UI.jobVehicleSummary(j);
   const subtotal = Calc.subtotal(j).toFixed(2);
   const disc = Calc.discount(j).toFixed(2);
   const total = Calc.total(j).toFixed(2);
@@ -481,7 +1029,18 @@ UI.renderPrintSheet = function(job){
   const bizName = S.business?.name || 'Polish Crew';
   const logo = S.business?.logoDataUrl || '';
   const headerTitle = (j.status === 'Paid') ? 'Receipt' : 'Quote';
-
+  const vehicleSections = hasVehicles ? vehicles.map((v,idx)=>{
+    const addonRows = v.addons.length ? v.addons.map(a=>`<tr><td>${a.name}</td><td style="text-align:right">$${Number(a.price||0).toFixed(2)}</td></tr>`).join('') : '<tr><td style="color:#666">No add-ons</td><td></td></tr>';
+    const pkgName = v.pkg || pkgLabel || (j.pkg || 'Package');
+    const headingName = v.label ? `${v.label}${v.size ? ' ('+v.size+')' : ''}` : (v.size || 'Vehicle');
+    return `<div style="margin-bottom:12px;">
+      <div style="font-weight:700;margin-bottom:4px;">Vehicle ${idx+1}: ${headingName}${pkgName?` — ${pkgName}`:''}</div>
+      <table style="width:100%;border-collapse:collapse;font-size:14px">
+        <tr><td>${pkgName || 'Package'} base${v.size ? ' — '+v.size : ''}</td><td style="text-align:right">$${v.base.toFixed(2)}</td></tr>
+        ${addonRows}
+      </table>
+    </div>`;
+  }).join('') : '';
   const sheet = document.getElementById('printSheet');
   if(!sheet){
     console.error('printSheet host missing');
@@ -508,19 +1067,16 @@ UI.renderPrintSheet = function(job){
       <hr style="border:none;border-top:1px solid #ddd;margin:8px 0 12px">
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px;">
-        <div><div style="color:#555">Package</div><div style="font-weight:700">${j.pkg} — ${j.size}${vehicleCount>1?` × ${vehicleCount} vehicles`:''}</div></div>
+        <div><div style="color:#555">Package</div><div style="font-weight:700">${pkgLabel}${vehicleSummary?` — ${vehicleSummary}`:''}</div></div>
         <div><div style="color:#555">Status</div><div style="font-weight:700">${j.status}</div></div>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
         <div>
-          <div style="font-weight:800;margin:6px 0 4px">Included with package</div>
+          <div style="font-weight:800;margin:6px 0 4px">Included with ${uniquePackages.length>1?'packages':'package'}</div>
           <ul style="margin:0 0 8px 18px;padding:0">${included || '<li>None</li>'}</ul>
 
-          <div style="font-weight:800;margin:6px 0 4px">Add-ons</div>
-          <table style="width:100%;border-collapse:collapse;font-size:14px">
-            ${addons || '<tr><td style="color:#666">None</td><td></td></tr>'}
-          </table>
+          ${hasVehicles ? `<div style=\"font-weight:800;margin:6px 0 4px\">Vehicles</div><div style=\"display:flex;flex-direction:column;gap:12px;\">${vehicleSections}</div>` : `<div style=\"font-weight:800;margin:6px 0 4px\">Add-ons</div><table style=\"width:100%;border-collapse:collapse;font-size:14px\">${legacyAddons || '<tr><td style=\"color:#666\">None</td><td></td></tr>'}</table>`}
 
           ${j.notes ? `<div style="margin-top:8px"><div style="color:#555">Notes</div><div>${j.notes}</div></div>` : ''}
         </div>
