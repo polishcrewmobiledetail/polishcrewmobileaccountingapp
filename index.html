@@ -112,9 +112,12 @@
           </div>
 
           <div class="card" style="margin-top:.6rem;">
-            <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:.4rem;">
+            <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:.4rem;gap:.5rem;flex-wrap:wrap;">
               <h3 style="margin:.25rem 0;">Vehicles</h3>
-              <button class="btn secondary" onclick="UI.addVehicle()">Add Vehicle</button>
+              <div class="row" style="gap:.5rem;flex-wrap:wrap;justify-content:flex-end;">
+                <button class="btn secondary" onclick="UI.openCustomBuilder()">Edit Packages</button>
+                <button class="btn secondary" onclick="UI.addVehicle()">Add Vehicle</button>
+              </div>
             </div>
             <div id="vehiclesList" class="list"></div>
             <div class="footnote">≤3 add-ons = Maintenance. 4+ or heavy soil → Full Detail upgrade.</div>
@@ -460,6 +463,28 @@ const UI = {
   initHeader(){ const logo=document.getElementById('headerLogo'); logo.src=S.business.logoDataUrl||'icon-192.png'; document.getElementById('headerTitle').textContent=S.business.headerTitle||'POLISH CREW — Accounting'; document.getElementById('openDrawer').onclick=()=>UI.toggleDrawer(true); },
   switchTab(name){ document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.getAttribute('data-tab')===name)); document.querySelectorAll('.tabpage').forEach(p=>p.classList.add('hidden')); document.getElementById(name).classList.remove('hidden'); },
   initTabs(){ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>UI.switchTab(t.getAttribute('data-tab')))); },
+  packageOptionLabel(name,size){
+    const price=Calc.base(name,size);
+    const included=(pkgMeta(name).includedAddons||[]).filter(Boolean);
+    const includeText=included.length?` • Includes: ${included.join(', ')}`:'';
+    return `${name} — ${fmt(price)}${includeText}`;
+  },
+  updatePackageSelectOptions(sel,{preferred}={}){
+    if(!sel) return;
+    const row=sel.closest('.vehicle-row');
+    const size=row?.querySelector('.vehicle-size')?.value || S.menu.sizes[0] || '';
+    const packageNames=Object.keys(S.menu.packages);
+    const desired=(preferred && S.menu.packages[preferred])?preferred:((sel.value && S.menu.packages[sel.value])?sel.value:'');
+    sel.innerHTML='';
+    packageNames.forEach(name=>sel.append(el('option',{value:name},UI.packageOptionLabel(name,size))));
+    if(desired && S.menu.packages[desired]) sel.value=desired;
+    else if(sel.options.length) sel.value=sel.options[0].value;
+  },
+  addonOptionLabel(name,size,meta){
+    const price=Calc.addonPrice(name,size);
+    const included=!!meta?.includedAddons?.includes(name);
+    return `${name} — ${fmt(price)}${included?' (Included)':''}`;
+  },
   populateClients(selectId){ const sel=document.getElementById('jobClient'); if(sel){ sel.innerHTML='<option value="">-- select client --</option>'; for(const c of S.clients){ const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; sel.appendChild(o); } if(selectId) sel.value=selectId; }
     const list=document.getElementById('clientsList');
     if(list){
@@ -573,15 +598,10 @@ const UI = {
     },content,'Done',true,true);
   },
   populateSizesAndPackages(){
-    const packageNames=Object.keys(S.menu.packages);
     document.querySelectorAll('.vehicle-package').forEach(sel=>{
+      UI.updatePackageSelectOptions(sel);
       const row=sel.closest('.vehicle-row');
-      const current=sel.value;
-      sel.innerHTML='';
-      packageNames.forEach(name=>sel.append(el('option',{value:name},name)));
-      if(current && S.menu.packages[current]) sel.value=current;
-      else if(sel.options.length) sel.value=sel.options[0].value;
-      if(row) UI.refreshVehicleRow(row,{setBase:true});
+      if(row) UI.refreshVehicleRow(row,{setBase:true, skipPackageSync:true});
     });
     document.querySelectorAll('.vehicle-size').forEach(sel=>{
       const current=sel.value;
@@ -602,11 +622,10 @@ const UI = {
   addVehicle(prefill={}){
     const list=document.getElementById('vehiclesList');
     if(!list) return;
-    const pkgOptions=Object.keys(S.menu.packages);
     const sizeOptions=S.menu.sizes;
     const sizePref=(prefill.size && sizeOptions.includes(prefill.size))?prefill.size:(sizeOptions[0]||'');
+    const pkgOptions=Object.keys(S.menu.packages);
     const pkgPref=(prefill.pkg && S.menu.packages[prefill.pkg])?prefill.pkg:(pkgOptions[0]||'');
-    const meta=pkgMeta(pkgPref);
     const baseDefault=Calc.base(pkgPref,sizePref);
     const baseValue=prefill.base!=null?Number(prefill.base):baseDefault;
     const row=el('div',{class:'list-item vehicle-row'});
@@ -636,12 +655,8 @@ const UI = {
     pkgWrap.append(el('label',{},'Package'));
     const pkgRow=el('div',{class:'row',style:'gap:.4rem;'});
     const pkgSel=el('select',{class:'vehicle-package'});
-    pkgOptions.forEach(name=>pkgSel.append(el('option',{value:name},name)));
-    if(pkgPref && S.menu.packages[pkgPref]) pkgSel.value=pkgPref;
-    else if(pkgSel.options.length) pkgSel.value=pkgSel.options[0].value;
-    const pkgCustomBtn=el('button',{class:'btn secondary',type:'button'},'Custom');
-    pkgCustomBtn.addEventListener('click',()=>UI.openCustomBuilder(row));
-    pkgRow.append(pkgSel,pkgCustomBtn);
+    UI.updatePackageSelectOptions(pkgSel,{preferred:pkgPref});
+    pkgRow.append(pkgSel);
     pkgWrap.append(pkgRow);
     header.append(pkgWrap);
 
@@ -656,7 +671,6 @@ const UI = {
     const baseWrap=el('div',{style:'flex:1;min-width:140px;'});
     baseWrap.append(el('label',{},'Base'));
     const baseInput=el('input',{type:'number',min:'0',step:'0.01',class:'vehicle-base',value:Number(baseValue||0).toFixed(2)});
-    if(meta.lock) baseInput.disabled=true;
     baseWrap.append(baseInput);
     header.append(baseWrap);
 
@@ -698,6 +712,7 @@ const UI = {
 
     syncSelectedVehicle();
 
+    UI.refreshVehicleRow(row,{skipAddons:true});
     UI.renderVehicleAddons(row, prefill.addons||null);
 
     baseInput.addEventListener('input',()=>UI.updateTotals());
@@ -719,8 +734,11 @@ const UI = {
     UI.syncVehicleRemovers();
     UI.updateTotals();
   },
-  refreshVehicleRow(row,{setBase=false}={}){
+  refreshVehicleRow(row,{setBase=false, skipAddons=false, skipPackageSync=false}={}){
     const pkgSel=row.querySelector('.vehicle-package');
+    if(pkgSel && !skipPackageSync){
+      UI.updatePackageSelectOptions(pkgSel,{preferred:pkgSel.value});
+    }
     const pkg=pkgSel?.value || '';
     const meta=pkgMeta(pkg);
     const sizeSel=row.querySelector('.vehicle-size');
@@ -732,7 +750,7 @@ const UI = {
     }
     if(baseInput) baseInput.disabled=!!meta.lock;
     row.setAttribute('data-pkg',pkg);
-    UI.renderVehicleAddons(row);
+    if(!skipAddons) UI.renderVehicleAddons(row);
   },
   renderVehicleAddons(row,preset=null){
     const host=row.querySelector('.vehicle-addons');
@@ -757,7 +775,7 @@ const UI = {
     const controlRow=el('div',{class:'row',style:'gap:.5rem;align-items:flex-end;'});
     const select=el('select',{class:'vehicle-addon-picker'});
     select.append(el('option',{value:''},'Add add-on…'));
-    Object.keys(S.menu.addons).forEach(name=>select.append(el('option',{value:name},name)));
+    Object.keys(S.menu.addons).forEach(name=>select.append(el('option',{value:name},UI.addonOptionLabel(name,size,meta))));
     const addBtn=el('button',{class:'btn secondary',type:'button'},'Add');
     controlRow.append(select,addBtn);
     host.append(controlRow);
