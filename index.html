@@ -36,8 +36,18 @@
   .hidden{display:none}
   .vehicle-addon-row[data-included="true"]{opacity:.6;}
   .vehicle-addon-row[data-included="true"] input{pointer-events:none;opacity:.7;}
+  .vehicle-package-info{border-radius:12px;border:1px solid #15191c;background:#090b0d;padding:.65rem;margin-top:.5rem;display:flex;flex-direction:column;gap:.35rem;}
+  .vehicle-package-info.hidden{display:none;}
+  .vehicle-package-info h4{margin:0;font-size:.85rem;color:#f5f7f7;letter-spacing:.2px;}
+  .vehicle-package-info p{margin:0;color:#bac6c6;font-size:.85rem;line-height:1.4;}
+  .vehicle-package-info ul{margin:.1rem 0 0 1.1rem;padding:0;color:#95a6a6;font-size:.8rem;line-height:1.5;}
   .menu-pkg-card{background:linear-gradient(180deg,#121418,#0c0d10);border:1px solid #1a1e21;border-radius:16px;padding:.75rem;display:flex;flex-direction:column;gap:.6rem;}
+  .menu-pkg-card .pkg-header{display:flex;align-items:center;gap:.6rem;}
   .menu-pkg-card .pkg-name{width:100%;}
+  .menu-pkg-card .pkg-toggle{flex:0 0 auto;background:#0b0c0f;border:1px solid #1a1e21;color:#d5dddd;border-radius:10px;padding:.3rem .55rem;cursor:pointer;font-size:.85rem;font-weight:700;line-height:1;}
+  .menu-pkg-card .pkg-summary{font-size:.8rem;color:#96a4a4;cursor:pointer;}
+  .menu-pkg-card .pkg-body{display:flex;flex-direction:column;gap:.5rem;}
+  .menu-pkg-card[data-collapsed="true"] .pkg-body{display:none;}
   .menu-pkg-card .pkg-addon-options{display:flex;flex-wrap:wrap;gap:.4rem;}
   .pkg-addon-option{display:inline-flex;align-items:center;gap:.35rem;padding:.25rem .6rem;border:1px solid #1b1f22;border-radius:999px;background:#0a0c0f;font-size:.8rem;cursor:pointer;}
   .pkg-addon-option[data-selected="true"]{opacity:.6;}
@@ -275,10 +285,10 @@ const DEFAULT_MENU = {
   },
   guidance: "Add ≤3 add-ons → stays at Maintenance Detail. 4+ or heavy soil → upgrade to Full Detail.",
   packageMeta: {
-    "Exterior Wash Only": {lock:false, includedAddons:[]},
-    "Interior Clean Only": {lock:false, includedAddons:[]},
-    "In & Out Combo": {lock:false, includedAddons:[]},
-    "Quick In & Out": {lock:false, includedAddons:[]},
+    "Exterior Wash Only": {lock:false, includedAddons:[], description:"Hand wash, foam bath, wheel faces, tire dressing, and streak-free glass."},
+    "Interior Clean Only": {lock:false, includedAddons:[], description:"Vacuum interior, wipe plastics, clean glass, and refresh touch points."},
+    "In & Out Combo": {lock:false, includedAddons:[], description:"Our balanced interior & exterior refresh with wash, vacuum, wipe-down, and glass."},
+    "Quick In & Out": {lock:false, includedAddons:[], description:"Express spruce up for maintenance customers needing a fast touch-up."},
     "Maintenance Detail": {lock:false, includedAddons:[
       "Wheels & Tires — Deep clean wheels, barrels, tires + gloss dressing",
       "Exterior Brush Detail — Emblems, trim, grilles, window seals",
@@ -286,7 +296,7 @@ const DEFAULT_MENU = {
       "Interior Protectant — UV / fade protection on plastics & vinyl",
       "Spray Sealant — Hydrophobic layer (3–6 mo. protection)",
       "Spot Stain Clean — 1–3 seat or carpet stains treated"
-    ]},
+    ], description:"Full maintenance service with high-touch interior and exterior detailing essentials."},
     "Full Detail": {lock:false, includedAddons:[
       "Wheels & Tires — Deep clean wheels, barrels, tires + gloss dressing",
       "Exterior Brush Detail — Emblems, trim, grilles, window seals",
@@ -297,12 +307,12 @@ const DEFAULT_MENU = {
       "Dog Hair Removal — Light–heavy removal using rubber brush + vac",
       "Odor Neutralizer — Deodorizing mist or fog",
       "Clay & Iron Decon — Removes bonded contaminants before protection"
-    ]},
+    ], description:"Comprehensive reset for vehicles needing the works plus odor & contamination removal."},
     "Dog Hair / Stain Focus": {lock:false, includedAddons:[
       "Dog Hair Removal — Light–heavy removal using rubber brush + vac",
       "Spot Stain Clean — 1–3 seat or carpet stains treated",
       "Odor Neutralizer — Deodorizing mist or fog"
-    ]}
+    ], description:"Targeted interior overhaul to tackle embedded hair, stains, and lingering odors."}
   }
 };
 
@@ -400,13 +410,53 @@ const Storage = {
 };
 
 let S = Storage.load();
+ensurePackageMetaStructure();
+
+/*** Normalization ***/
+function ensurePackageMetaStructure(){
+  let changed=false;
+  if(!S.menu){
+    S.menu={sizes:[],packages:{},addons:{},packageMeta:{}};
+    changed=true;
+  }
+  if(!S.menu.packageMeta){
+    S.menu.packageMeta={};
+    changed=true;
+  }
+  for(const name of Object.keys(S.menu.packages||{})){
+    if(!S.menu.packageMeta[name]){
+      S.menu.packageMeta[name]={};
+      changed=true;
+    }
+    const meta=S.menu.packageMeta[name];
+    if(!Array.isArray(meta.includedAddons)){
+      meta.includedAddons=[];
+      changed=true;
+    }
+    if(typeof meta.description!=='string'){
+      meta.description='';
+      changed=true;
+    }
+    const lockValue=!!meta.lock;
+    if(meta.lock!==lockValue){
+      meta.lock=lockValue;
+      changed=true;
+    }
+  }
+  if(changed) Storage.save(S);
+}
 
 /*** Utils ***/
 function uid(){ return Math.random().toString(36).slice(2,10); }
 function fmt(n){ return "$"+Number(n||0).toFixed(2); }
 function el(tag, attrs={}, ...children){ const e=document.createElement(tag); for(const [k,v] of Object.entries(attrs)){ if(k==='class')e.className=v; else if(k==='html') e.innerHTML=v; else if(k.startsWith('on')) e.addEventListener(k.slice(2),v); else e.setAttribute(k,v); } children.forEach(c=>e.append(c)); return e; }
 function today(){ return new Date().toISOString().slice(0,10); }
-function pkgMeta(name){ return (S.menu.packageMeta && S.menu.packageMeta[name]) || {lock:false, includedAddons:[]}; }
+function pkgMeta(name){
+  const meta=(S.menu.packageMeta && S.menu.packageMeta[name])||{};
+  const included=Array.isArray(meta.includedAddons)?meta.includedAddons:[];
+  const description=typeof meta.description==='string'?meta.description:'';
+  return {lock:!!meta.lock, includedAddons:included, description};
+}
 
 const Calc = {
   sizeIndex(size){ return S.menu.sizes.indexOf(size); },
@@ -724,9 +774,12 @@ const UI = {
   initTabs(){ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>UI.switchTab(t.getAttribute('data-tab')))); },
   packageOptionLabel(name,size){
     const price=Calc.base(name,size);
-    const included=(pkgMeta(name).includedAddons||[]).filter(Boolean);
+    const meta=pkgMeta(name);
+    const included=(meta.includedAddons||[]).filter(Boolean);
+    const description=(meta.description||'').trim();
+    const descText=description?` • ${description}`:'';
     const includeText=included.length?` • Includes: ${included.join(', ')}`:'';
-    return `${name} — ${fmt(price)}${includeText}`;
+    return `${name} — ${fmt(price)}${descText}${includeText}`;
   },
   updatePackageSelectOptions(sel,{preferred}={}){
     if(!sel) return;
@@ -940,6 +993,8 @@ const UI = {
     header.append(removeWrap);
 
     row.append(header);
+    const pkgInfo=el('div',{class:'vehicle-package-info hidden'});
+    row.append(pkgInfo);
     const addonsHost=el('div',{class:'list vehicle-addons',style:'margin-top:.6rem;gap:.4rem;'});
     row.append(addonsHost);
     list.append(row);
@@ -1009,7 +1064,36 @@ const UI = {
     }
     if(baseInput) baseInput.disabled=!!meta.lock;
     row.setAttribute('data-pkg',pkg);
+    UI.renderVehiclePackageInfo(row, meta);
     if(!skipAddons) UI.renderVehicleAddons(row);
+  },
+  renderVehiclePackageInfo(row, metaOverride=null){
+    const info=row.querySelector('.vehicle-package-info');
+    if(!info) return;
+    const pkgSel=row.querySelector('.vehicle-package');
+    const pkg=pkgSel?.value || '';
+    const size=row.querySelector('.vehicle-size')?.value || S.menu.sizes[0] || '';
+    if(!pkg){
+      info.innerHTML='';
+      info.classList.add('hidden');
+      return;
+    }
+    const meta=metaOverride || pkgMeta(pkg);
+    const included=(meta.includedAddons||[]).filter(Boolean);
+    const description=(meta.description||'').trim();
+    info.innerHTML='';
+    info.classList.remove('hidden');
+    info.append(el('h4',{}, pkg));
+    info.append(el('div',{class:'tiny',style:'color:#9fb2ae;font-weight:700;'},`Base for ${size||'selected size'}: ${fmt(Calc.base(pkg,size))}`));
+    if(description) info.append(el('p',{}, description));
+    if(included.length){
+      info.append(el('div',{class:'muted',style:'font-size:.8rem;font-weight:700;color:#9db0a9;'},'Included add-ons'));
+      const list=el('ul',{});
+      included.forEach(name=>list.append(el('li',{},name)));
+      info.append(list);
+    } else if(!description){
+      info.append(el('p',{class:'tiny',style:'color:#8f9a9a;'},'No add-ons are included by default for this package.'));
+    }
   },
   renderVehicleAddons(row,preset=null){
     const host=row.querySelector('.vehicle-addons');
@@ -1435,17 +1519,30 @@ const UI = {
     const content=el('div',{});
     const pkgHeader=el('h4',{},'Packages');
     const pkgList=el('div',{id:'pkgEditor',class:'list',style:'gap:.75rem;'});
-    const createAddonOption=(name,checked=false)=>{
+    const createAddonOption=(name,checked=false,onChange=()=>{})=>{
       const option=el('label',{class:'pkg-addon-option','data-name':name,'data-selected':checked?'true':'false'});
       const cb=el('input',{type:'checkbox',value:name});
       cb.checked=checked;
-      cb.addEventListener('change',()=>option.setAttribute('data-selected',cb.checked?'true':'false'));
+      cb.addEventListener('change',()=>{
+        option.setAttribute('data-selected',cb.checked?'true':'false');
+        onChange(cb.checked);
+      });
       option.append(cb, name);
       return option;
     };
-    const createCard=(name,prices=[],meta={lock:false,includedAddons:[]})=>{
-      const card=el('div',{class:'menu-pkg-card'});
-      const header=el('div',{class:'row',style:'gap:.5rem;align-items:center;'});
+    const createCard=(name,prices=[],meta={lock:false,includedAddons:[],description:''})=>{
+      const card=el('div',{class:'menu-pkg-card','data-collapsed':'false'});
+      const header=el('div',{class:'pkg-header'});
+      const toggle=el('button',{class:'pkg-toggle',type:'button',title:'Collapse section','aria-expanded':'true'},'▾');
+      const toggleSection=()=>{
+        const currentlyCollapsed=card.getAttribute('data-collapsed')==='true';
+        const nextCollapsed=!currentlyCollapsed;
+        card.setAttribute('data-collapsed',nextCollapsed?'true':'false');
+        toggle.textContent=nextCollapsed?'▸':'▾';
+        toggle.setAttribute('aria-expanded',(!nextCollapsed).toString());
+      };
+      toggle.addEventListener('click',toggleSection);
+      header.append(toggle);
       const nameWrap=el('div',{style:'flex:1;'});
       const nameInput=el('input',{class:'pkg-name',value:name,placeholder:'Package name'});
       nameWrap.append(nameInput);
@@ -1461,14 +1558,29 @@ const UI = {
       header.append(removeBtn);
       card.append(header);
 
+      const summary=el('div',{class:'pkg-summary',tabindex:'0'});
+      summary.addEventListener('click',toggleSection);
+      summary.addEventListener('keydown',(e)=>{
+        if(e.key==='Enter'||e.key===' '){
+          e.preventDefault();
+          toggleSection();
+        }
+      });
+      card.append(summary);
+
+      const body=el('div',{class:'pkg-body'});
+
       const priceGrid=el('div',{class:'grid',style:'gap:.5rem;'});
+      const priceInputs=[];
       S.menu.sizes.forEach((size,i)=>{
         const col=el('div',{});
         col.append(el('label',{},size));
-        col.append(el('input',{type:'number',class:'pkg-price','data-size-index':i,min:'0',step:'0.01',value:Number(prices[i]||0).toFixed(2)}));
+        const input=el('input',{type:'number',class:'pkg-price','data-size-index':i,min:'0',step:'0.01',value:Number(prices[i]||0).toFixed(2)});
+        priceInputs.push(input);
+        col.append(input);
         priceGrid.append(col);
       });
-      card.append(priceGrid);
+      body.append(priceGrid);
 
       const lockRow=el('div',{class:'row',style:'gap:.5rem;align-items:center;'});
       lockRow.append(el('label',{style:'flex:1;'},'Lock Retail Base?'));
@@ -1476,15 +1588,47 @@ const UI = {
       lockSelect.append(el('option',{value:'no',selected:!meta.lock},'No'));
       lockSelect.append(el('option',{value:'yes',selected:meta.lock},'Yes'));
       lockRow.append(lockSelect);
-      card.append(lockRow);
+      body.append(lockRow);
 
-      card.append(el('label',{},'Included Add-ons'));
+      const descLabel=el('label',{},'Description');
+      const descInput=el('textarea',{class:'pkg-desc',placeholder:'Short summary of what is included',value:meta.description||''});
+      body.append(descLabel,descInput);
+
+      const addonLabel=el('label',{},'Included Add-ons');
       const addonWrap=el('div',{class:'pkg-addon-options'});
+      body.append(addonLabel,addonWrap);
+
+      const updateSummary=()=>{
+        const sizePreview=S.menu.sizes[0]||'';
+        const previewInput=priceInputs[0];
+        const baseValue=Number(previewInput?.value||0);
+        const basePreview=previewInput?`${sizePreview?sizePreview+': ':''}${fmt(baseValue)}`:'';
+        const description=descInput.value.trim();
+        const includedCount=addonWrap.querySelectorAll('input[type=checkbox]:checked').length;
+        const parts=[];
+        if(basePreview) parts.push(`Base ${basePreview}`);
+        if(description) parts.push(description);
+        if(includedCount) parts.push(`${includedCount} included add-on${includedCount===1?'':'s'}`);
+        summary.textContent=parts.join(' • ')||'Add pricing, a description, or included add-ons.';
+      };
+
       Object.keys(S.menu.addons).forEach(addonName=>{
         const checked=!!meta.includedAddons?.includes(addonName);
-        addonWrap.append(createAddonOption(addonName,checked));
+        addonWrap.append(createAddonOption(addonName,checked,()=>updateSummary()));
       });
-      card.append(addonWrap);
+
+      descInput.addEventListener('input',updateSummary);
+      priceInputs.forEach(input=>input.addEventListener('input',updateSummary));
+
+      card.append(body);
+
+      updateSummary();
+
+      if(pkgList.children.length){
+        card.setAttribute('data-collapsed','true');
+        toggle.textContent='▸';
+        toggle.setAttribute('aria-expanded','false');
+      }
 
       return card;
     };
@@ -1493,7 +1637,7 @@ const UI = {
     if(existingPackages.length){
       existingPackages.forEach(([name,prices])=>pkgList.append(createCard(name,prices,pkgMeta(name))));
     } else {
-      pkgList.append(createCard('New Package',S.menu.sizes.map(()=>0),{lock:false,includedAddons:[]}));
+      pkgList.append(createCard('New Package',S.menu.sizes.map(()=>0),{lock:false,includedAddons:[],description:''}));
     }
 
     const addPackageBtn=el('button',{class:'btn secondary',type:'button'},'Add Package');
@@ -1505,7 +1649,7 @@ const UI = {
       while(currentNames.has(candidate)){
         candidate=`${base} ${idx++}`;
       }
-      pkgList.append(createCard(candidate,S.menu.sizes.map(()=>0),{lock:false,includedAddons:[]}));
+      pkgList.append(createCard(candidate,S.menu.sizes.map(()=>0),{lock:false,includedAddons:[],description:''}));
     });
 
     content.append(pkgHeader);
@@ -1551,7 +1695,8 @@ const UI = {
           packages[name]=prices;
           const lock=card.querySelector('.pkg-lock')?.value==='yes';
           const included=Array.from(card.querySelectorAll('.pkg-addon-option input[type=checkbox]')).filter(cb=>cb.checked).map(cb=>cb.value);
-          meta[name]={lock,includedAddons:included};
+          const description=(card.querySelector('.pkg-desc')?.value||'').trim();
+          meta[name]={lock,includedAddons:included, description};
         });
         if(!Object.keys(packages).length) throw new Error('At least one package is required.');
         S.menu.packages=packages;
@@ -1569,7 +1714,7 @@ const UI = {
     }, content, 'Save Changes', true, true);
   },
   delRow(tableId,name){ const tr=document.querySelector(`#${tableId} tr[data-name="${name}"]`); if(tr) tr.remove(); },
-  openCustomBuilder(row=null){ const size=(row?.querySelector('.vehicle-size')?.value)||document.querySelector('.vehicle-size')?.value||S.menu.sizes[0]; const basePref=row?.querySelector('.vehicle-base')?.value||'0'; const content=el('div',{}, el('label',{},'Package Name'), el('input',{id:'cbName', value:'Custom Package'}), el('div',{class:'row'}, el('div',{}, el('label',{}, 'Base Price for '+size), el('input',{id:'cbBase',type:'number',min:'0',step:'0.01',value:basePref})), el('div',{}, el('label',{}, 'Lock Retail Base'), el('select',{id:'cbLock'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')))), el('label',{},'Included Add-ons (optional)'), (()=>{ const box=el('div',{class:'list'}); for(const n of Object.keys(S.menu.addons)) box.append(el('label',{}, el('input',{type:'checkbox','data-name':n,style:'margin-right:.4rem;'}), n)); return box; })(), el('label',{},'Pick & Choose mode (no included items)'), el('select',{id:'cbPick'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')) ); UI.modal('Build Custom Package',(close)=>{ const name=content.querySelector('#cbName').value.trim()||'Custom Package'; const base=Number(content.querySelector('#cbBase').value||0); const lock=content.querySelector('#cbLock').value==='yes'; const pick=content.querySelector('#cbPick').value==='yes'; const inc=pick?[]:Array.from(content.querySelectorAll('input[type=checkbox][data-name]')).filter(x=>x.checked).map(x=>x.getAttribute('data-name')); const prices=S.menu.sizes.map(()=>0); const idx=S.menu.sizes.indexOf(size); if(idx>=0) prices[idx]=base; else if(prices.length) prices[0]=base; S.menu.packages[name]=prices; S.menu.packageMeta[name]={lock, includedAddons:inc}; Storage.save(S); UI.populateSizesAndPackages(); if(row){ const pkgSel=row.querySelector('.vehicle-package'); if(pkgSel){ pkgSel.value=name; UI.refreshVehicleRow(row,{setBase:true}); UI.updateTotals(); } } else { const firstRow=document.querySelector('.vehicle-row'); const pkgSel=firstRow?.querySelector('.vehicle-package'); if(pkgSel){ pkgSel.value=name; UI.refreshVehicleRow(firstRow,{setBase:true}); } UI.handlePackageChange(); } UI.flash('Custom package added.'); close(); }, content, 'Use Package', true, true); },
+  openCustomBuilder(row=null){ const size=(row?.querySelector('.vehicle-size')?.value)||document.querySelector('.vehicle-size')?.value||S.menu.sizes[0]; const basePref=row?.querySelector('.vehicle-base')?.value||'0'; const content=el('div',{}, el('label',{},'Package Name'), el('input',{id:'cbName', value:'Custom Package'}), el('div',{class:'row'}, el('div',{}, el('label',{}, 'Base Price for '+size), el('input',{id:'cbBase',type:'number',min:'0',step:'0.01',value:basePref})), el('div',{}, el('label',{}, 'Lock Retail Base'), el('select',{id:'cbLock'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')))), el('label',{},'Description'), el('textarea',{id:'cbDesc',placeholder:'What is highlighted in this package?'}), el('label',{},'Included Add-ons (optional)'), (()=>{ const box=el('div',{class:'list'}); for(const n of Object.keys(S.menu.addons)) box.append(el('label',{}, el('input',{type:'checkbox','data-name':n,style:'margin-right:.4rem;'}), n)); return box; })(), el('label',{},'Pick & Choose mode (no included items)'), el('select',{id:'cbPick'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')) ); UI.modal('Build Custom Package',(close)=>{ const name=content.querySelector('#cbName').value.trim()||'Custom Package'; const base=Number(content.querySelector('#cbBase').value||0); const lock=content.querySelector('#cbLock').value==='yes'; const description=content.querySelector('#cbDesc').value.trim(); const pick=content.querySelector('#cbPick').value==='yes'; const inc=pick?[]:Array.from(content.querySelectorAll('input[type=checkbox][data-name]')).filter(x=>x.checked).map(x=>x.getAttribute('data-name')); const prices=S.menu.sizes.map(()=>0); const idx=S.menu.sizes.indexOf(size); if(idx>=0) prices[idx]=base; else if(prices.length) prices[0]=base; S.menu.packages[name]=prices; S.menu.packageMeta[name]={lock, includedAddons:inc, description}; Storage.save(S); UI.populateSizesAndPackages(); if(row){ const pkgSel=row.querySelector('.vehicle-package'); if(pkgSel){ pkgSel.value=name; UI.refreshVehicleRow(row,{setBase:true}); UI.updateTotals(); } } else { const firstRow=document.querySelector('.vehicle-row'); const pkgSel=firstRow?.querySelector('.vehicle-package'); if(pkgSel){ pkgSel.value=name; UI.refreshVehicleRow(firstRow,{setBase:true}); } UI.handlePackageChange(); } UI.flash('Custom package added.'); close(); }, content, 'Use Package', true, true); },
   openImport(){ const file=el('input',{type:'file',accept:'.json'}); file.onchange=(e)=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const data=JSON.parse(r.result); if(!data.transactions) throw new Error('Invalid backup file: missing "transactions"'); S=data; if(!S.menu.packageMeta) S.menu.packageMeta={}; Storage.save(S); location.reload(); }catch(err){ alert('Import error: '+err.message); } }; r.readAsText(f); }; file.click(); },
   openSettings(){ const content=el('div',{}, el('h4',{},'Brand'), el('label',{},'Header Title'), el('input',{id:'stHeader', value:S.business.headerTitle||''}), el('label',{},'Business Name (on quotes)'), el('input',{id:'stBiz', value:S.business.name||''}), el('label',{},'Logo'), el('div',{class:'row'}, el('button',{class:'btn', onclick:()=>UI.pickLogo()},'Upload Logo'), el('button',{class:'btn secondary', onclick:()=>{ S.business.logoDataUrl=''; Storage.save(S); UI.initHeader(); UI.flash('Logo removed.'); }},'Remove Logo')), el('div',{class:'footnote'},'Replace install icons by swapping icon-192.png / icon-512.png in the bundle.') ); UI.modal('Settings',(close)=>{ S.business.headerTitle=content.querySelector('#stHeader').value.trim()||'POLISH CREW — Accounting'; S.business.name=content.querySelector('#stBiz').value.trim()||'Polish Crew'; Storage.save(S); UI.initHeader(); UI.flash('Settings saved.'); close(); }, content); },
   pickLogo(){ const f=el('input',{type:'file',accept:'image/*'}); f.onchange=(e)=>{ const file=e.target.files[0]; if(!file) return; const r=new FileReader(); r.onload=()=>{ S.business.logoDataUrl=r.result; Storage.save(S); UI.initHeader(); UI.flash('Logo updated.'); }; r.readAsDataURL(file); }; f.click(); },
