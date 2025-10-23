@@ -211,7 +211,7 @@
       <div class="list">
         <div class="list-item" onclick="UI.openSettings()">Settings ›</div>
       </div>
-      <div class="footnote">Build cache: <b>pcwa-v2.0.0</b></div>
+      <div class="footnote">Build cache: <b>pcwa-v2.2.0</b></div>
     </div>
   </div>
 
@@ -440,7 +440,7 @@ const App = {
       const vehicleLabel=UI.jobVehicleSummary(j);
       const pkgLabel=UI.jobPackageLabel(j);
       const itemLabel=vehicleLabel?`${pkgLabel} — ${vehicleLabel}`:pkgLabel;
-      S.transactions.push({id:uid(), type:'Income', date:today(), category:'Package', item:itemLabel, clientId=j.clientId, vendor:'', payment:method, amount:Calc.total(j), notes:'Discount: '+(j.discType||'none')+' '+(j.discValue||0)});
+      S.transactions.push({id:uid(), type:'Income', date:today(), category:'Package', item:itemLabel, clientId:j.clientId, vendor:'', payment:method, amount:Calc.total(j), notes:'Discount: '+(j.discType||'none')+' '+(j.discValue||0)});
       this.syncClientVehicles(j,{updateLastService:true});
       UI.flash('Paid in full. Income posted.');
     } else {
@@ -882,6 +882,25 @@ const UI = {
     document.getElementById('jobSubtotal').textContent=fmt(subtotal);
     document.getElementById('jobDiscount').textContent=fmt(discount);
     document.getElementById('jobTotal').textContent=fmt(total);
+  },
+  refreshDashboard(){
+    const month=today().slice(0,7);
+    let income=0;
+    let expense=0;
+    for(const t of S.transactions){
+      const date=(t.date||'').slice(0,7);
+      if(date!==month) continue;
+      const amount=Number(t.amount||0);
+      if(t.type==='Income') income+=amount;
+      else if(t.type==='Expense') expense+=amount;
+    }
+    const net=income-expense;
+    const incomeEl=document.getElementById('mIncome');
+    const expenseEl=document.getElementById('mExpense');
+    const netEl=document.getElementById('mNet');
+    if(incomeEl) incomeEl.textContent=fmt(income);
+    if(expenseEl) expenseEl.textContent=fmt(expense);
+    if(netEl) netEl.textContent=fmt(net);
   },
   quickDisc(type,val){ document.getElementById('jobDiscType').value=type; document.getElementById('jobDiscValue').value=val; UI.updateTotals(); },
   resetJobForm(){ const list=document.getElementById('vehiclesList'); if(list) list.innerHTML=''; this.addVehicle(); this.handlePackageChange(); document.getElementById('jobDiscType').value='none'; document.getElementById('jobDiscValue').value='0'; document.getElementById('jobDiscScope').value='job'; document.getElementById('jobNotes').value=''; this.updateTotals(); },
