@@ -478,7 +478,20 @@ const App = {
       const vehicleLabel=UI.jobVehicleSummary(j);
       const pkgLabel=UI.jobPackageLabel(j);
       const itemLabel=vehicleLabel?`${pkgLabel} — ${vehicleLabel}`:pkgLabel;
-      S.transactions.push({id:uid(), type:'Income', date:today(), category:'Package', item:itemLabel, clientId=j.clientId, vendor:'', payment:method, amount:Calc.total(j), notes:'Discount: '+(j.discType||'none')+' '+(j.discValue||0)});
+      const totalAmount=Calc.total(j);
+      const discountNote=`Discount: ${j.discType||'none'} ${j.discValue||0}`;
+      S.transactions.push({
+        id:uid(),
+        type:'Income',
+        date:today(),
+        category:'Package',
+        item:itemLabel,
+        clientId:j.clientId,
+        vendor:'',
+        payment:method,
+        amount:totalAmount,
+        notes:discountNote
+      });
       this.syncClientVehicles(j,{updateLastService:true});
       UI.flash('Paid in full. Income posted.');
     } else {
@@ -521,6 +534,26 @@ const UI = {
       }
     }
     UI.refreshClientVehicleOptions();
+  },
+  refreshDashboard(){
+    const now=new Date();
+    const monthKey=now.toISOString().slice(0,7);
+    let income=0;
+    let expense=0;
+    for(const t of S.transactions){
+      const dateStr=t?.date;
+      if(!dateStr || typeof dateStr!=='string') continue;
+      if(!dateStr.startsWith(monthKey)) continue;
+      const amount=Number(t.amount||0);
+      if(t.type==='Income') income+=amount;
+      else if(t.type==='Expense') expense+=amount;
+    }
+    const incomeNode=document.getElementById('mIncome');
+    if(incomeNode) incomeNode.textContent=fmt(income);
+    const expenseNode=document.getElementById('mExpense');
+    if(expenseNode) expenseNode.textContent=fmt(expense);
+    const netNode=document.getElementById('mNet');
+    if(netNode) netNode.textContent=fmt(income-expense);
   },
   refreshClientVehicleOptions(){
     const clientId=document.getElementById('jobClient')?.value || '';
