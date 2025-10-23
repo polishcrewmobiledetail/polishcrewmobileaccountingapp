@@ -513,32 +513,97 @@ const UI = {
     const meta=pkgMeta(pkg);
     const previous=new Map();
     if(preset){
-      (preset||[]).forEach(a=>previous.set(a.name,{checked:true, price:Number(a.price||0)}));
+      (preset||[]).forEach(a=>previous.set(a.name,{price:Number(a.price||0), included:meta.includedAddons?.includes(a.name)}));
     } else {
       host.querySelectorAll('.vehicle-addon-row').forEach(node=>{
         const name=node.getAttribute('data-name');
-        const cb=node.querySelector('input[type=checkbox]');
         const price=node.querySelector('input[type=number]');
-        previous.set(name,{checked:!!cb?.checked, price:Number(price?.value||0)});
+        const included=node.getAttribute('data-included')==='true';
+        previous.set(name,{price:Number(price?.value||0), included});
       });
     }
     host.innerHTML='';
-    for(const name of Object.keys(S.menu.addons)){
+
+    const controlRow=el('div',{class:'row',style:'gap:.5rem;align-items:flex-end;'});
+    const select=el('select',{class:'vehicle-addon-picker'});
+    select.append(el('option',{value:''},'Add add-on…'));
+    Object.keys(S.menu.addons).forEach(name=>select.append(el('option',{value:name},name)));
+    const addBtn=el('button',{class:'btn secondary',type:'button'},'Add');
+    controlRow.append(select,addBtn);
+    host.append(controlRow);
+
+    const selectedWrap=el('div',{class:'list vehicle-addon-selected',style:'margin-top:.5rem;gap:.4rem;'});
+    host.append(selectedWrap);
+
+    const chosen=new Set();
+    const refreshOptions=()=>{
+      Array.from(select.options).forEach(opt=>{
+        if(!opt.value) return;
+        opt.disabled=chosen.has(opt.value);
+      });
+    };
+
+    const addRow=(name,info={})=>{
+      if(!name || !S.menu.addons[name] || chosen.has(name)) return;
+      const included=info.included || !!meta.includedAddons?.includes(name);
       const basePrice=Calc.addonPrice(name,size);
-      const included=meta.includedAddons?.includes(name);
-      const prev=previous.get(name);
-      const isChecked=included || !!prev?.checked;
-      const priceVal=included?0:(prev?prev.price:basePrice);
-      const checkbox=el('input',{type:'checkbox',style:'flex:0;width:22px;height:22px;'});
-      if(isChecked) checkbox.checked=true;
-      if(included) checkbox.disabled=true;
-      checkbox.addEventListener('change',()=>UI.updateTotals());
+      const priceVal=included?0:(info.price!=null?Number(info.price):basePrice);
+      const rowEl=el('div',{class:'list-item vehicle-addon-row','data-name':name,'data-included':included?'true':'false'});
+      const rowContent=el('div',{class:'row',style:'align-items:center;gap:.5rem;'});
+      rowContent.append(el('div',{style:'flex:1;font-weight:800;'}, name + (included?' — Included':'')));
       const priceInput=el('input',{type:'number',min:'0',step:'0.01',value:Number(priceVal||0).toFixed(2),style:'flex:0;width:120px;'});
       if(included) priceInput.disabled=true;
-      priceInput.addEventListener('input',()=>UI.updateTotals());
-      const rowEl=el('div',{class:'list-item vehicle-addon-row','data-name':name}, el('div',{class:'row',style:'align-items:center;gap:.5rem;'}, checkbox, el('div',{style:'flex:1;font-weight:800;'}, name + (included?' — Included':'')), priceInput));
-      host.append(rowEl);
+      const setStoredPrice=(val)=>previous.set(name,{price:val, included});
+      setStoredPrice(Number(priceVal||0));
+      priceInput.addEventListener('input',()=>{
+        setStoredPrice(Number(priceInput.value||0));
+        UI.updateTotals();
+      });
+      rowContent.append(priceInput);
+      if(included){
+        rowContent.append(el('span',{class:'pill',style:'flex:0 0 auto;'},'Included'));
+      } else {
+        const removeBtn=el('button',{class:'btn secondary',type:'button'},'Remove');
+        removeBtn.addEventListener('click',()=>{
+          chosen.delete(name);
+          rowEl.remove();
+          previous.delete(name);
+          refreshOptions();
+          UI.updateTotals();
+        });
+        rowContent.append(removeBtn);
+      }
+      rowEl.append(rowContent);
+      selectedWrap.append(rowEl);
+      chosen.add(name);
+      refreshOptions();
+      UI.updateTotals();
+    };
+
+    const initial=[];
+    (meta.includedAddons||[]).forEach(name=>initial.push({name, price:0, included:true}));
+    if(previous.size){
+      previous.forEach((info,name)=>initial.push({name, price:info.price, included:info.included}));
+    } else if(preset){
+      (preset||[]).forEach(a=>initial.push({name:a.name, price:Number(a.price||0), included:meta.includedAddons?.includes(a.name)}));
     }
+    initial.forEach(item=>addRow(item.name,item));
+
+    addBtn.addEventListener('click',()=>{
+      const value=select.value;
+      if(!value) return;
+      addRow(value,previous.get(value)||{});
+      select.value='';
+      refreshOptions();
+    });
+    select.addEventListener('change',()=>{
+      if(!select.value) return;
+      addRow(select.value,previous.get(select.value)||{});
+      select.value='';
+      refreshOptions();
+    });
+
+    refreshOptions();
   },
   syncVehicleRemovers(){
     const rows=document.querySelectorAll('.vehicle-row');
@@ -552,13 +617,11 @@ const UI = {
       const size=row.querySelector('.vehicle-size')?.value || '';
       const base=Number(row.querySelector('.vehicle-base')?.value||0);
       const addons=Array.from(row.querySelectorAll('.vehicle-addon-row')).map(aRow=>{
-        const cb=aRow.querySelector('input[type=checkbox]');
-        if(!cb || !cb.checked) return null;
         const priceInput=aRow.querySelector('input[type=number]');
         const name=aRow.getAttribute('data-name');
         const price=Number(priceInput?.value||0);
         return {name, price};
-      }).filter(Boolean);
+      }).filter(a=>a && a.name);
       return {size, base, addons};
     });
   },
