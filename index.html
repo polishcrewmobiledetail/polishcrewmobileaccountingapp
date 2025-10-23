@@ -43,6 +43,19 @@
   .pkg-addon-option[data-selected="true"]{opacity:.6;}
   .pkg-addon-option input{margin:0;}
   .footnote{font-size:.8rem;color:#8ea59a}
+  .crew-callout{border-radius:14px;padding:.75rem;border:1px solid #1f2a1f;background:linear-gradient(180deg,#0d130f,#080c0a);color:#dbe9df;font-size:.85rem;line-height:1.4}
+  .crew-callout.alert{border-color:#3a2626;background:linear-gradient(180deg,#1b0f0f,#120909);color:#f4d6d6}
+  .crew-checklist-section{display:flex;flex-direction:column;gap:.5rem}
+  .crew-checklist-header{display:flex;justify-content:space-between;align-items:flex-end;gap:.75rem;flex-wrap:wrap}
+  .crew-checklist-items{display:flex;flex-direction:column;gap:.5rem}
+  .crew-checklist-item{display:flex;align-items:center;gap:.75rem;padding:.6rem;border:1px solid #15191c;background:#090b0d;border-radius:12px}
+  .crew-checklist-item[data-complete="true"]{border-color:#1f2a1f;background:#0d1310}
+  .crew-checklist-item[data-running="true"] .crew-timer{color:var(--green)}
+  .crew-checklist-item input[type=checkbox]{width:18px;height:18px}
+  .crew-step{flex:1}
+  .crew-step .tiny{color:#99a7a7}
+  .crew-timer{font-variant-numeric:tabular-nums;font-weight:700;min-width:72px;text-align:right}
+  .crew-timer-controls{display:flex;align-items:center;gap:.45rem}
   .drawer {position:fixed;right:0;top:0;height:100%;width:min(92vw,420px);transform:translateX(100%);transition:transform .25s ease;background:#050607;border-left:1px solid #14171a;z-index:20;display:flex;flex-direction:column}
   .drawer.open{transform:translateX(0)}
   @media print {
@@ -126,6 +139,10 @@
               </div>
             </div>
             <div id="vehiclesList" class="list"></div>
+            <div id="addonSummary" class="crew-callout" style="margin-top:.5rem;">
+              <div style="font-weight:800;">Add-on guidance</div>
+              <div class="tiny">Select packages and add-ons to see maintenance vs. full detail recommendations.</div>
+            </div>
             <div class="footnote">≤3 add-ons = Maintenance. 4+ or heavy soil → Full Detail upgrade.</div>
           </div>
 
@@ -296,6 +313,59 @@ const DEFAULT_SETTINGS = {
 
 const DEFAULT_BIZ = { name:"Polish Crew", headerTitle:"POLISH CREW — Accounting", logoDataUrl:"" };
 
+const CREW_CHECKLIST_SECTIONS = [
+  {
+    id: 'setup',
+    title: 'Setup',
+    goalMinutes: 10,
+    items: [
+      { id: 'setup-position', label: 'Position truck + hose for easy flow.', description: 'Stage the rig for an efficient workflow and protect the customer’s property.' },
+      { id: 'setup-prep', label: 'Prep bucket system, towels, brushes, and chemicals.', description: 'Separate interior, exterior, glass, and wheel towels. Confirm correct dilution.' },
+      { id: 'setup-power', label: 'Confirm power source or generator placement.', description: 'Keep exhaust safe and avoid detailing under direct sun when possible.' },
+      { id: 'setup-greet', label: 'Greet customer, confirm package, spotlight special issues.', description: 'Manage expectations before touching the vehicle.' }
+    ]
+  },
+  {
+    id: 'exterior',
+    title: 'Exterior Process',
+    goalMinutes: 35,
+    items: [
+      { id: 'ext-rinse', label: 'Rinse vehicle.', description: 'Knock down loose dirt before contact wash.' },
+      { id: 'ext-foam', label: 'Foam & wash top-down.', description: 'No dry wiping on paint — use lubricated mitts and detailer.' },
+      { id: 'ext-wheels', label: 'Clean wheels & tires.', description: 'Use dedicated brushes and towels for wheels.' },
+      { id: 'ext-final-rinse', label: 'Final rinse.', description: 'Check seams and badges for soap runoff.' },
+      { id: 'ext-dry', label: 'Dry with microfiber + blower.', description: 'Keep towels clean and avoid dragging on paint.' },
+      { id: 'ext-upsell', label: 'Offer Spray Wax / Sealant / Ceramic upsell.', description: 'Upsell once exterior is clean and dry for added protection.' },
+      { id: 'ext-glass', label: 'Tire shine + exterior glass.', description: 'Dress tires (not pedals) and finish glass streak-free.' }
+    ]
+  },
+  {
+    id: 'interior',
+    title: 'Interior Process',
+    goalMinutes: 45,
+    items: [
+      { id: 'int-trash', label: 'Remove trash & mats.', description: 'Keep customer belongings organized.' },
+      { id: 'int-vacuum', label: 'Vacuum rear to front.', description: 'Address pet hair or heavy soil with proper tools.' },
+      { id: 'int-wipe', label: 'Wipe plastics, buttons, cupholders.', description: 'Never dress pedals or steering wheel.' },
+      { id: 'int-brush', label: 'Brush seams, vents, and edges.', description: 'Use gentle detail brushes for vents and trim.' },
+      { id: 'int-glass', label: 'Clean interior glass.', description: 'Use fresh towels reserved for glass only.' },
+      { id: 'int-protect', label: 'Add interior protectant & scent.', description: 'Apply light, even coverage for UV protection.' },
+      { id: 'int-final-check', label: 'Final interior check.', description: 'Inspect steering wheel, door jambs, and screens.' }
+    ]
+  },
+  {
+    id: 'presentation',
+    title: 'Final Presentation',
+    goalMinutes: 10,
+    items: [
+      { id: 'final-walk', label: 'Walk around with customer.', description: 'Showcase results with confident energy.' },
+      { id: 'final-notes', label: 'Point out existing wear or permanent marks.', description: 'Set expectations and educate on what was corrected.' },
+      { id: 'final-payment', label: 'Collect payment (Cash / Zelle / Venmo).', description: 'Use official pricing — no unapproved discounts.' },
+      { id: 'final-testimonial', label: 'Request testimonial or photo.', description: 'Capture content for socials; highlight green brand accents.' }
+    ]
+  }
+];
+
 const AppState = { business: DEFAULT_BIZ, clients: [], menu: DEFAULT_MENU, jobs: [], transactions: [], mileage: [], settings: DEFAULT_SETTINGS };
 
 function cloneData(obj){
@@ -348,7 +418,7 @@ const Calc = {
       return job.vehicles.map(v=>({
         size: v.size || job.size || S.menu.sizes[0],
         base: Number(v.base||0),
-        addons: (v.addons||[]).map(a=>({name:a.name, price:Number(a.price||0)})),
+        addons: (v.addons||[]).map(a=>({name:a.name, price:Number(a.price||0), included:!!a.included})),
         pkg: v.pkg || job.pkg || '',
         label: v.label || ''
       }));
@@ -356,13 +426,43 @@ const Calc = {
     const count=Math.max(1, Number(job.vehicleCount||1));
     const base=Number(job.base||0);
     const size=job.size || S.menu.sizes[0];
-    const addons=(job.addons||[]).map(a=>({name:a.name, price:Number(a.price||0)}));
+    const addons=(job.addons||[]).map(a=>({name:a.name, price:Number(a.price||0), included:!!a.included}));
     return Array.from({length:count},()=>({
       size,
       base,
-      addons: addons.map(a=>({name:a.name, price:Number(a.price||0)})),
+      addons: addons.map(a=>({name:a.name, price:Number(a.price||0), included:!!a.included})),
       pkg: job.pkg || ''
     }));
+  },
+  addonSummary(job){
+    const vehicles=this.vehicles(job);
+    const perVehicle=vehicles.map((v,idx)=>{
+      const addons=Array.isArray(v.addons)?v.addons:[];
+      const included=addons.filter(a=>a && a.included).length;
+      const custom=addons.filter(a=>a && !a.included).length;
+      return {index:idx,label:v.label||'',size:v.size||'',included,custom};
+    });
+    let legacyIncluded=0;
+    let legacyCustom=0;
+    if(!vehicles.length && Array.isArray(job.addons)){
+      for(const addon of job.addons){
+        if(addon?.included) legacyIncluded++;
+        else legacyCustom++;
+      }
+    }
+    const totals=perVehicle.reduce((acc,info)=>{
+      acc.custom+=info.custom;
+      acc.included+=info.included;
+      return acc;
+    },{custom:legacyCustom,included:legacyIncluded});
+    const requiresUpgrade=totals.custom>=4;
+    const message=requiresUpgrade
+      ? '4+ custom add-ons selected. Upgrade to Full Detail pricing or adjust scope.'
+      : (totals.custom>0
+          ? '≤3 custom add-ons keeps this at Maintenance pricing. Track time carefully.'
+          : 'No custom add-ons selected. Maintain Maintenance Detail pricing.');
+    const upsell='Always offer Spray Wax / Sealant / Ceramic after the exterior is clean and dry.';
+    return {perVehicle, totalCustom:totals.custom, totalIncluded:totals.included, requiresUpgrade, message, upsell};
   },
   vehicleCount(job){ return this.vehicles(job).length; },
   subtotal(job){ return this.vehicles(job).reduce((t,v)=>t+this.vehicleSubtotal(v),0); },
@@ -394,6 +494,7 @@ const Calc = {
 const App = {
   init(){
     this.normalizeClients();
+    this.normalizeJobs();
     UI.initHeader();
     UI.initTabs();
     UI.populateClients();
@@ -421,6 +522,126 @@ const App = {
         if(!Array.isArray(v.history)) v.history=[];
       }
     }
+  },
+  normalizeJobs(){
+    S.jobs = Array.isArray(S.jobs) ? S.jobs : [];
+    for(const job of S.jobs){
+      if(!Array.isArray(job.vehicles)) job.vehicles=[];
+      if(!Array.isArray(job.payments)) job.payments=[];
+      this.ensureChecklist(job);
+    }
+  },
+  createChecklist(){
+    return { sections: this.createChecklistSections() };
+  },
+  createChecklistSections(){
+    return CREW_CHECKLIST_SECTIONS.map(section=>({
+      id: section.id,
+      title: section.title,
+      goalMinutes: section.goalMinutes,
+      items: section.items.map(item=>({
+        id: item.id,
+        label: item.label,
+        description: item.description || '',
+        completed: false,
+        elapsed: 0,
+        runningSince: null
+      }))
+    }));
+  },
+  ensureChecklist(job){
+    if(!job) return;
+    let changed=false;
+    if(!job.checklist || !Array.isArray(job.checklist.sections)){
+      job.checklist=this.createChecklist();
+      changed=true;
+    }
+    const sections=job.checklist.sections;
+    const templateMap=new Map(CREW_CHECKLIST_SECTIONS.map(section=>[section.id, section]));
+    for(const [sectionId, template] of templateMap){
+      let section=sections.find(s=>s.id===sectionId);
+      if(!section){
+        section={
+          id: template.id,
+          title: template.title,
+          goalMinutes: template.goalMinutes,
+          items: template.items.map(item=>({
+            id: item.id,
+            label: item.label,
+            description: item.description || '',
+            completed: false,
+            elapsed: 0,
+            runningSince: null
+          }))
+        };
+        sections.push(section);
+        changed=true;
+        continue;
+      }
+      if(section.title==null) section.title=template.title;
+      if(section.goalMinutes==null) section.goalMinutes=template.goalMinutes;
+      if(!Array.isArray(section.items)) section.items=[];
+      for(const itemTemplate of template.items){
+        let item=section.items.find(i=>i.id===itemTemplate.id);
+        if(!item){
+          section.items.push({
+            id: itemTemplate.id,
+            label: itemTemplate.label,
+            description: itemTemplate.description || '',
+            completed: false,
+            elapsed: 0,
+            runningSince: null
+          });
+          changed=true;
+        } else {
+          if(item.label==null) item.label=itemTemplate.label;
+          if(item.description==null && itemTemplate.description) item.description=itemTemplate.description;
+          if(item.elapsed==null) item.elapsed=0;
+          if(item.runningSince==null || typeof item.runningSince!=='number') item.runningSince=null;
+          if(typeof item.completed!=='boolean') item.completed=!!item.completed;
+        }
+      }
+    }
+    if(changed) Storage.save(S);
+  },
+  findChecklistItem(job, sectionId, itemId){
+    if(!job?.checklist?.sections) return {section:null,item:null};
+    const section=job.checklist.sections.find(s=>s.id===sectionId) || null;
+    const item=section?.items?.find(i=>i.id===itemId) || null;
+    return {section,item};
+  },
+  checklistElapsedMs(item){
+    if(!item) return 0;
+    const elapsed=Number(item.elapsed||0);
+    if(item.runningSince) return elapsed+Math.max(0,Date.now()-item.runningSince);
+    return elapsed;
+  },
+  setChecklistComplete(jobId, sectionId, itemId, completed){
+    const job=S.jobs.find(x=>x.id===jobId);
+    if(!job) return;
+    this.ensureChecklist(job);
+    const {item}=this.findChecklistItem(job,sectionId,itemId);
+    if(!item) return;
+    item.completed=!!completed;
+    if(item.completed && item.runningSince){
+      item.elapsed+=Date.now()-item.runningSince;
+      item.runningSince=null;
+    }
+    Storage.save(S);
+  },
+  toggleChecklistTimer(jobId, sectionId, itemId){
+    const job=S.jobs.find(x=>x.id===jobId);
+    if(!job) return;
+    this.ensureChecklist(job);
+    const {item}=this.findChecklistItem(job,sectionId,itemId);
+    if(!item) return;
+    if(item.runningSince){
+      item.elapsed+=Date.now()-item.runningSince;
+      item.runningSince=null;
+    } else {
+      item.runningSince=Date.now();
+    }
+    Storage.save(S);
   },
   addClient(){ const name=document.getElementById('cName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(), name, phone:document.getElementById('cPhone').value.trim(), notes:document.getElementById('cNotes').value.trim(), discount:{type:document.getElementById('cDiscType').value, value:Number(document.getElementById('cDiscValue').value||0)}, vehicles:[]}; S.clients.push(c); Storage.save(S); UI.populateClients(); UI.flash('Client added.'); document.getElementById('cName').value='';document.getElementById('cPhone').value='';document.getElementById('cNotes').value='';document.getElementById('cDiscType').value='none';document.getElementById('cDiscValue').value='0'; },
   addQuickClient(){ const name=document.getElementById('qcName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(), name, phone:document.getElementById('qcPhone').value.trim(), notes:document.getElementById('qcNotes').value.trim(), discount:{type:document.getElementById('qcDiscType').value, value:Number(document.getElementById('qcDiscValue').value||0)}, vehicles:[]}; S.clients.push(c); Storage.save(S); UI.populateClients(c.id); UI.hideQuickClient(); UI.flash('Client added.'); UI.onClientChange(); },
@@ -458,7 +679,7 @@ const App = {
     Storage.save(S);
     UI.populateClients(job.clientId);
   },
-  saveJob(){ const clientId=document.getElementById('jobClient').value; if(!clientId) return alert('Client is required'); const vehicles=UI.collectVehicles(); if(!vehicles.length) return alert('Add at least one vehicle'); if(vehicles.some(v=>!v.pkg)) return alert('Select a package for each vehicle'); const discType=document.getElementById('jobDiscType').value; const discValue=Number(document.getElementById('jobDiscValue').value||0); const discScope=document.getElementById('jobDiscScope').value; const notes=document.getElementById('jobNotes').value.trim(); const primaryPkg=vehicles[0]?.pkg||''; const job={id:uid(), date:today(), clientId,pkg:primaryPkg,vehicles,discType,discValue,discScope,notes,status:"Quoted",payments:[]}; job.size=vehicles[0]?.size||''; job.vehicleCount=vehicles.length; S.jobs.unshift(job); Storage.save(S); this.syncClientVehicles(job); UI.refreshJobsList(); UI.resetJobForm(); UI.flash('Quote saved.'); },
+  saveJob(){ const clientId=document.getElementById('jobClient').value; if(!clientId) return alert('Client is required'); const vehicles=UI.collectVehicles(); if(!vehicles.length) return alert('Add at least one vehicle'); if(vehicles.some(v=>!v.pkg)) return alert('Select a package for each vehicle'); const discType=document.getElementById('jobDiscType').value; const discValue=Number(document.getElementById('jobDiscValue').value||0); const discScope=document.getElementById('jobDiscScope').value; const notes=document.getElementById('jobNotes').value.trim(); const primaryPkg=vehicles[0]?.pkg||''; const job={id:uid(), date:today(), clientId,pkg:primaryPkg,vehicles,discType,discValue,discScope,notes,status:"Quoted",payments:[]}; job.size=vehicles[0]?.size||''; job.vehicleCount=vehicles.length; job.checklist=this.createChecklist(); S.jobs.unshift(job); Storage.save(S); this.syncClientVehicles(job); UI.refreshJobsList(); UI.resetJobForm(); UI.flash('Quote saved.'); },
   updateJobStatus(id,next){ const j=S.jobs.find(x=>x.id===id); if(!j) return; j.status=next; if(next==='Complete'||next==='Paid'){ this.syncClientVehicles(j,{updateLastService:true}); }
     else { Storage.save(S); UI.populateClients(j.clientId); }
     UI.refreshJobsList();
@@ -495,6 +716,9 @@ const App = {
 
 /*** UI ***/
 const UI = {
+  checklistTicker:null,
+  checklistHost:null,
+  checklistJobId:null,
   initHeader(){ const logo=document.getElementById('headerLogo'); logo.src=S.business.logoDataUrl||'icon-192.png'; document.getElementById('headerTitle').textContent=S.business.headerTitle||'POLISH CREW — Accounting'; document.getElementById('openDrawer').onclick=()=>UI.toggleDrawer(true); },
   switchTab(name){ document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.getAttribute('data-tab')===name)); document.querySelectorAll('.tabpage').forEach(p=>p.classList.add('hidden')); document.getElementById(name).classList.remove('hidden'); },
   initTabs(){ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>UI.switchTab(t.getAttribute('data-tab')))); },
@@ -912,7 +1136,8 @@ const UI = {
         const priceInput=aRow.querySelector('input[type=number]');
         const name=aRow.getAttribute('data-name');
         const price=Number(priceInput?.value||0);
-        return {name, price};
+        const included=aRow.getAttribute('data-included')==='true';
+        return {name, price, included};
       }).filter(a=>a && a.name);
       const vehicle={size, base, addons, pkg};
       if(label) vehicle.label=label;
@@ -935,6 +1160,32 @@ const UI = {
     document.getElementById('jobSubtotal').textContent=fmt(subtotal);
     document.getElementById('jobDiscount').textContent=fmt(discount);
     document.getElementById('jobTotal').textContent=fmt(total);
+    this.renderAddonSummary(vehicles);
+  },
+  renderAddonSummary(vehicles){
+    const host=document.getElementById('addonSummary');
+    if(!host) return;
+    host.innerHTML='';
+    if(!vehicles.length){
+      host.append(el('div',{style:'font-weight:800;'},'Add-on guidance'));
+      host.append(el('div',{class:'tiny'},'Add vehicles to compare Maintenance vs. Full Detail.'));
+      host.classList.remove('alert');
+      return;
+    }
+    const summary=Calc.addonSummary({vehicles});
+    host.append(el('div',{style:'font-weight:800;'}, summary.requiresUpgrade ? '⚠️ Add-on upgrade recommended' : 'Add-on guidance'));
+    host.append(el('div',{class:'tiny'}, summary.message));
+    if(summary.totalIncluded){
+      host.append(el('div',{class:'tiny'}, `Included add-ons: ${summary.totalIncluded}`));
+    }
+    if(summary.perVehicle.length>1){
+      host.append(el('div',{class:'tiny'}, summary.perVehicle.map((info,idx)=>`Vehicle ${idx+1}: ${info.custom} custom / ${info.included} included`).join(' · ')));
+    } else if(summary.perVehicle.length===1){
+      const info=summary.perVehicle[0];
+      host.append(el('div',{class:'tiny'}, `${info.custom} custom · ${info.included} included add-ons`));
+    }
+    host.append(el('div',{class:'tiny'}, summary.upsell));
+    host.classList.toggle('alert', summary.requiresUpgrade);
   },
   refreshDashboard(){
     const month=today().slice(0,7);
@@ -965,11 +1216,212 @@ const UI = {
     if(names.length>1) return 'Multiple Packages';
     return job.pkg || '';
   },
-  refreshJobsList(){ const list=document.getElementById('jobsList'); list.innerHTML=''; for(const j of S.jobs){ const c=S.clients.find(x=>x.id===j.clientId); const paid=(j.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0); const due=Math.max(0,Calc.total(j)-paid); const vehicleSummary=this.jobVehicleSummary(j); const pkgLabel=this.jobPackageLabel(j); const subtitle=vehicleSummary?`${pkgLabel} — ${vehicleSummary}`:pkgLabel; list.append(el('div',{class:'list-item'}, el('div',{class:'row',style:'justify-content:space-between;'}, el('div',{html:`<b>${c?.name||'Unknown'}</b> <span class='tiny'>${subtitle}</span>`}), el('div',{class:'tiny'}, j.status)), el('div',{class:'row',style:'justify-content:space-between;margin-top:.25rem;'}, el('div',{class:'tiny'}, `Total: ${Calc.total(j).toFixed(2)}`), el('div',{class:'tiny'}, paid>0? `Paid: ${paid.toFixed(2)}${due>0?` (Due ${due.toFixed(2)})`:''}` : 'Unpaid')), el('div',{class:'row',style:'gap:.5rem;margin-top:.4rem;'}, ...(j.status==='Quoted'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Booked')},'Book')]:[]), ...(j.status==='Booked'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'In Progress')},'Start')]:[]), ...(j.status==='In Progress'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Complete')},'Complete')]:[]), ...(j.status!=='Paid'?[el('button',{class:'pill',onclick:()=>App.takePayment(j.id)},'Take Payment')]:[]), el('button',{class:'pill',onclick:()=>UI.openPrintDetails(j.id)},'Print Quote'), el('button',{class:'pill',onclick:()=>App.deleteJob(j.id)},'Delete') )) ); } const recent=document.getElementById('recentList'); if(recent){ recent.innerHTML=''; for(const j of S.jobs.slice(0,5)){ const c=S.clients.find(x=>x.id===j.clientId); const vehicleSummary=this.jobVehicleSummary(j); const pkgLabel=this.jobPackageLabel(j); const summaryText=vehicleSummary?`${pkgLabel} — ${vehicleSummary}`:pkgLabel; recent.append(el('div',{class:'list-item'}, `${j.date} · ${c?.name||'Unknown'} · ${summaryText} (${j.status})`)); } } },
+  refreshJobsList(){
+    const list=document.getElementById('jobsList');
+    list.innerHTML='';
+    for(const j of S.jobs){
+      const c=S.clients.find(x=>x.id===j.clientId);
+      const paid=(j.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0);
+      const due=Math.max(0,Calc.total(j)-paid);
+      const vehicleSummary=this.jobVehicleSummary(j);
+      const pkgLabel=this.jobPackageLabel(j);
+      const subtitle=vehicleSummary?`${pkgLabel} — ${vehicleSummary}`:pkgLabel;
+      const addonInfo=Calc.addonSummary(j);
+
+      const header=el('div',{class:'row',style:'justify-content:space-between;gap:.5rem;flex-wrap:wrap;'},
+        el('div',{html:`<b>${c?.name||'Unknown'}</b> <span class='tiny'>${subtitle}</span>`}),
+        el('div',{class:'tiny'}, j.status)
+      );
+
+      const totalsRow=el('div',{class:'row',style:'justify-content:space-between;margin-top:.25rem;'},
+        el('div',{class:'tiny'}, `Total: ${Calc.total(j).toFixed(2)}`),
+        el('div',{class:'tiny'}, paid>0? `Paid: ${paid.toFixed(2)}${due>0?` (Due ${due.toFixed(2)})`:''}` : 'Unpaid')
+      );
+
+      const callout=el('div',{class:`crew-callout${addonInfo.requiresUpgrade?' alert':''}`,style:'margin-top:.45rem;'});
+      callout.append(el('div',{style:'font-weight:800;'}, addonInfo.requiresUpgrade?'⚠️ Add-on upgrade recommended':'Add-on logic'));
+      callout.append(el('div',{class:'tiny'}, addonInfo.message));
+      if(addonInfo.totalIncluded){
+        callout.append(el('div',{class:'tiny'}, `Included add-ons: ${addonInfo.totalIncluded}`));
+      }
+      if(addonInfo.perVehicle.length){
+        callout.append(el('div',{class:'tiny'}, addonInfo.perVehicle.map((info,idx)=>{
+          const label=info.label?info.label:`Vehicle ${idx+1}`;
+          return `${label}: ${info.custom} custom / ${info.included} included`;
+        }).join(' · ')));
+      }
+      callout.append(el('div',{class:'tiny'}, addonInfo.upsell));
+
+      const actions=[];
+      if(j.status==='Quoted') actions.push(el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Booked')},'Book'));
+      if(j.status==='Booked') actions.push(el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'In Progress')},'Start'));
+      if(j.status==='In Progress') actions.push(el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Complete')},'Complete'));
+      if(j.status!=='Paid') actions.push(el('button',{class:'pill',onclick:()=>App.takePayment(j.id)},'Take Payment'));
+      actions.push(el('button',{class:'pill',onclick:()=>UI.openChecklist(j.id)},'Checklist'));
+      actions.push(el('button',{class:'pill',onclick:()=>UI.openPrintDetails(j.id)},'Print Quote'));
+      actions.push(el('button',{class:'pill',onclick:()=>App.deleteJob(j.id)},'Delete'));
+
+      const actionsRow=el('div',{class:'row',style:'gap:.5rem;margin-top:.4rem;flex-wrap:wrap;'});
+      actionsRow.append(...actions);
+
+      const item=el('div',{class:'list-item'});
+      item.append(header, totalsRow, callout, actionsRow);
+      list.append(item);
+    }
+
+    const recent=document.getElementById('recentList');
+    if(recent){
+      recent.innerHTML='';
+      for(const j of S.jobs.slice(0,5)){
+        const c=S.clients.find(x=>x.id===j.clientId);
+        const vehicleSummary=this.jobVehicleSummary(j);
+        const pkgLabel=this.jobPackageLabel(j);
+        const summaryText=vehicleSummary?`${pkgLabel} — ${vehicleSummary}`:pkgLabel;
+        recent.append(el('div',{class:'list-item'}, `${j.date} · ${c?.name||'Unknown'} · ${summaryText} (${j.status})`));
+      }
+    }
+  },
   openPrintDetails(id){
     const j = S.jobs.find(x => x.id === id);
     if (!j) return;
     UI.renderPrintSheet(j);
+  },
+  openChecklist(id){
+    const job=S.jobs.find(x=>x.id===id);
+    if(!job) return;
+    App.ensureChecklist(job);
+    const content=el('div',{class:'list',style:'gap:.75rem;'});
+    const closeModal=(close)=>{
+      UI.stopChecklistTicker();
+      UI.checklistHost=null;
+      UI.checklistJobId=null;
+      close();
+    };
+    UI.modal('Crew Checklist',closeModal,content,'Close',false,true);
+    UI.checklistHost=content;
+    UI.checklistJobId=id;
+    UI.renderChecklist(id);
+    UI.startChecklistTicker();
+  },
+  renderChecklist(jobId){
+    const host=UI.checklistHost;
+    if(!host) return;
+    const job=S.jobs.find(x=>x.id===jobId);
+    if(!job) return;
+    App.ensureChecklist(job);
+    const addonInfo=Calc.addonSummary(job);
+    host.innerHTML='';
+    const callout=el('div',{class:`crew-callout${addonInfo.requiresUpgrade?' alert':''}`});
+    callout.append(el('div',{style:'font-weight:800;'}, addonInfo.requiresUpgrade?'⚠️ Add-on upgrade recommended':'Add-on logic snapshot'));
+    callout.append(el('div',{class:'tiny'}, addonInfo.message));
+    if(addonInfo.totalIncluded){
+      callout.append(el('div',{class:'tiny'}, `Included add-ons: ${addonInfo.totalIncluded}`));
+    }
+    if(addonInfo.perVehicle.length){
+      callout.append(el('div',{class:'tiny'}, addonInfo.perVehicle.map((info,idx)=>{
+        const label=info.label?info.label:`Vehicle ${idx+1}`;
+        return `${label}: ${info.custom} custom / ${info.included} included`;
+      }).join(' · ')));
+    }
+    callout.append(el('div',{class:'tiny'}, addonInfo.upsell));
+    host.append(callout);
+
+    job.checklist.sections.forEach(section=>{
+      const sectionCard=el('div',{class:'card crew-checklist-section'});
+      const completed=section.items.filter(i=>i.completed).length;
+      const totalItems=section.items.length;
+      const totalMs=section.items.reduce((sum,item)=>sum+App.checklistElapsedMs(item),0);
+
+      const header=el('div',{class:'crew-checklist-header','data-section':section.id});
+      header.append(el('div',{style:'font-weight:800;font-size:1.05rem;'}, section.title));
+      const headerMeta=el('div',{style:'display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;'});
+      headerMeta.append(el('div',{class:'tiny'}, `${completed}/${totalItems} complete`));
+      headerMeta.append(el('div',{class:'tiny crew-header-time'}, `Time ${UI.formatDuration(totalMs)}`));
+      if(section.goalMinutes){
+        headerMeta.append(el('div',{class:'tiny'}, `Goal ${section.goalMinutes} min`));
+      }
+      header.append(headerMeta);
+      sectionCard.append(header);
+
+      const itemsWrap=el('div',{class:'crew-checklist-items'});
+      section.items.forEach(item=>{
+        const key=`${section.id}:${item.id}`;
+        const row=el('div',{class:'crew-checklist-item','data-key':key,'data-running':item.runningSince?'true':'false','data-complete':item.completed?'true':'false'});
+        const checkbox=el('input',{type:'checkbox'});
+        checkbox.checked=item.completed;
+        checkbox.addEventListener('change',()=>{
+          App.setChecklistComplete(job.id, section.id, item.id, checkbox.checked);
+          UI.renderChecklist(job.id);
+        });
+        const step=el('div',{class:'crew-step'});
+        step.append(el('div',{style:'font-weight:600;'}, item.label));
+        if(item.description){
+          step.append(el('div',{class:'tiny'}, item.description));
+        }
+        const timerWrap=el('div',{class:'crew-timer-controls'});
+        const timer=el('div',{class:'crew-timer','data-key':key}, UI.formatDuration(App.checklistElapsedMs(item)));
+        timerWrap.append(timer);
+        const toggleBtn=el('button',{class:'btn secondary'}, item.runningSince?'Stop':'Start');
+        toggleBtn.addEventListener('click',()=>{
+          App.toggleChecklistTimer(job.id, section.id, item.id);
+          UI.renderChecklist(job.id);
+        });
+        timerWrap.append(toggleBtn);
+        row.append(checkbox, step, timerWrap);
+        itemsWrap.append(row);
+      });
+      sectionCard.append(itemsWrap);
+      host.append(sectionCard);
+    });
+
+    UI.updateChecklistTimers();
+  },
+  startChecklistTicker(){
+    UI.stopChecklistTicker();
+    if(!UI.checklistHost || !UI.checklistJobId) return;
+    UI.checklistTicker=setInterval(()=>UI.updateChecklistTimers(),1000);
+    UI.updateChecklistTimers();
+  },
+  stopChecklistTicker(){
+    if(UI.checklistTicker){
+      clearInterval(UI.checklistTicker);
+      UI.checklistTicker=null;
+    }
+  },
+  updateChecklistTimers(){
+    if(!UI.checklistHost || !UI.checklistJobId) return;
+    const job=S.jobs.find(x=>x.id===UI.checklistJobId);
+    if(!job) return;
+    App.ensureChecklist(job);
+    job.checklist.sections.forEach(section=>{
+      const headerTime=UI.checklistHost.querySelector(`.crew-checklist-header[data-section="${section.id}"] .crew-header-time`);
+      if(headerTime){
+        const totalMs=section.items.reduce((sum,item)=>sum+App.checklistElapsedMs(item),0);
+        headerTime.textContent=`Time ${UI.formatDuration(totalMs)}`;
+      }
+      section.items.forEach(item=>{
+        const key=`${section.id}:${item.id}`;
+        const timerNode=UI.checklistHost.querySelector(`.crew-timer[data-key="${key}"]`);
+        if(timerNode){
+          timerNode.textContent=UI.formatDuration(App.checklistElapsedMs(item));
+        }
+        const row=UI.checklistHost.querySelector(`.crew-checklist-item[data-key="${key}"]`);
+        if(row){
+          row.setAttribute('data-running', item.runningSince?'true':'false');
+          row.setAttribute('data-complete', item.completed?'true':'false');
+        }
+      });
+    });
+  },
+  formatDuration(ms){
+    const totalSeconds=Math.max(0,Math.floor(ms/1000));
+    const hours=Math.floor(totalSeconds/3600);
+    const minutes=Math.floor((totalSeconds%3600)/60);
+    const seconds=totalSeconds%60;
+    if(hours>0){
+      return `${hours}:${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
+    }
+    return `${minutes}:${String(seconds).padStart(2,'0')}`;
   },
   showQuickClient(){ document.getElementById('quickClient').classList.remove('hidden'); },
   hideQuickClient(){ document.getElementById('quickClient').classList.add('hidden'); },
@@ -1160,13 +1612,13 @@ UI.renderPrintSheet = function(job){
   const j = job;
   const c = S.clients.find(x => x.id === j.clientId);
   const hasVehicles = Array.isArray(j.vehicles) && j.vehicles.length;
-  const vehicles = hasVehicles ? j.vehicles.map(v=>({
-    size: v.size || '',
-    base: Number(v.base||0),
-    addons: (v.addons||[]).map(a=>({name:a.name, price:Number(a.price||0)})),
-    pkg: v.pkg || j.pkg || '',
-    label: v.label || ''
-  })) : [];
+    const vehicles = hasVehicles ? j.vehicles.map(v=>({
+      size: v.size || '',
+      base: Number(v.base||0),
+      addons: (v.addons||[]).map(a=>({name:a.name, price:Number(a.price||0), included:!!a.included})),
+      pkg: v.pkg || j.pkg || '',
+      label: v.label || ''
+    })) : [];
   const pkgLabel = UI.jobPackageLabel(j);
   const packageNames = hasVehicles ? vehicles.map(v=>v.pkg).filter(Boolean) : [j.pkg].filter(Boolean);
   const uniquePackages = [...new Set(packageNames)];
@@ -1176,8 +1628,11 @@ UI.renderPrintSheet = function(job){
     ? '<li>Varies by vehicle</li>'
     : (meta.includedAddons||[]).map(n=>`<li>${n}</li>`).join('');
   const legacyAddons = (!hasVehicles ? (j.addons||[]) : []).map(a=>{
-    const price=Number(a.price||0);
     const count=Calc.vehicleCount(j);
+    if(a?.included){
+      return `<tr><td>${a.name}</td><td style="text-align:right">Included</td></tr>`;
+    }
+    const price=Number(a.price||0);
     const lineTotal=price*count;
     const priceLabel=count>1 ? `$${price.toFixed(2)} ea × ${count} = $${lineTotal.toFixed(2)}` : `$${price.toFixed(2)}`;
     const note=count>1?'<div style="color:#777;font-size:12px;">Per vehicle</div>':'';
@@ -1194,7 +1649,12 @@ UI.renderPrintSheet = function(job){
   const logo = S.business?.logoDataUrl || '';
   const headerTitle = (j.status === 'Paid') ? 'Receipt' : 'Quote';
   const vehicleSections = hasVehicles ? vehicles.map((v,idx)=>{
-    const addonRows = v.addons.length ? v.addons.map(a=>`<tr><td>${a.name}</td><td style="text-align:right">$${Number(a.price||0).toFixed(2)}</td></tr>`).join('') : '<tr><td style="color:#666">No add-ons</td><td></td></tr>';
+    const addonRows = v.addons.length ? v.addons.map(a=>{
+      if(a?.included){
+        return `<tr><td>${a.name}<span style="color:#0a6;font-size:12px;margin-left:6px;">Included</span></td><td style="text-align:right">Included</td></tr>`;
+      }
+      return `<tr><td>${a.name}</td><td style="text-align:right">$${Number(a.price||0).toFixed(2)}</td></tr>`;
+    }).join('') : '<tr><td style="color:#666">No add-ons</td><td></td></tr>';
     const pkgName = v.pkg || pkgLabel || (j.pkg || 'Package');
     const headingName = v.label ? `${v.label}${v.size ? ' ('+v.size+')' : ''}` : (v.size || 'Vehicle');
     return `<div style="margin-bottom:12px;">
