@@ -133,7 +133,7 @@
             <div class="footnote">≤3 add-ons = Maintenance. 4+ or heavy soil → Full Detail upgrade.</div>
           </div>
 
-          <div class="row" style="margin-top:.6rem;">
+          <div class="row" style="margin-top:.6rem;align-items:flex-start;">
             <div>
               <label>Discount</label>
               <div class="row">
@@ -144,10 +144,22 @@
                 <button class="pill" onclick="UI.quickDisc('$',10)">$10</button>
                 <button class="pill" onclick="UI.quickDisc('$',20)">$20</button>
                 <button class="pill" onclick="UI.quickDisc('%',10)">10%</button>
-                <button class="pill" onclick="UI.quickDisc('%',15)">F&F 15%</button>
+                <button class="pill" onclick="UI.quickDisc('%',15)">F&amp;F 15%</button>
+              </div>
+              <div class="row" style="gap:.5rem;margin-top:.4rem;align-items:center;">
+                <div class="tiny" style="flex:0 0 auto;color:#aab5b5;">Apply</div>
+                <select id="jobDiscScope" style="flex:1;">
+                  <option value="job">Once per job</option>
+                  <option value="vehicle">Per vehicle</option>
+                </select>
               </div>
             </div>
-            <div><label>Notes</label><textarea id="jobNotes" placeholder="Any special conditions, soil level, etc."></textarea></div>
+            <div>
+              <label>Vehicles</label>
+              <input id="jobVehicleCount" type="number" min="1" step="1" value="1">
+              <div class="tiny" style="margin-top:.25rem;">Use per-vehicle to repeat discounts for each car.</div>
+            </div>
+            <div style="flex:1;"><label>Notes</label><textarea id="jobNotes" placeholder="Any special conditions, soil level, etc."></textarea></div>
           </div>
 
           <div class="grid">
@@ -304,17 +316,52 @@ const Calc = {
   sizeIndex(size){ return S.menu.sizes.indexOf(size); },
   base(pkg,size){ const i=this.sizeIndex(size); return (S.menu.packages[pkg]||[])[i]||0; },
   addonPrice(name,size){ const i=this.sizeIndex(size); return (S.menu.addons[name]||[])[i]||0; },
-  subtotal(job){ const add=(job.addons||[]).reduce((t,a)=>t+Number(a.price||0),0); return Number(job.base||0)+add; },
-  discount(job){ const sub=this.subtotal(job); if(job.discType==='%' )return sub*(Number(job.discValue||0)/100); if(job.discType==='$') return Math.min(sub,Number(job.discValue||0)); return 0; },
+  vehicleCount(job){ return Math.max(1, Number(job.vehicleCount||1)); },
+  perVehicleSubtotal(job){ const add=(job.addons||[]).reduce((t,a)=>t+Number(a.price||0),0); return Number(job.base||0)+add; },
+  subtotal(job){ return this.perVehicleSubtotal(job) * this.vehicleCount(job); },
+  discount(job){
+    const discType = job.discType;
+    if(!discType || discType==='none') return 0;
+    const value = Number(job.discValue||0);
+    if(!value) return 0;
+    const scope = job.discScope==='vehicle' ? 'vehicle' : 'job';
+    const perVehicleSub = this.perVehicleSubtotal(job);
+    const subtotal = this.subtotal(job);
+    if(discType==='%'){
+      const pct = value/100;
+      if(pct<=0) return 0;
+      return (scope==='vehicle' ? perVehicleSub * this.vehicleCount(job) : subtotal) * pct;
+    }
+    if(discType==='$'){
+      if(scope==='vehicle') return Math.min(perVehicleSub, value) * this.vehicleCount(job);
+      return Math.min(subtotal, value);
+    }
+    return 0;
+  },
   total(job){ return this.subtotal(job)-this.discount(job); }
 };
 
 /*** App ***/
 const App = {
-  init(){ UI.initHeader(); UI.initTabs(); UI.populateClients(); UI.populateSizesAndPackages(); UI.renderAddons(); UI.resetJobForm(); UI.refreshJobsList(); UI.refreshDashboard(); if('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js'); },
+  init(){
+    UI.initHeader();
+    UI.initTabs();
+    UI.populateClients();
+    UI.populateSizesAndPackages();
+    UI.renderAddons();
+    document.getElementById('jobBase').addEventListener('input',()=>UI.updateTotals());
+    document.getElementById('jobDiscType').addEventListener('change',()=>UI.updateTotals());
+    document.getElementById('jobDiscValue').addEventListener('input',()=>UI.updateTotals());
+    document.getElementById('jobDiscScope').addEventListener('change',()=>UI.updateTotals());
+    document.getElementById('jobVehicleCount').addEventListener('input',()=>UI.updateTotals());
+    UI.resetJobForm();
+    UI.refreshJobsList();
+    UI.refreshDashboard();
+    if('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js');
+  },
   addClient(){ const name=document.getElementById('cName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(),name,phone:document.getElementById('cPhone').value.trim(),notes:document.getElementById('cNotes').value.trim(),discount:{type:document.getElementById('cDiscType').value,value:Number(document.getElementById('cDiscValue').value||0)}}; S.clients.push(c); Storage.save(S); UI.populateClients(); UI.flash('Client added.'); document.getElementById('cName').value='';document.getElementById('cPhone').value='';document.getElementById('cNotes').value='';document.getElementById('cDiscType').value='none';document.getElementById('cDiscValue').value='0'; },
   addQuickClient(){ const name=document.getElementById('qcName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(),name,phone:document.getElementById('qcPhone').value.trim(),notes:document.getElementById('qcNotes').value.trim(),discount:{type:document.getElementById('qcDiscType').value,value:Number(document.getElementById('qcDiscValue').value||0)}}; S.clients.push(c); Storage.save(S); UI.populateClients(c.id); UI.hideQuickClient(); UI.flash('Client added.'); },
-  saveJob(){ const clientId=document.getElementById('jobClient').value; const size=document.getElementById('jobSize').value; const pkg=document.getElementById('jobPkg').value; if(!clientId||!size||!pkg) return alert('Client, size, and package are required'); const base=Number(document.getElementById('jobBase').value||0); const discType=document.getElementById('jobDiscType').value; const discValue=Number(document.getElementById('jobDiscValue').value||0); const notes=document.getElementById('jobNotes').value.trim(); const addons=[]; document.querySelectorAll('.addon-row').forEach(row=>{ const cb=row.querySelector('input[type=checkbox]'); const name=row.getAttribute('data-name'); const price=Number(row.querySelector('input[type=number]').value||0); if(cb.checked) addons.push({name,price}); }); const job={id:uid(),date:today(),clientId,size,pkg,base,addons,discType,discValue,notes,status:"Quoted",payments:[]}; S.jobs.unshift(job); Storage.save(S); UI.refreshJobsList(); UI.resetJobForm(); UI.flash('Quote saved.'); },
+  saveJob(){ const clientId=document.getElementById('jobClient').value; const size=document.getElementById('jobSize').value; const pkg=document.getElementById('jobPkg').value; if(!clientId||!size||!pkg) return alert('Client, size, and package are required'); const base=Number(document.getElementById('jobBase').value||0); const discType=document.getElementById('jobDiscType').value; const discValue=Number(document.getElementById('jobDiscValue').value||0); const discScope=document.getElementById('jobDiscScope').value; const vehicleCount=Math.max(1, Math.floor(Number(document.getElementById('jobVehicleCount').value||1))||1); const notes=document.getElementById('jobNotes').value.trim(); const addons=[]; document.querySelectorAll('.addon-row').forEach(row=>{ const cb=row.querySelector('input[type=checkbox]'); const name=row.getAttribute('data-name'); const price=Number(row.querySelector('input[type=number]').value||0); if(cb.checked) addons.push({name,price}); }); const job={id:uid(),date:today(),clientId,size,pkg,base,addons,discType,discValue,discScope,vehicleCount,notes,status:"Quoted",payments:[]}; S.jobs.unshift(job); Storage.save(S); UI.refreshJobsList(); UI.resetJobForm(); UI.flash('Quote saved.'); },
   updateJobStatus(id,next){ const j=S.jobs.find(x=>x.id===id); if(!j) return; j.status=next; Storage.save(S); UI.refreshJobsList(); UI.flash('Status: '+next); },
   takePayment(id){ const j=S.jobs.find(x=>x.id===id); if(!j) return; const paid=(j.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0); const due=Math.max(0,Calc.total(j)-paid); const amount=Number(prompt('Amount received', due.toFixed(2))||0); if(amount<=0) return; const method=prompt('Method (Cash/Card/Zelle/Venmo/CashApp/Bank)','Cash')||'Cash'; j.payments.push({date:today(),method,amount}); const paid2=j.payments.reduce((t,p)=>t+Number(p.amount||0),0); if(paid2+1e-6>=Calc.total(j)){ j.status='Paid'; S.transactions.push({id:uid(),type:'Income',date:today(),category:'Package',item:j.pkg+' — '+j.size,clientId:j.clientId,vendor:'',payment:method,amount:Calc.total(j),notes:'Discount: '+(j.discType||'none')+' '+(j.discValue||0)}); UI.flash('Paid in full. Income posted.'); } else UI.flash('Partial payment recorded.'); Storage.save(S); UI.refreshJobsList(); UI.refreshDashboard(); },
   deleteJob(id){ if(!confirm('Delete this job?')) return; S.jobs=S.jobs.filter(x=>x.id!==id); Storage.save(S); },
@@ -330,10 +377,32 @@ const UI = {
   populateSizesAndPackages(){ const size=document.getElementById('jobSize'); size.innerHTML=''; S.menu.sizes.forEach(s=>size.append(el('option',{value:s},s))); const pkg=document.getElementById('jobPkg'); pkg.innerHTML=''; Object.keys(S.menu.packages).forEach(p=>pkg.append(el('option',{value:p},p))); },
   prefillBase(){ const size=document.getElementById('jobSize').value; const pkg=document.getElementById('jobPkg').value; const b=Calc.base(pkg,size); const meta=pkgMeta(pkg); const baseInp=document.getElementById('jobBase'); baseInp.value=b.toFixed(2); baseInp.disabled=!!meta.lock; const inc=meta.includedAddons||[]; const panel=document.getElementById('includedPanel'); const list=document.getElementById('includedList'); list.innerHTML=''; if(inc.length){ panel.classList.remove('hidden'); for(const n of inc) list.append(el('span',{class:'pill'},n)); } else panel.classList.add('hidden'); this.renderAddons(); this.updateTotals(); },
   renderAddons(){ const host=document.getElementById('addonsList'); host.innerHTML=''; const size=document.getElementById('jobSize').value||S.menu.sizes[0]; const selPkg=document.getElementById('jobPkg').value; const meta=pkgMeta(selPkg); for(const [name,arr] of Object.entries(S.menu.addons)){ const price=Calc.addonPrice(name,size); const included=meta.includedAddons?.includes(name); const row=el('div',{class:'list-item addon-row','data-name':name}, el('div',{class:'row'}, el('input',{type:'checkbox', ...(included?{checked:true,disabled:true}:{}), style:'flex:0;width:22px;height:22px;'}), el('div',{style:'flex:1;font-weight:800;'}, name + (included?' — Included':'')), el('input',{type:'number', min:'0', step:'0.01', value:(included?'0.00':price.toFixed(2)), ...(included?{disabled:true}:{}) ,style:'flex:0;width:120px;'}) )); host.append(row);} document.querySelectorAll('#addonsList input').forEach(i=>i.addEventListener('input',()=>UI.updateTotals())); document.querySelectorAll('#addonsList input[type=checkbox]').forEach(i=>i.addEventListener('change',()=>UI.updateTotals())); },
-  updateTotals(){ const job={ base:Number(document.getElementById('jobBase').value||0), addons:Array.from(document.querySelectorAll('.addon-row')).map(r=>({ checked:r.querySelector('input[type=checkbox]').checked, price:Number(r.querySelector('input[type=number]').value||0) })).filter(x=>x.checked), discType:document.getElementById('jobDiscType').value, discValue:Number(document.getElementById('jobDiscValue').value||0) }; const sub=(job.base||0)+job.addons.reduce((t,a)=>t+Number(a.price||0),0); const disc=job.discType==='%'? sub*(job.discValue/100) : job.discType==='$'? Math.min(sub,job.discValue):0; document.getElementById('jobSubtotal').textContent=fmt(sub); document.getElementById('jobDiscount').textContent=fmt(disc); document.getElementById('jobTotal').textContent=fmt(sub-disc); },
+  updateTotals(){
+    const scope=document.getElementById('jobDiscScope').value;
+    const rawCount=Number(document.getElementById('jobVehicleCount').value||1);
+    const count=Math.max(1, Math.floor(rawCount)||1);
+    if(count!==rawCount) document.getElementById('jobVehicleCount').value=count;
+    const job={
+      base:Number(document.getElementById('jobBase').value||0),
+      addons:Array.from(document.querySelectorAll('.addon-row')).map(r=>({
+        checked:r.querySelector('input[type=checkbox]').checked,
+        price:Number(r.querySelector('input[type=number]').value||0),
+        name:r.getAttribute('data-name')
+      })).filter(x=>x.checked),
+      discType:document.getElementById('jobDiscType').value,
+      discValue:Number(document.getElementById('jobDiscValue').value||0),
+      discScope:scope,
+      vehicleCount:count
+    };
+    const subtotal=Calc.subtotal(job);
+    const discount=Calc.discount(job);
+    document.getElementById('jobSubtotal').textContent=fmt(subtotal);
+    document.getElementById('jobDiscount').textContent=fmt(discount);
+    document.getElementById('jobTotal').textContent=fmt(subtotal-discount);
+  },
   quickDisc(type,val){ document.getElementById('jobDiscType').value=type; document.getElementById('jobDiscValue').value=val; UI.updateTotals(); },
-  resetJobForm(){ document.getElementById('jobSize').value=S.menu.sizes[0]; document.getElementById('jobPkg').value=Object.keys(S.menu.packages)[0]; UI.prefillBase(); document.getElementById('jobDiscType').value='none'; document.getElementById('jobDiscValue').value='0'; document.getElementById('jobNotes').value=''; },
-  refreshJobsList(){ const list=document.getElementById('jobsList'); list.innerHTML=''; for(const j of S.jobs){ const c=S.clients.find(x=>x.id===j.clientId); const paid=(j.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0); const due=Math.max(0,Calc.total(j)-paid); list.append(el('div',{class:'list-item'}, el('div',{class:'row',style:'justify-content:space-between;'}, el('div',{html:`<b>${c?.name||'Unknown'}</b> <span class='tiny'>${j.pkg} — ${j.size}</span>`}), el('div',{class:'tiny'}, j.status)), el('div',{class:'row',style:'justify-content:space-between;margin-top:.25rem;'}, el('div',{class:'tiny'}, `Total: ${Calc.total(j).toFixed(2)}`), el('div',{class:'tiny'}, paid>0? `Paid: ${paid.toFixed(2)} (Due ${due.toFixed(2)})` : 'Unpaid')), el('div',{class:'row',style:'gap:.5rem;margin-top:.4rem;'}, ...(j.status==='Quoted'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Booked')},'Book')]:[]), ...(j.status==='Booked'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'In Progress')},'Start')]:[]), ...(j.status==='In Progress'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Complete')},'Complete')]:[]), ...(j.status!=='Paid'?[el('button',{class:'pill',onclick:()=>App.takePayment(j.id)},'Take Payment')]:[]), el('button',{class:'pill',onclick:()=>UI.openPrintDetails(j.id)},'Print Quote'), el('button',{class:'pill',onclick:()=>App.deleteJob(j.id)},'Delete') )) ); } const r=document.getElementById('recentList'); r.innerHTML=''; for(const j of S.jobs.slice(0,5)){ const c=S.clients.find(x=>x.id===j.clientId); r.append(el('div',{class:'list-item'}, `${j.date} · ${c?.name||'Unknown'} · ${j.pkg} (${j.status})`)); } },
+  resetJobForm(){ document.getElementById('jobSize').value=S.menu.sizes[0]; document.getElementById('jobPkg').value=Object.keys(S.menu.packages)[0]; UI.prefillBase(); document.getElementById('jobDiscType').value='none'; document.getElementById('jobDiscValue').value='0'; document.getElementById('jobDiscScope').value='job'; document.getElementById('jobVehicleCount').value='1'; document.getElementById('jobNotes').value=''; this.updateTotals(); },
+  refreshJobsList(){ const list=document.getElementById('jobsList'); list.innerHTML=''; for(const j of S.jobs){ const c=S.clients.find(x=>x.id===j.clientId); const paid=(j.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0); const due=Math.max(0,Calc.total(j)-paid); const vehicleNote=j.vehicleCount&&j.vehicleCount>1?` · ${j.vehicleCount} vehicles`:''; list.append(el('div',{class:'list-item'}, el('div',{class:'row',style:'justify-content:space-between;'}, el('div',{html:`<b>${c?.name||'Unknown'}</b> <span class='tiny'>${j.pkg} — ${j.size}${vehicleNote}</span>`}), el('div',{class:'tiny'}, j.status)), el('div',{class:'row',style:'justify-content:space-between;margin-top:.25rem;'}, el('div',{class:'tiny'}, `Total: ${Calc.total(j).toFixed(2)}`), el('div',{class:'tiny'}, paid>0? `Paid: ${paid.toFixed(2)} (Due ${due.toFixed(2)})` : 'Unpaid')), el('div',{class:'row',style:'gap:.5rem;margin-top:.4rem;'}, ...(j.status==='Quoted'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Booked')},'Book')]:[]), ...(j.status==='Booked'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'In Progress')},'Start')]:[]), ...(j.status==='In Progress'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Complete')},'Complete')]:[]), ...(j.status!=='Paid'?[el('button',{class:'pill',onclick:()=>App.takePayment(j.id)},'Take Payment')]:[]), el('button',{class:'pill',onclick:()=>UI.openPrintDetails(j.id)},'Print Quote'), el('button',{class:'pill',onclick:()=>App.deleteJob(j.id)},'Delete') )) ); } const r=document.getElementById('recentList'); r.innerHTML=''; for(const j of S.jobs.slice(0,5)){ const c=S.clients.find(x=>x.id===j.clientId); const vehicleNote=j.vehicleCount&&j.vehicleCount>1?` · ${j.vehicleCount} vehicles`:''; r.append(el('div',{class:'list-item'}, `${j.date} · ${c?.name||'Unknown'} · ${j.pkg}${vehicleNote} (${j.status})`)); } },
   openPrintDetails(id){
     const j=S.jobs.find(x=>x.id===id);
     if(!j) return;
@@ -362,6 +431,8 @@ const UI = {
     const base=Number(document.getElementById('jobBase').value||0);
     const discType=document.getElementById('jobDiscType').value;
     const discValue=Number(document.getElementById('jobDiscValue').value||0);
+    const discScope=document.getElementById('jobDiscScope').value;
+    const vehicleCount=Math.max(1, Math.floor(Number(document.getElementById('jobVehicleCount').value||1))||1);
     const notes=document.getElementById('jobNotes').value.trim();
 
     const addons=[];
@@ -377,7 +448,7 @@ const UI = {
       id:'preview',
       date:new Date().toISOString().slice(0,10),
       clientId,size,pkg,base,addons,
-      discType,discValue,notes,
+      discType,discValue,discScope,vehicleCount,notes,
       status:'Quoted',
       payments:[]
     };
@@ -395,10 +466,18 @@ UI.renderPrintSheet = function(job){
   const c=S.clients.find(x=>x.id===j.clientId);
   const meta=(S.menu.packageMeta && S.menu.packageMeta[j.pkg]) || {includedAddons:[]};
   const included=(meta.includedAddons||[]).map(n=>`<li>${n}</li>`).join('');
-  const addons=(j.addons||[]).map(a=>`<tr><td>${a.name}</td><td style="text-align:right">$${Number(a.price||0).toFixed(2)}</td></tr>`).join('');
+  const vehicleCount=Calc.vehicleCount(j);
+  const addons=(j.addons||[]).map(a=>{
+    const price=Number(a.price||0);
+    const lineTotal=price*vehicleCount;
+    const priceLabel=vehicleCount>1?`$${price.toFixed(2)} ea × ${vehicleCount} = $${lineTotal.toFixed(2)}`:`$${price.toFixed(2)}`;
+    const note=vehicleCount>1?'<div style="color:#777;font-size:12px;">Per vehicle</div>':'';
+    return `<tr><td>${a.name}${note}</td><td style="text-align:right">${priceLabel}</td></tr>`;
+  }).join('');
   const subtotal=Calc.subtotal(j).toFixed(2);
   const disc=Calc.discount(j).toFixed(2);
   const total=Calc.total(j).toFixed(2);
+  const discountLabel=(j.discScope==='vehicle' && vehicleCount>1)?'Discount (per vehicle)':'Discount';
   const paidRows=(j.payments||[]).map(p=>`<tr><td>${p.date}</td><td>${p.method||''}</td><td style="text-align:right">$${Number(p.amount||0).toFixed(2)}</td></tr>`).join('');
   const bizName=S.business?.name||'Polish Crew';
   const logo=S.business?.logoDataUrl||'';
@@ -431,7 +510,7 @@ UI.renderPrintSheet = function(job){
       <hr style="border:none;border-top:1px solid #ddd;margin:8px 0 12px">
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px;">
-        <div><div style="color:#555">Package</div><div style="font-weight:700">${j.pkg} — ${j.size}</div></div>
+        <div><div style="color:#555">Package</div><div style="font-weight:700">${j.pkg} — ${j.size}${vehicleCount>1?` × ${vehicleCount} vehicles`:''}</div></div>
         <div><div style="color:#555">Status</div><div style="font-weight:700">${j.status}</div></div>
       </div>
 
@@ -451,7 +530,7 @@ UI.renderPrintSheet = function(job){
         <div>
           <table style="width:100%;border-collapse:collapse;font-size:14px">
             <tr><td>Subtotal</td><td style="text-align:right">$${subtotal}</td></tr>
-            <tr><td>Discount</td><td style="text-align:right">-$${disc}</td></tr>
+            <tr><td>${discountLabel}</td><td style="text-align:right">-$${disc}</td></tr>
             <tr><td style="padding-top:8px;border-top:1px solid #ddd;font-weight:800">Total</td>
                 <td style="padding-top:8px;border-top:1px solid #ddd;font-weight:800;text-align:right">$${total}</td></tr>
           </table>
