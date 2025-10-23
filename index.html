@@ -34,6 +34,8 @@
   .list-item{padding:.5rem .6rem;border:1px solid #171a1d;background:#0a0c0f;border-radius:10px}
   .tiny{font-size:.8rem;color:#aab5b5}
   .hidden{display:none}
+  .vehicle-addon-row[data-included="true"]{opacity:.6;}
+  .vehicle-addon-row[data-included="true"] input{pointer-events:none;opacity:.7;}
   .footnote{font-size:.8rem;color:#8ea59a}
   .drawer {position:fixed;right:0;top:0;height:100%;width:min(92vw,420px);transform:translateX(100%);transition:transform .25s ease;background:#050607;border-left:1px solid #14171a;z-index:20;display:flex;flex-direction:column}
   .drawer.open{transform:translateX(0)}
@@ -316,7 +318,8 @@ const Calc = {
       return job.vehicles.map(v=>({
         size: v.size || job.size || S.menu.sizes[0],
         base: Number(v.base||0),
-        addons: (v.addons||[]).map(a=>({name:a.name, price:Number(a.price||0)}))
+        addons: (v.addons||[]).map(a=>({name:a.name, price:Number(a.price||0)})),
+        pkg: v.pkg || job.pkg || ''
       }));
     }
     const count=Math.max(1, Number(job.vehicleCount||1));
@@ -326,7 +329,8 @@ const Calc = {
     return Array.from({length:count},()=>({
       size,
       base,
-      addons: addons.map(a=>({name:a.name, price:Number(a.price||0)}))
+      addons: addons.map(a=>({name:a.name, price:Number(a.price||0)})),
+      pkg: job.pkg || ''
     }));
   },
   vehicleCount(job){ return this.vehicles(job).length; },
@@ -387,7 +391,8 @@ const App = {
     if(paid2+1e-6>=Calc.total(j)){
       j.status='Paid';
       const vehicleLabel=UI.jobVehicleSummary(j);
-      const itemLabel=vehicleLabel?`${j.pkg} — ${vehicleLabel}`:j.pkg;
+      const pkgLabel=UI.jobPackageLabel(j);
+      const itemLabel=vehicleLabel?`${pkgLabel} — ${vehicleLabel}`:pkgLabel;
       S.transactions.push({id:uid(), type:'Income', date:today(), category:'Package', item:itemLabel, clientId:j.clientId, vendor:'', payment:method, amount:Calc.total(j), notes:'Discount: '+(j.discType||'none')+' '+(j.discValue||0)});
       UI.flash('Paid in full. Income posted.');
     } else {
@@ -416,6 +421,17 @@ const UI = {
       if(currentPkg && S.menu.packages[currentPkg]) pkg.value=currentPkg;
       else if(pkg.options.length) pkg.value=pkg.options[0].value;
     }
+    const jobPkgValue=pkg?.value || '';
+    document.querySelectorAll('.vehicle-package').forEach(sel=>{
+      const row=sel.closest('.vehicle-row');
+      const current=sel.value;
+      sel.innerHTML='';
+      Object.keys(S.menu.packages).forEach(name=>sel.append(el('option',{value:name},name)));
+      if(current && S.menu.packages[current]) sel.value=current;
+      else if(jobPkgValue && S.menu.packages[jobPkgValue]) sel.value=jobPkgValue;
+      else if(sel.options.length) sel.value=sel.options[0].value;
+      if(row) UI.refreshVehicleRow(row,{setBase:true});
+    });
     document.querySelectorAll('.vehicle-size').forEach(sel=>{
       const current=sel.value;
       sel.innerHTML='';
@@ -438,7 +454,15 @@ const UI = {
         panel.classList.add('hidden');
       }
     }
-    document.querySelectorAll('.vehicle-row').forEach(row=>UI.refreshVehicleRow(row,{setBase:true}));
+    document.querySelectorAll('.vehicle-row').forEach(row=>{
+      const pkgSel=row.querySelector('.vehicle-package');
+      if(pkgSel){
+        if((row.getAttribute('data-autopkg')==='true' || !pkgSel.value) && pkgSel.querySelector(`option[value="${pkg}"]`)){
+          pkgSel.value=pkg;
+        }
+        UI.refreshVehicleRow(row,{setBase:true});
+      }
+    });
     UI.updateTotals();
   },
   prefillBase(){ this.handlePackageChange(); },
@@ -446,39 +470,62 @@ const UI = {
   addVehicle(prefill={}){
     const list=document.getElementById('vehiclesList');
     if(!list) return;
-    const pkg=document.getElementById('jobPkg')?.value || '';
+    const pkgOptions=Object.keys(S.menu.packages);
+    const defaultPkgSel=document.getElementById('jobPkg')?.value || '';
     const sizeOptions=S.menu.sizes;
     const sizePref=(prefill.size && sizeOptions.includes(prefill.size))?prefill.size:(sizeOptions[0]||'');
-    const meta=pkgMeta(pkg);
-    const baseDefault=Calc.base(pkg,sizePref);
+    const pkgPref=(prefill.pkg && S.menu.packages[prefill.pkg])?prefill.pkg:(defaultPkgSel && S.menu.packages[defaultPkgSel]?defaultPkgSel:(pkgOptions[0]||''));
+    const meta=pkgMeta(pkgPref);
+    const baseDefault=Calc.base(pkgPref,sizePref);
     const baseValue=prefill.base!=null?Number(prefill.base):baseDefault;
-    const row=el('div',{class:'list-item vehicle-row'});
-    const header=el('div',{class:'row',style:'gap:.5rem;align-items:flex-end;'});
-    const sizeWrap=el('div',{style:'flex:1;'});
+    const row=el('div',{class:'list-item vehicle-row','data-autopkg':prefill.pkg?'false':'true'});
+    const header=el('div',{class:'row',style:'gap:.5rem;flex-wrap:wrap;align-items:flex-end;'});
+
+    const pkgWrap=el('div',{style:'flex:1;min-width:200px;'});
+    pkgWrap.append(el('label',{},'Package'));
+    const pkgRow=el('div',{class:'row',style:'gap:.4rem;'});
+    const pkgSel=el('select',{class:'vehicle-package'});
+    pkgOptions.forEach(name=>pkgSel.append(el('option',{value:name},name)));
+    if(pkgPref && S.menu.packages[pkgPref]) pkgSel.value=pkgPref;
+    else if(pkgSel.options.length) pkgSel.value=pkgSel.options[0].value;
+    const pkgCustomBtn=el('button',{class:'btn secondary',type:'button'},'Custom');
+    pkgCustomBtn.addEventListener('click',()=>UI.openCustomBuilder(row));
+    pkgRow.append(pkgSel,pkgCustomBtn);
+    pkgWrap.append(pkgRow);
+    header.append(pkgWrap);
+
+    const sizeWrap=el('div',{style:'flex:1;min-width:160px;'});
     sizeWrap.append(el('label',{},'Vehicle Size'));
     const sizeSel=el('select',{class:'vehicle-size'});
     sizeOptions.forEach(s=>sizeSel.append(el('option',{value:s},s)));
     if(sizePref) sizeSel.value=sizePref;
     sizeWrap.append(sizeSel);
     header.append(sizeWrap);
-    const baseWrap=el('div',{style:'flex:1;'});
+
+    const baseWrap=el('div',{style:'flex:1;min-width:140px;'});
     baseWrap.append(el('label',{},'Base'));
     const baseInput=el('input',{type:'number',min:'0',step:'0.01',class:'vehicle-base',value:Number(baseValue||0).toFixed(2)});
     if(meta.lock) baseInput.disabled=true;
     baseWrap.append(baseInput);
     header.append(baseWrap);
+
     const removeWrap=el('div',{style:'flex:0;'});
     removeWrap.append(el('label',{},'\u00a0'));
     const removeBtn=el('button',{class:'btn secondary vehicle-remove',onclick:()=>UI.removeVehicle(row)},'Remove');
     removeWrap.append(removeBtn);
     header.append(removeWrap);
+
     row.append(header);
     const addonsHost=el('div',{class:'list vehicle-addons',style:'margin-top:.6rem;gap:.4rem;'});
     row.append(addonsHost);
     list.append(row);
+
     UI.renderVehicleAddons(row, prefill.addons||null);
+
     baseInput.addEventListener('input',()=>UI.updateTotals());
-    sizeSel.addEventListener('change',()=>{ UI.refreshVehicleRow(row,{setBase:true}); UI.updateTotals(); });
+    sizeSel.addEventListener('change',()=>{ row.setAttribute('data-autopkg','false'); UI.refreshVehicleRow(row,{setBase:true}); UI.updateTotals(); });
+    pkgSel.addEventListener('change',()=>{ row.setAttribute('data-autopkg','false'); UI.refreshVehicleRow(row,{setBase:true}); UI.updateTotals(); });
+
     UI.syncVehicleRemovers();
     UI.updateTotals();
   },
@@ -494,7 +541,8 @@ const UI = {
     UI.updateTotals();
   },
   refreshVehicleRow(row,{setBase=false}={}){
-    const pkg=document.getElementById('jobPkg')?.value || '';
+    const pkgSel=row.querySelector('.vehicle-package');
+    const pkg=pkgSel?.value || document.getElementById('jobPkg')?.value || '';
     const meta=pkgMeta(pkg);
     const sizeSel=row.querySelector('.vehicle-size');
     const baseInput=row.querySelector('.vehicle-base');
@@ -504,17 +552,19 @@ const UI = {
       baseInput.value=Number(base||0).toFixed(2);
     }
     if(baseInput) baseInput.disabled=!!meta.lock;
+    row.setAttribute('data-pkg',pkg);
     UI.renderVehicleAddons(row);
   },
   renderVehicleAddons(row,preset=null){
     const host=row.querySelector('.vehicle-addons');
     if(!host) return;
-    const pkg=document.getElementById('jobPkg')?.value || '';
+    const pkgSel=row.querySelector('.vehicle-package');
+    const pkg=pkgSel?.value || document.getElementById('jobPkg')?.value || '';
     const size=row.querySelector('.vehicle-size')?.value || S.menu.sizes[0] || '';
     const meta=pkgMeta(pkg);
     const previous=new Map();
     if(preset){
-      (preset||[]).forEach(a=>previous.set(a.name,{price:Number(a.price||0), included:meta.includedAddons?.includes(a.name)}));
+      (preset||[]).forEach(a=>previous.set(a.name,{price:Number(a.price||0), included:a.included || meta.includedAddons?.includes(a.name)}));
     } else {
       host.querySelectorAll('.vehicle-addon-row').forEach(node=>{
         const name=node.getAttribute('data-name');
@@ -581,14 +631,20 @@ const UI = {
       UI.updateTotals();
     };
 
-    const initial=[];
-    (meta.includedAddons||[]).forEach(name=>initial.push({name, price:0, included:true}));
-    if(previous.size){
-      previous.forEach((info,name)=>initial.push({name, price:info.price, included:info.included}));
-    } else if(preset){
-      (preset||[]).forEach(a=>initial.push({name:a.name, price:Number(a.price||0), included:meta.includedAddons?.includes(a.name)}));
-    }
-    initial.forEach(item=>addRow(item.name,item));
+    const includedSet=new Set(meta.includedAddons||[]);
+    const initialMap=new Map();
+    previous.forEach((info,name)=>{
+      const included=includedSet.has(name) || info.included;
+      initialMap.set(name,{name, price:included?0:Number(info.price||0), included});
+    });
+    includedSet.forEach(name=>{
+      if(!initialMap.has(name)) initialMap.set(name,{name, price:0, included:true});
+      else {
+        const item=initialMap.get(name);
+        initialMap.set(name,{name, price:0, included:true});
+      }
+    });
+    initialMap.forEach(item=>addRow(item.name,item));
 
     addBtn.addEventListener('click',()=>{
       const value=select.value;
@@ -617,13 +673,14 @@ const UI = {
     return Array.from(document.querySelectorAll('.vehicle-row')).map(row=>{
       const size=row.querySelector('.vehicle-size')?.value || '';
       const base=Number(row.querySelector('.vehicle-base')?.value||0);
+      const pkg=row.querySelector('.vehicle-package')?.value || '';
       const addons=Array.from(row.querySelectorAll('.vehicle-addon-row')).map(aRow=>{
         const priceInput=aRow.querySelector('input[type=number]');
         const name=aRow.getAttribute('data-name');
         const price=Number(priceInput?.value||0);
         return {name, price};
       }).filter(a=>a && a.name);
-      return {size, base, addons};
+      return {size, base, addons, pkg};
     });
   },
   updateTotals(){
@@ -644,7 +701,14 @@ const UI = {
   quickDisc(type,val){ document.getElementById('jobDiscType').value=type; document.getElementById('jobDiscValue').value=val; UI.updateTotals(); },
   resetJobForm(){ const pkgSel=document.getElementById('jobPkg'); const first=Object.keys(S.menu.packages)[0]||''; if(pkgSel) pkgSel.value=first; const list=document.getElementById('vehiclesList'); if(list) list.innerHTML=''; this.addVehicle(); this.handlePackageChange(); document.getElementById('jobDiscType').value='none'; document.getElementById('jobDiscValue').value='0'; document.getElementById('jobDiscScope').value='job'; document.getElementById('jobNotes').value=''; this.updateTotals(); },
   jobVehicleSummary(job){ const vehicles=Calc.vehicles(job); if(!vehicles.length) return ''; const counts={}; vehicles.forEach(v=>{ const key=v.size||'Vehicle'; counts[key]=(counts[key]||0)+1; }); return Object.entries(counts).map(([size,count])=>count>1?`${size} × ${count}`:size).join(', '); },
-  refreshJobsList(){ const list=document.getElementById('jobsList'); list.innerHTML=''; for(const j of S.jobs){ const c=S.clients.find(x=>x.id===j.clientId); const paid=(j.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0); const due=Math.max(0,Calc.total(j)-paid); const vehicleSummary=this.jobVehicleSummary(j); const subtitle=vehicleSummary?`${j.pkg} — ${vehicleSummary}`:j.pkg; list.append(el('div',{class:'list-item'}, el('div',{class:'row',style:'justify-content:space-between;'}, el('div',{html:`<b>${c?.name||'Unknown'}</b> <span class='tiny'>${subtitle}</span>`}), el('div',{class:'tiny'}, j.status)), el('div',{class:'row',style:'justify-content:space-between;margin-top:.25rem;'}, el('div',{class:'tiny'}, `Total: ${Calc.total(j).toFixed(2)}`), el('div',{class:'tiny'}, paid>0? `Paid: ${paid.toFixed(2)}${due>0?` (Due ${due.toFixed(2)})`:''}` : 'Unpaid')), el('div',{class:'row',style:'gap:.5rem;margin-top:.4rem;'}, ...(j.status==='Quoted'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Booked')},'Book')]:[]), ...(j.status==='Booked'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'In Progress')},'Start')]:[]), ...(j.status==='In Progress'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Complete')},'Complete')]:[]), ...(j.status!=='Paid'?[el('button',{class:'pill',onclick:()=>App.takePayment(j.id)},'Take Payment')]:[]), el('button',{class:'pill',onclick:()=>UI.openPrintDetails(j.id)},'Print Quote'), el('button',{class:'pill',onclick:()=>App.deleteJob(j.id)},'Delete') )) ); } const recent=document.getElementById('recentList'); if(recent){ recent.innerHTML=''; for(const j of S.jobs.slice(0,5)){ const c=S.clients.find(x=>x.id===j.clientId); const vehicleSummary=this.jobVehicleSummary(j); const summaryText=vehicleSummary?`${j.pkg} — ${vehicleSummary}`:j.pkg; recent.append(el('div',{class:'list-item'}, `${j.date} · ${c?.name||'Unknown'} · ${summaryText} (${j.status})`)); } } },
+  jobPackageLabel(job){
+    const vehicles=Calc.vehicles(job);
+    const names=[...new Set(vehicles.map(v=>v.pkg).filter(Boolean))];
+    if(names.length===1) return names[0];
+    if(names.length>1) return 'Multiple Packages';
+    return job.pkg || '';
+  },
+  refreshJobsList(){ const list=document.getElementById('jobsList'); list.innerHTML=''; for(const j of S.jobs){ const c=S.clients.find(x=>x.id===j.clientId); const paid=(j.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0); const due=Math.max(0,Calc.total(j)-paid); const vehicleSummary=this.jobVehicleSummary(j); const pkgLabel=this.jobPackageLabel(j); const subtitle=vehicleSummary?`${pkgLabel} — ${vehicleSummary}`:pkgLabel; list.append(el('div',{class:'list-item'}, el('div',{class:'row',style:'justify-content:space-between;'}, el('div',{html:`<b>${c?.name||'Unknown'}</b> <span class='tiny'>${subtitle}</span>`}), el('div',{class:'tiny'}, j.status)), el('div',{class:'row',style:'justify-content:space-between;margin-top:.25rem;'}, el('div',{class:'tiny'}, `Total: ${Calc.total(j).toFixed(2)}`), el('div',{class:'tiny'}, paid>0? `Paid: ${paid.toFixed(2)}${due>0?` (Due ${due.toFixed(2)})`:''}` : 'Unpaid')), el('div',{class:'row',style:'gap:.5rem;margin-top:.4rem;'}, ...(j.status==='Quoted'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Booked')},'Book')]:[]), ...(j.status==='Booked'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'In Progress')},'Start')]:[]), ...(j.status==='In Progress'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Complete')},'Complete')]:[]), ...(j.status!=='Paid'?[el('button',{class:'pill',onclick:()=>App.takePayment(j.id)},'Take Payment')]:[]), el('button',{class:'pill',onclick:()=>UI.openPrintDetails(j.id)},'Print Quote'), el('button',{class:'pill',onclick:()=>App.deleteJob(j.id)},'Delete') )) ); } const recent=document.getElementById('recentList'); if(recent){ recent.innerHTML=''; for(const j of S.jobs.slice(0,5)){ const c=S.clients.find(x=>x.id===j.clientId); const vehicleSummary=this.jobVehicleSummary(j); const pkgLabel=this.jobPackageLabel(j); const summaryText=vehicleSummary?`${pkgLabel} — ${vehicleSummary}`:pkgLabel; recent.append(el('div',{class:'list-item'}, `${j.date} · ${c?.name||'Unknown'} · ${summaryText} (${j.status})`)); } } },
   openPrintDetails(id){
     const j = S.jobs.find(x => x.id === id);
     if (!j) return;
@@ -661,7 +725,7 @@ const UI = {
   openMenuEditor(){ const content=el('div',{}); const makeTable=(title,map,sizes,id)=>{ const headers='<tr><th>Item</th>'+sizes.map(s=>`<th>${s}</th>`).join('')+'<th></th></tr>'; const rows=Object.entries(map).map(([n,arr])=>`<tr data-name="${n}"><td><input value="${n}"></td>`+sizes.map((s,i)=>`<td><input type='number' min='0' step='1' value='${arr[i]||0}'></td>`).join('')+`<td><button class='pill' onclick='UI.delRow("${id}","${n}")'>Delete</button></td></tr>`).join(''); return `<h4>${title}</h4><table class='table' id='${id}'><thead>${headers}</thead><tbody>${rows}</tbody></table>`; }; content.innerHTML = makeTable('Packages',S.menu.packages,S.menu.sizes,'pkgTable') + '<div class="row" style="margin:.5rem 0;"><button class="btn secondary" onclick="UI.openPkgRules()">Edit Package Rules</button></div>' + makeTable('Add-ons',S.menu.addons,S.menu.sizes,'addonTable') + `<div class='footnote' style='margin-top:.5rem;'>${S.menu.guidance}</div>`; UI.modal('Menu Editor',(close)=>{ try{ const read=(id)=>{ const tbody=document.querySelector('#'+id+' tbody'); const rows=Array.from(tbody.querySelectorAll('tr')); const out={}; for(const r of rows){ const inputs=r.querySelectorAll('input'); const name=inputs[0].value.trim(); if(!name) continue; const prices=Array.from(inputs).slice(1).map(x=>Number(x.value||0)); out[name]=prices; } return out; }; S.menu.packages=read('pkgTable'); S.menu.addons=read('addonTable'); Storage.save(S); UI.populateSizesAndPackages(); UI.prefillBase(); UI.renderAddons(); UI.flash('Menu saved.'); }catch(e){ alert('Error saving: '+e.message); } close(); }, content, 'Save Changes', true, true); },
   delRow(tableId,name){ const tr=document.querySelector(`#${tableId} tr[data-name="${name}"]`); if(tr) tr.remove(); },
   openPkgRules(){ const names=Object.keys(S.menu.packages); const content=el('div',{}, el('label',{},'Select Package'), (()=>{ const s=el('select',{id:'prPkg'}); names.forEach(n=>s.append(el('option',{value:n},n))); return s; })(), el('label',{},'Lock Retail Base?'), (()=>{ const s=el('select',{id:'prLock'}); s.append(el('option',{value:'no'},'No')); s.append(el('option',{value:'yes'},'Yes')); return s; })(), el('label',{},'Included Add-ons'), (()=>{ const box=el('div',{class:'list',id:'prList'}); for(const n of Object.keys(S.menu.addons)) box.append(el('label',{}, el('input',{type:'checkbox','data-name':n,style:'margin-right:.4rem;'}), n)); return box; })() ); const sync=()=>{ const pkg=content.querySelector('#prPkg').value; const meta=pkgMeta(pkg); content.querySelector('#prLock').value=meta.lock?'yes':'no'; content.querySelectorAll('#prList input[type=checkbox]').forEach(cb=>cb.checked=!!meta.includedAddons?.includes(cb.getAttribute('data-name'))); }; UI.modal('Package Rules',(close)=>{ const pkg=content.querySelector('#prPkg').value; const lock=content.querySelector('#prLock').value==='yes'; const inc=Array.from(content.querySelectorAll('#prList input[type=checkbox]')).filter(x=>x.checked).map(x=>x.getAttribute('data-name')); S.menu.packageMeta[S.menu.packages[pkg]?pkg:pkg]={lock, includedAddons:inc}; Storage.save(S); UI.prefillBase(); UI.renderAddons(); UI.flash('Rules saved.'); close(); }, content); content.querySelector('#prPkg').addEventListener('change', sync); sync(); },
-  openCustomBuilder(){ const size=document.querySelector('.vehicle-size')?.value||S.menu.sizes[0]; const content=el('div',{}, el('label',{},'Package Name'), el('input',{id:'cbName', value:'Custom Package'}), el('div',{class:'row'}, el('div',{}, el('label',{}, 'Base Price for '+size), el('input',{id:'cbBase',type:'number',min:'0',step:'0.01',value:'0'})), el('div',{}, el('label',{}, 'Lock Retail Base'), el('select',{id:'cbLock'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')))), el('label',{},'Included Add-ons (optional)'), (()=>{ const box=el('div',{class:'list'}); for(const n of Object.keys(S.menu.addons)) box.append(el('label',{}, el('input',{type:'checkbox','data-name':n,style:'margin-right:.4rem;'}), n)); return box; })(), el('label',{},'Pick & Choose mode (no included items)'), el('select',{id:'cbPick'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')) ); UI.modal('Build Custom Package',(close)=>{ const name=content.querySelector('#cbName').value.trim()||'Custom Package'; const base=Number(content.querySelector('#cbBase').value||0); const lock=content.querySelector('#cbLock').value==='yes'; const pick=content.querySelector('#cbPick').value==='yes'; const inc=pick?[]:Array.from(content.querySelectorAll('input[type=checkbox][data-name]')).filter(x=>x.checked).map(x=>x.getAttribute('data-name')); const prices=S.menu.sizes.map(()=>0); const idx=S.menu.sizes.indexOf(size); if(idx>=0) prices[idx]=base; else if(prices.length) prices[0]=base; S.menu.packages[name]=prices; S.menu.packageMeta[name]={lock, includedAddons:inc}; Storage.save(S); UI.populateSizesAndPackages(); document.getElementById('jobPkg').value=name; UI.handlePackageChange(); UI.flash('Custom package added.'); close(); }, content, 'Use Package', true, true); },
+  openCustomBuilder(row=null){ const size=(row?.querySelector('.vehicle-size')?.value)||document.querySelector('.vehicle-size')?.value||S.menu.sizes[0]; const basePref=row?.querySelector('.vehicle-base')?.value||'0'; const content=el('div',{}, el('label',{},'Package Name'), el('input',{id:'cbName', value:'Custom Package'}), el('div',{class:'row'}, el('div',{}, el('label',{}, 'Base Price for '+size), el('input',{id:'cbBase',type:'number',min:'0',step:'0.01',value:basePref})), el('div',{}, el('label',{}, 'Lock Retail Base'), el('select',{id:'cbLock'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')))), el('label',{},'Included Add-ons (optional)'), (()=>{ const box=el('div',{class:'list'}); for(const n of Object.keys(S.menu.addons)) box.append(el('label',{}, el('input',{type:'checkbox','data-name':n,style:'margin-right:.4rem;'}), n)); return box; })(), el('label',{},'Pick & Choose mode (no included items)'), el('select',{id:'cbPick'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')) ); UI.modal('Build Custom Package',(close)=>{ const name=content.querySelector('#cbName').value.trim()||'Custom Package'; const base=Number(content.querySelector('#cbBase').value||0); const lock=content.querySelector('#cbLock').value==='yes'; const pick=content.querySelector('#cbPick').value==='yes'; const inc=pick?[]:Array.from(content.querySelectorAll('input[type=checkbox][data-name]')).filter(x=>x.checked).map(x=>x.getAttribute('data-name')); const prices=S.menu.sizes.map(()=>0); const idx=S.menu.sizes.indexOf(size); if(idx>=0) prices[idx]=base; else if(prices.length) prices[0]=base; S.menu.packages[name]=prices; S.menu.packageMeta[name]={lock, includedAddons:inc}; Storage.save(S); UI.populateSizesAndPackages(); if(row){ const pkgSel=row.querySelector('.vehicle-package'); if(pkgSel){ pkgSel.value=name; row.setAttribute('data-autopkg','false'); UI.refreshVehicleRow(row,{setBase:true}); UI.updateTotals(); } } else { const jobPkg=document.getElementById('jobPkg'); if(jobPkg){ jobPkg.value=name; } UI.handlePackageChange(); } UI.flash('Custom package added.'); close(); }, content, 'Use Package', true, true); },
   openImport(){ const file=el('input',{type:'file',accept:'.json'}); file.onchange=(e)=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const data=JSON.parse(r.result); if(!data.transactions) throw new Error('Invalid backup file: missing "transactions"'); S=data; if(!S.menu.packageMeta) S.menu.packageMeta={}; Storage.save(S); location.reload(); }catch(err){ alert('Import error: '+err.message); } }; r.readAsText(f); }; file.click(); },
   openSettings(){ const content=el('div',{}, el('h4',{},'Brand'), el('label',{},'Header Title'), el('input',{id:'stHeader', value:S.business.headerTitle||''}), el('label',{},'Business Name (on quotes)'), el('input',{id:'stBiz', value:S.business.name||''}), el('label',{},'Logo'), el('div',{class:'row'}, el('button',{class:'btn', onclick:()=>UI.pickLogo()},'Upload Logo'), el('button',{class:'btn secondary', onclick:()=>{ S.business.logoDataUrl=''; Storage.save(S); UI.initHeader(); UI.flash('Logo removed.'); }},'Remove Logo')), el('div',{class:'footnote'},'Replace install icons by swapping icon-192.png / icon-512.png in the bundle.') ); UI.modal('Settings',(close)=>{ S.business.headerTitle=content.querySelector('#stHeader').value.trim()||'POLISH CREW — Accounting'; S.business.name=content.querySelector('#stBiz').value.trim()||'Polish Crew'; Storage.save(S); UI.initHeader(); UI.flash('Settings saved.'); close(); }, content); },
   pickLogo(){ const f=el('input',{type:'file',accept:'image/*'}); f.onchange=(e)=>{ const file=e.target.files[0]; if(!file) return; const r=new FileReader(); r.onload=()=>{ S.business.logoDataUrl=r.result; Storage.save(S); UI.initHeader(); UI.flash('Logo updated.'); }; r.readAsDataURL(file); }; f.click(); },
@@ -703,14 +767,21 @@ const UI = {
 UI.renderPrintSheet = function(job){
   const j = job;
   const c = S.clients.find(x => x.id === j.clientId);
-  const meta = (S.menu.packageMeta && S.menu.packageMeta[j.pkg]) || {includedAddons:[]};
-  const included = (meta.includedAddons||[]).map(n=>`<li>${n}</li>`).join('');
   const hasVehicles = Array.isArray(j.vehicles) && j.vehicles.length;
   const vehicles = hasVehicles ? j.vehicles.map(v=>({
     size: v.size || '',
     base: Number(v.base||0),
-    addons: (v.addons||[]).map(a=>({name:a.name, price:Number(a.price||0)}))
+    addons: (v.addons||[]).map(a=>({name:a.name, price:Number(a.price||0)})),
+    pkg: v.pkg || j.pkg || ''
   })) : [];
+  const pkgLabel = UI.jobPackageLabel(j);
+  const packageNames = hasVehicles ? vehicles.map(v=>v.pkg).filter(Boolean) : [j.pkg].filter(Boolean);
+  const uniquePackages = [...new Set(packageNames)];
+  const metaSource = uniquePackages.length===1 ? uniquePackages[0] : (uniquePackages.length===0 ? (j.pkg||'') : '');
+  const meta = metaSource && S.menu.packageMeta ? (S.menu.packageMeta[metaSource] || {includedAddons:[]}) : {includedAddons:[]};
+  const included = uniquePackages.length>1
+    ? '<li>Varies by vehicle</li>'
+    : (meta.includedAddons||[]).map(n=>`<li>${n}</li>`).join('');
   const legacyAddons = (!hasVehicles ? (j.addons||[]) : []).map(a=>{
     const price=Number(a.price||0);
     const count=Calc.vehicleCount(j);
@@ -731,10 +802,11 @@ UI.renderPrintSheet = function(job){
   const headerTitle = (j.status === 'Paid') ? 'Receipt' : 'Quote';
   const vehicleSections = hasVehicles ? vehicles.map((v,idx)=>{
     const addonRows = v.addons.length ? v.addons.map(a=>`<tr><td>${a.name}</td><td style="text-align:right">$${Number(a.price||0).toFixed(2)}</td></tr>`).join('') : '<tr><td style="color:#666">No add-ons</td><td></td></tr>';
+    const pkgName = v.pkg || pkgLabel || (j.pkg || 'Package');
     return `<div style="margin-bottom:12px;">
-      <div style="font-weight:700;margin-bottom:4px;">Vehicle ${idx+1}: ${v.size || 'Vehicle'}</div>
+      <div style="font-weight:700;margin-bottom:4px;">Vehicle ${idx+1}: ${v.size || 'Vehicle'}${pkgName?` — ${pkgName}`:''}</div>
       <table style="width:100%;border-collapse:collapse;font-size:14px">
-        <tr><td>${j.pkg} base${v.size ? ' — '+v.size : ''}</td><td style="text-align:right">$${v.base.toFixed(2)}</td></tr>
+        <tr><td>${pkgName || 'Package'} base${v.size ? ' — '+v.size : ''}</td><td style="text-align:right">$${v.base.toFixed(2)}</td></tr>
         ${addonRows}
       </table>
     </div>`;
@@ -765,13 +837,13 @@ UI.renderPrintSheet = function(job){
       <hr style="border:none;border-top:1px solid #ddd;margin:8px 0 12px">
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px;">
-        <div><div style="color:#555">Package</div><div style="font-weight:700">${j.pkg}${vehicleSummary?` — ${vehicleSummary}`:''}</div></div>
+        <div><div style="color:#555">Package</div><div style="font-weight:700">${pkgLabel}${vehicleSummary?` — ${vehicleSummary}`:''}</div></div>
         <div><div style="color:#555">Status</div><div style="font-weight:700">${j.status}</div></div>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
         <div>
-          <div style="font-weight:800;margin:6px 0 4px">Included with package</div>
+          <div style="font-weight:800;margin:6px 0 4px">Included with ${uniquePackages.length>1?'packages':'package'}</div>
           <ul style="margin:0 0 8px 18px;padding:0">${included || '<li>None</li>'}</ul>
 
           ${hasVehicles ? `<div style=\"font-weight:800;margin:6px 0 4px\">Vehicles</div><div style=\"display:flex;flex-direction:column;gap:12px;\">${vehicleSections}</div>` : `<div style=\"font-weight:800;margin:6px 0 4px\">Add-ons</div><table style=\"width:100%;border-collapse:collapse;font-size:14px\">${legacyAddons || '<tr><td style=\"color:#666\">None</td><td></td></tr>'}</table>`}
