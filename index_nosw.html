@@ -45,13 +45,6 @@
   .footnote{font-size:.8rem;color:#8ea59a}
   .drawer {position:fixed;right:0;top:0;height:100%;width:min(92vw,420px);transform:translateX(100%);transition:transform .25s ease;background:#050607;border-left:1px solid #14171a;z-index:20;display:flex;flex-direction:column}
   .drawer.open{transform:translateX(0)}
-  @media print {
-    @page { size:A4; margin:12mm; }
-    body * { visibility:hidden !important; }
-    #printSheet, #printSheet * { visibility:visible !important; }
-    #printSheet { position:absolute; inset:0; width:auto; background:#fff; color:#000; }
-    .no-print { display:none !important; }
-  }
 </style>
 </head>
 <body>
@@ -224,7 +217,6 @@
     </div>
   </div>
 
-  <div id="printSheet" class="hidden"></div>
   <div id="modalHost"></div>
 
 <script>
@@ -1192,7 +1184,12 @@ UI.renderPrintSheet = function(job){
   const logo = S.business?.logoDataUrl || '';
   const headerTitle = (j.status === 'Paid') ? 'Receipt' : 'Quote';
   const vehicleSections = hasVehicles ? vehicles.map((v,idx)=>{
-    const addonRows = v.addons.length ? v.addons.map(a=>`<tr><td>${a.name}</td><td style="text-align:right">$${Number(a.price||0).toFixed(2)}</td></tr>`).join('') : '<tr><td style="color:#666">No add-ons</td><td></td></tr>';
+    const addonRows = v.addons.length ? v.addons.map(a=>{
+      if(a?.included){
+        return `<tr><td>${a.name}<span style="color:#0a6;font-size:12px;margin-left:6px;">Included</span></td><td style="text-align:right">Included</td></tr>`;
+      }
+      return `<tr><td>${a.name}</td><td style="text-align:right">$${Number(a.price||0).toFixed(2)}</td></tr>`;
+    }).join('') : '<tr><td style="color:#666">No add-ons</td><td></td></tr>';
     const pkgName = v.pkg || pkgLabel || (j.pkg || 'Package');
     const headingName = v.label ? `${v.label}${v.size ? ' ('+v.size+')' : ''}` : (v.size || 'Vehicle');
     return `<div style="margin-bottom:12px;">
@@ -1203,82 +1200,122 @@ UI.renderPrintSheet = function(job){
       </table>
     </div>`;
   }).join('') : '';
-  const sheet = document.getElementById('printSheet');
-  if(!sheet){
-    console.error('printSheet host missing');
+  const docDate = j.date || j.schedule?.date || new Date().toISOString().slice(0,10);
+  const popupHtml = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${headerTitle} — ${bizName}</title>
+  <style>
+    body{margin:0;background:#eef2f4;color:#111;font:14px/1.45 Montserrat,Arial,sans-serif;}
+    .toolbar{position:sticky;top:0;display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;background:#fff;border-bottom:1px solid #cfd8dd;box-shadow:0 4px 12px rgba(10,20,30,.06);}
+    .toolbar button{padding:8px 14px;border-radius:10px;border:none;font-weight:700;cursor:pointer;font-family:inherit;}
+    .toolbar button.primary{background:#0c2015;color:#f1faf4;}
+    .toolbar button.secondary{background:#e7ecef;color:#12241a;}
+    .sheet{max-width:820px;margin:24px auto;background:#fff;padding:28px 32px 48px;border-radius:18px;box-shadow:0 24px 60px rgba(12,22,30,.12);}
+    hr{border:none;border-top:1px solid #dde3e6;margin:16px 0;}
+    table{border-collapse:collapse;width:100%;}
+    td{padding:4px 0;vertical-align:top;}
+    ul{margin:0 0 8px 18px;padding:0;}
+    @media print{
+      body{background:#fff;}
+      .toolbar{display:none;}
+      .sheet{box-shadow:none;border-radius:0;margin:0;padding:0;}
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button class="secondary" onclick="window.close()">Close</button>
+    <button class="primary" onclick="window.print()">Print</button>
+  </div>
+  <div class="sheet">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+      ${logo ? `<img src="${logo}" style="width:56px;height:56px;border-radius:12px;border:2px solid #0a0;object-fit:cover">` : ''}
+      <div>
+        <div style="font-weight:900;font-size:20px;letter-spacing:.3px;text-transform:uppercase;">${bizName}</div>
+        <div style="color:#6b7a80;font-size:12px;">Generated ${new Date().toLocaleString()}</div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px;gap:18px;flex-wrap:wrap;">
+      <div>
+        <div style="font-weight:900;font-size:26px;letter-spacing:.4px;margin-bottom:4px;">${headerTitle}</div>
+        <div style="color:#4e5b60;font-size:13px;">Date: ${docDate}</div>
+      </div>
+      <div style="text-align:right;min-width:160px;">
+        <div style="font-weight:700;font-size:15px;">${c?.name || ''}</div>
+        ${c?.phone ? `<div style="color:#4e5b60;font-size:13px;">${c.phone}</div>` : ''}
+        ${c?.email ? `<div style="color:#4e5b60;font-size:13px;">${c.email}</div>` : ''}
+      </div>
+    </div>
+
+    <hr>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin-bottom:16px;">
+      <div>
+        <div style="color:#5b696f;font-size:12px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Package</div>
+        <div style="font-weight:700;font-size:16px;">${pkgLabel}${vehicleSummary?` — ${vehicleSummary}`:''}</div>
+      </div>
+      <div>
+        <div style="color:#5b696f;font-size:12px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Status</div>
+        <div style="font-weight:700;font-size:16px;">${j.status || 'Quoted'}</div>
+      </div>
+      <div>
+        <div style="color:#5b696f;font-size:12px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Vehicles</div>
+        <div style="font-weight:700;font-size:16px;">${vehicleCount}</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px;align-items:flex-start;">
+      <div>
+        <div style="font-weight:800;margin:6px 0 6px;font-size:15px;">Included with ${uniquePackages.length>1?'packages':'package'}</div>
+        <ul>${included || '<li>None</li>'}</ul>
+
+        ${hasVehicles ? `<div style=\"font-weight:800;margin:16px 0 8px;font-size:15px;\">Vehicles</div><div style=\"display:flex;flex-direction:column;gap:16px;\">${vehicleSections}</div>` : `<div style=\"font-weight:800;margin:16px 0 8px;font-size:15px;\">Add-ons</div><table style=\"width:100%;border-collapse:collapse;font-size:14px\">${legacyAddons || '<tr><td style=\"color:#666\">None</td><td></td></tr>'}</table>`}
+
+        ${j.notes ? `<div style="margin-top:16px"><div style="color:#5b696f;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Notes</div><div style="margin-top:4px;white-space:pre-wrap;">${j.notes}</div></div>` : ''}
+      </div>
+
+      <div>
+        <table style="font-size:14px">
+          <tr><td>Subtotal</td><td style="text-align:right">$${subtotal}</td></tr>
+          <tr><td>${discountLabel}</td><td style="text-align:right">-$${disc}</td></tr>
+          <tr><td style="padding-top:10px;border-top:1px solid #dde3e6;font-weight:800">Total</td><td style="padding-top:10px;border-top:1px solid #dde3e6;font-weight:800;text-align:right">$${total}</td></tr>
+        </table>
+
+        ${paidRows ? `
+        <div style="margin-top:18px">
+          <div style="font-weight:800;margin-bottom:6px;font-size:15px;">Payments</div>
+          <table style="width:100%;border-collapse:collapse;font-size:14px;">
+            <tr style="color:#5b696f;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">
+              <td>Date</td><td>Method</td><td style="text-align:right">Amount</td>
+            </tr>
+            ${paidRows}
+          </table>
+        </div>` : ''}
+      </div>
+    </div>
+
+    <div style="margin-top:28px;color:#738087;font-size:12px;">Thank you for your business.</div>
+  </div>
+  <script>
+    window.addEventListener('load', function(){
+      try { window.focus(); } catch(e){}
+    });
+  </script>
+</body>
+</html>`;
+
+  const popup = window.open('', '_blank');
+  if(!popup || popup.closed){
+    alert('Please allow pop-ups to view the printable page.');
     return;
   }
-  sheet.innerHTML = `
-    <div style="max-width:800px;margin:0 auto;font:14px/1.35 Montserrat,Arial,sans-serif;color:#111">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-        ${logo ? `<img src="${logo}" style="width:48px;height:48px;border-radius:8px;border:2px solid #0a0;object-fit:cover">` : ''}
-        <div style="font-weight:800;font-size:18px">${bizName}</div>
-      </div>
-
-      <div style="display:flex;justify-content:space-between;align-items:end;margin-bottom:10px;">
-        <div>
-          <div style="font-weight:900;font-size:22px;letter-spacing:.4px">${headerTitle}</div>
-          <div style="color:#555">Date: ${j.date}</div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-weight:700">${c?.name || ''}</div>
-          <div style="color:#555">${c?.phone || ''}</div>
-        </div>
-      </div>
-
-      <hr style="border:none;border-top:1px solid #ddd;margin:8px 0 12px">
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px;">
-        <div><div style="color:#555">Package</div><div style="font-weight:700">${pkgLabel}${vehicleSummary?` — ${vehicleSummary}`:''}</div></div>
-        <div><div style="color:#555">Status</div><div style="font-weight:700">${j.status}</div></div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-        <div>
-          <div style="font-weight:800;margin:6px 0 4px">Included with ${uniquePackages.length>1?'packages':'package'}</div>
-          <ul style="margin:0 0 8px 18px;padding:0">${included || '<li>None</li>'}</ul>
-
-          ${hasVehicles ? `<div style=\"font-weight:800;margin:6px 0 4px\">Vehicles</div><div style=\"display:flex;flex-direction:column;gap:12px;\">${vehicleSections}</div>` : `<div style=\"font-weight:800;margin:6px 0 4px\">Add-ons</div><table style=\"width:100%;border-collapse:collapse;font-size:14px\">${legacyAddons || '<tr><td style=\"color:#666\">None</td><td></td></tr>'}</table>`}
-
-          ${j.notes ? `<div style="margin-top:8px"><div style="color:#555">Notes</div><div>${j.notes}</div></div>` : ''}
-        </div>
-
-        <div>
-          <table style="width:100%;border-collapse:collapse;font-size:14px">
-            <tr><td>Subtotal</td><td style="text-align:right">$${subtotal}</td></tr>
-            <tr><td>${discountLabel}</td><td style="text-align:right">-$${disc}</td></tr>
-            <tr><td style="padding-top:8px;border-top:1px solid #ddd;font-weight:800">Total</td>
-                <td style="padding-top:8px;border-top:1px solid #ddd;font-weight:800;text-align:right">$${total}</td></tr>
-          </table>
-
-          ${paidRows ? `
-          <div style="margin-top:12px">
-            <div style="font-weight:800;margin-bottom:4px">Payments</div>
-            <table style="width:100%;border-collapse:collapse">${paidRows}</table>
-          </div>` : ''}
-        </div>
-      </div>
-
-      <div style="margin-top:16px;color:#666;font-size:12px">Thank you for your business.</div>
-    </div>`;
-  sheet.classList.remove('hidden');
-
-  const cleanup = () => {
-    sheet.classList.add('hidden');
-    sheet.innerHTML='';
-    window.removeEventListener('afterprint', cleanup);
-  };
-
-  window.addEventListener('afterprint', cleanup, { once:false });
-
-  const triggerPrint = () => {
-    requestAnimationFrame(() => {
-      window.print();
-      setTimeout(cleanup, 300);
-    });
-  };
-
-  requestAnimationFrame(triggerPrint);
+  popup.document.open();
+  popup.document.write(popupHtml);
+  popup.document.close();
 };
 
 /*** Data export ***/
