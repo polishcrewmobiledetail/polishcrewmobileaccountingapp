@@ -168,13 +168,6 @@
       <div class="grid">
         <div class="card">
           <h3>Quote → Book → Pay</h3>
-          <div id="jobEditBanner" class="crew-callout alert hidden" style="margin:.75rem 0;display:flex;flex-wrap:wrap;align-items:flex-start;gap:.75rem;justify-content:space-between;">
-            <div>
-              <div style="font-weight:800;">Editing Job</div>
-              <div id="jobEditLabel" class="tiny" style="color:#f4d6d6;"></div>
-            </div>
-            <button id="jobEditCancel" class="btn secondary" type="button" onclick="UI.cancelJobEdit()">Cancel Edit</button>
-          </div>
 
           <div class="row">
             <div><label>Client</label><select id="jobClient"></select></div>
@@ -260,7 +253,7 @@
           </div>
 
           <div class="row">
-            <button id="jobSaveBtn" class="btn" onclick="App.saveJob()">Schedule Job</button>
+            <button class="btn" onclick="App.saveJob()">Schedule Job</button>
             <button class="btn secondary" onclick="UI.printQuote()">Print / Save Quote</button>
           </div>
         </div>
@@ -1140,8 +1133,7 @@ const App = {
     if(vehicles.some(v=>!v.pkg)) return alert('Select a package for each vehicle');
     const discType=document.getElementById('jobDiscType').value;
     const discValue=Number(document.getElementById('jobDiscValue').value||0);
-    const discScopeValue=document.getElementById('jobDiscScope').value;
-    const discScope=discScopeValue==='vehicle'?'vehicle':'job';
+    const discScope=document.getElementById('jobDiscScope').value;
     const notes=document.getElementById('jobNotes').value.trim();
     const scheduleDate=document.getElementById('jobDate').value || today();
     const scheduleStart=document.getElementById('jobStart').value || '';
@@ -1149,53 +1141,6 @@ const App = {
     const scheduleDuration=parseDurationInput(document.getElementById('jobDuration').value);
     const primaryPkg=vehicles[0]?.pkg||'';
     const schedule={date:scheduleDate,start:scheduleStart,end:scheduleEnd,durationMinutes:scheduleDuration};
-    if(UI.editingJobId){
-      const job=S.jobs.find(x=>x.id===UI.editingJobId);
-      if(job){
-        job.clientId=clientId;
-        job.pkg=primaryPkg;
-        job.vehicles=vehicles.map(v=>({
-          ...v,
-          addons:Array.isArray(v.addons)?v.addons.map(a=>({...a})) : []
-        }));
-        job.discType=discType;
-        job.discValue=discValue;
-        job.discScope=discScope;
-        job.notes=notes;
-        job.schedule=schedule;
-        job.date=scheduleDate;
-        job.size=vehicles[0]?.size||'';
-        job.vehicleCount=vehicles.length;
-        if(Array.isArray(job.extraCharges)){
-          job.extraCharges=job.extraCharges.map(extra=>{
-            if(!extra) return extra;
-            const copy={...extra};
-            const idx=copy.vehicleIndex!=null?Number(copy.vehicleIndex):-1;
-            if(copy.vehicleIndex!=null) copy.vehicleIndex=idx;
-            if(idx>=vehicles.length){
-              copy.vehicleIndex=null;
-              copy.vehicleLabel='';
-            }
-            return copy;
-          });
-        } else {
-          job.extraCharges=[];
-        }
-        job.services=this.createServicesFromVehicles(job);
-        this.normalizeServices(job);
-        this.ensureChecklist(job);
-        Storage.save(S);
-        this.syncClientVehicles(job);
-        UI.refreshJobsList();
-        UI.renderJobPanel(job.id,true);
-        UI.resetJobForm();
-        UI.flash('Job updated.');
-        return;
-      }
-      UI.editingJobId=null;
-      UI.updateJobFormEditingUI(null);
-      UI.flash('Could not find the original job. A new job will be scheduled instead.');
-    }
     const job={
       id:uid(),
       date:scheduleDate,
@@ -1302,7 +1247,6 @@ const UI = {
   checklistJobId:null,
   jobFilter:'all',
   jobPanelJobId:null,
-  editingJobId:null,
   initHeader(){ const logo=document.getElementById('headerLogo'); logo.src=S.business.logoDataUrl||'icon-192.png'; document.getElementById('headerTitle').textContent=S.business.headerTitle||'POLISH CREW — Accounting'; document.getElementById('openDrawer').onclick=()=>UI.toggleDrawer(true); },
   switchTab(name){ document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.getAttribute('data-tab')===name)); document.querySelectorAll('.tabpage').forEach(p=>p.classList.add('hidden')); document.getElementById(name).classList.remove('hidden'); },
   initTabs(){ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>UI.switchTab(t.getAttribute('data-tab')))); },
@@ -1374,94 +1318,6 @@ const UI = {
   },
   onClientChange(){
     UI.refreshClientVehicleOptions();
-  },
-  updateJobFormEditingUI(job){
-    const banner=document.getElementById('jobEditBanner');
-    const label=document.getElementById('jobEditLabel');
-    const saveBtn=document.getElementById('jobSaveBtn');
-    const cancelBtn=document.getElementById('jobEditCancel');
-    if(job){
-      if(banner) banner.classList.remove('hidden');
-      if(label){
-        const parts=[];
-        const clientName=this.clientName(job.clientId)||'Unknown client';
-        if(clientName) parts.push(clientName);
-        if(job.status) parts.push(job.status);
-        const scheduleDate=job.schedule?.date || job.date || '';
-        if(scheduleDate) parts.push(scheduleDate);
-        if(job.schedule?.start){
-          const timeLabel=job.schedule?.end ? `${job.schedule.start} – ${job.schedule.end}` : job.schedule.start;
-          if(timeLabel) parts.push(timeLabel);
-        }
-        const pkgLabel=this.jobPackageLabel(job);
-        if(pkgLabel) parts.push(pkgLabel);
-        label.textContent=parts.join(' • ');
-      }
-      if(saveBtn) saveBtn.textContent='Update Job';
-      if(cancelBtn) cancelBtn.classList.remove('hidden');
-    } else {
-      if(banner) banner.classList.add('hidden');
-      if(label) label.textContent='';
-      if(saveBtn) saveBtn.textContent='Schedule Job';
-      if(cancelBtn) cancelBtn.classList.add('hidden');
-    }
-  },
-  editJob(jobId){
-    const job=S.jobs.find(x=>x.id===jobId);
-    if(!job) return;
-    App.ensureJobStructure(job);
-    this.switchTab('QuoteBuilder');
-    this.editingJobId=jobId;
-    this.populateClients(job.clientId);
-    const clientSel=document.getElementById('jobClient');
-    if(clientSel) clientSel.value=job.clientId||'';
-    const list=document.getElementById('vehiclesList');
-    if(list){
-      list.innerHTML='';
-    }
-    this.onClientChange();
-    if(list){
-      if(Array.isArray(job.vehicles) && job.vehicles.length){
-        job.vehicles.forEach(vehicle=>{
-          const clone={...vehicle};
-          if(Array.isArray(vehicle.addons)) clone.addons=vehicle.addons.map(a=>({...a}));
-          this.addVehicle(clone);
-        });
-      } else {
-        this.addVehicle();
-      }
-    }
-    const schedule=job.schedule||{};
-    const dateInput=document.getElementById('jobDate');
-    if(dateInput) dateInput.value=schedule.date || job.date || today();
-    const startInput=document.getElementById('jobStart');
-    if(startInput) startInput.value=schedule.start || '';
-    const endInput=document.getElementById('jobEnd');
-    if(endInput) endInput.value=schedule.end || '';
-    const durationInput=document.getElementById('jobDuration');
-    if(durationInput){
-      const mins=Number(schedule.durationMinutes||0);
-      durationInput.value=mins>0?formatDurationMinutes(mins):'';
-    }
-    const discTypeSel=document.getElementById('jobDiscType');
-    if(discTypeSel) discTypeSel.value=job.discType||'none';
-    const discValueInput=document.getElementById('jobDiscValue');
-    if(discValueInput) discValueInput.value=Number(job.discValue||0);
-    const discScopeSel=document.getElementById('jobDiscScope');
-    if(discScopeSel) discScopeSel.value=job.discScope==='vehicle'?'vehicle':'job';
-    const notesInput=document.getElementById('jobNotes');
-    if(notesInput) notesInput.value=job.notes||'';
-    this.updateTotals();
-    this.updateJobFormEditingUI(job);
-    this.flash('Edit mode enabled for this job.');
-  },
-  cancelJobEdit(){
-    if(!this.editingJobId){
-      this.updateJobFormEditingUI(null);
-      return;
-    }
-    this.resetJobForm();
-    this.flash('Edit cancelled.');
   },
   openClientVehicles(id){
     const client=S.clients.find(c=>c.id===id);
@@ -1913,31 +1769,7 @@ const UI = {
     if(netEl) netEl.textContent=fmt(net);
   },
   quickDisc(type,val){ document.getElementById('jobDiscType').value=type; document.getElementById('jobDiscValue').value=val; UI.updateTotals(); },
-  resetJobForm(){
-    const list=document.getElementById('vehiclesList');
-    if(list) list.innerHTML='';
-    this.addVehicle();
-    this.handlePackageChange();
-    const discType=document.getElementById('jobDiscType');
-    if(discType) discType.value='none';
-    const discValue=document.getElementById('jobDiscValue');
-    if(discValue) discValue.value='0';
-    const discScope=document.getElementById('jobDiscScope');
-    if(discScope) discScope.value='job';
-    const notes=document.getElementById('jobNotes');
-    if(notes) notes.value='';
-    const dateInput=document.getElementById('jobDate');
-    if(dateInput) dateInput.value=today();
-    const startInput=document.getElementById('jobStart');
-    if(startInput) startInput.value='';
-    const endInput=document.getElementById('jobEnd');
-    if(endInput) endInput.value='';
-    const durationInput=document.getElementById('jobDuration');
-    if(durationInput) durationInput.value='';
-    this.editingJobId=null;
-    this.updateJobFormEditingUI(null);
-    this.updateTotals();
-  },
+  resetJobForm(){ const list=document.getElementById('vehiclesList'); if(list) list.innerHTML=''; this.addVehicle(); this.handlePackageChange(); document.getElementById('jobDiscType').value='none'; document.getElementById('jobDiscValue').value='0'; document.getElementById('jobDiscScope').value='job'; document.getElementById('jobNotes').value=''; const dateInput=document.getElementById('jobDate'); if(dateInput) dateInput.value=today(); const startInput=document.getElementById('jobStart'); if(startInput) startInput.value=''; const endInput=document.getElementById('jobEnd'); if(endInput) endInput.value=''; const durationInput=document.getElementById('jobDuration'); if(durationInput) durationInput.value=''; this.updateTotals(); },
   jobVehicleSummary(job){ const vehicles=Calc.vehicles(job); if(!vehicles.length) return ''; const counts={}; vehicles.forEach(v=>{ const key=v.size||'Vehicle'; counts[key]=(counts[key]||0)+1; }); return Object.entries(counts).map(([size,count])=>count>1?`${size} × ${count}`:size).join(', '); },
   jobPackageLabel(job){
     const vehicles=Calc.vehicles(job);
@@ -2012,7 +1844,6 @@ const UI = {
       );
       const actions=[];
       actions.push(el('button',{class:'pill',onclick:()=>UI.openJob(job.id)},'View Job'));
-      actions.push(el('button',{class:'pill',onclick:()=>UI.editJob(job.id)},'Edit Job'));
       if(job.status==='Quoted') actions.push(el('button',{class:'pill',onclick:()=>App.updateJobStatus(job.id,'Booked')},'Book Job'));
       if(job.status==='Booked') actions.push(el('button',{class:'pill',onclick:()=>App.updateJobStatus(job.id,'In Progress')},'Start Job'));
       if(job.status==='In Progress') actions.push(el('button',{class:'pill',onclick:()=>App.updateJobStatus(job.id,'Complete')},'Mark Complete'));
@@ -2082,8 +1913,7 @@ const UI = {
       el('div',{class:'tiny'},'Estimated Duration'),
       el('div',{style:'font-weight:700;'}, job.schedule?.durationMinutes?formatDurationMinutes(job.schedule.durationMinutes):'Not set'),
       el('div',{class:'tiny'},'Package'),
-      el('div',{style:'font-weight:700;'}, summary),
-      el('button',{class:'btn secondary',onclick:()=>UI.editJob(job.id)},'Edit Job Details')
+      el('div',{style:'font-weight:700;'}, summary)
     );
     const total=Calc.total(job);
     const paid=(job.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0);
