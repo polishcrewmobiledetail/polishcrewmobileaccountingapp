@@ -168,14 +168,6 @@
       <div class="grid">
         <div class="card">
           <h3>Quote → Book → Pay</h3>
-          <div id="jobEditBanner" class="crew-callout alert hidden" style="margin:.75rem 0;display:flex;flex-wrap:wrap;align-items:flex-start;gap:.75rem;justify-content:space-between;">
-            <div>
-              <div style="font-weight:800;">Editing Job</div>
-              <div id="jobEditLabel" class="tiny" style="color:#f4d6d6;"></div>
-            </div>
-            <button id="jobEditCancel" class="btn secondary" type="button" onclick="UI.cancelJobEdit()">Cancel Edit</button>
-          </div>
-
           <div class="row">
             <div><label>Client</label><select id="jobClient"></select></div>
             <div style="flex:0"><label>&nbsp;</label><button class="btn" onclick="UI.showQuickClient()">Quick Add Client</button></div>
@@ -262,6 +254,7 @@
           <div class="row">
             <button id="jobSaveBtn" class="btn" onclick="App.saveJob()">Schedule Job</button>
             <button class="btn secondary" onclick="UI.printQuote()">Print / Save Quote</button>
+            <button id="jobEditCancel" class="btn secondary hidden" type="button" onclick="UI.cancelJobEdit()">Cancel Edit</button>
           </div>
         </div>
 
@@ -1376,32 +1369,12 @@ const UI = {
     UI.refreshClientVehicleOptions();
   },
   updateJobFormEditingUI(job){
-    const banner=document.getElementById('jobEditBanner');
-    const label=document.getElementById('jobEditLabel');
     const saveBtn=document.getElementById('jobSaveBtn');
     const cancelBtn=document.getElementById('jobEditCancel');
     if(job){
-      if(banner) banner.classList.remove('hidden');
-      if(label){
-        const parts=[];
-        const clientName=this.clientName(job.clientId)||'Unknown client';
-        if(clientName) parts.push(clientName);
-        if(job.status) parts.push(job.status);
-        const scheduleDate=job.schedule?.date || job.date || '';
-        if(scheduleDate) parts.push(scheduleDate);
-        if(job.schedule?.start){
-          const timeLabel=job.schedule?.end ? `${job.schedule.start} – ${job.schedule.end}` : job.schedule.start;
-          if(timeLabel) parts.push(timeLabel);
-        }
-        const pkgLabel=this.jobPackageLabel(job);
-        if(pkgLabel) parts.push(pkgLabel);
-        label.textContent=parts.join(' • ');
-      }
       if(saveBtn) saveBtn.textContent='Update Job';
       if(cancelBtn) cancelBtn.classList.remove('hidden');
     } else {
-      if(banner) banner.classList.add('hidden');
-      if(label) label.textContent='';
       if(saveBtn) saveBtn.textContent='Schedule Job';
       if(cancelBtn) cancelBtn.classList.add('hidden');
     }
