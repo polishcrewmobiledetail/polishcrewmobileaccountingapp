@@ -2669,8 +2669,25 @@ UI.renderPrintSheet = function(job){
       <div style="margin-top:16px;color:#666;font-size:12px">Thank you for your business.</div>
     </div>`;
   sheet.classList.remove('hidden');
-  window.print();
-  setTimeout(()=>{ sheet.classList.add('hidden'); sheet.innerHTML=''; }, 300);
+
+  const cleanup = () => {
+    sheet.classList.add('hidden');
+    sheet.innerHTML='';
+    window.removeEventListener('afterprint', cleanup);
+  };
+
+  window.addEventListener('afterprint', cleanup, { once:false });
+
+  const triggerPrint = () => {
+    // Wait an extra frame so the browser has time to paint the sheet
+    requestAnimationFrame(() => {
+      window.print();
+      // Fallback in case the browser does not fire afterprint (older mobile browsers)
+      setTimeout(cleanup, 300);
+    });
+  };
+
+  requestAnimationFrame(triggerPrint);
 };
 
 /*** Data export ***/
