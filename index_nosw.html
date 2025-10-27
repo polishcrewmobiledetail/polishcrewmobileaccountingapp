@@ -19,6 +19,7 @@
   .tab.active{background:radial-gradient(120% 120% at 50% 0%,#0f1a12,#0a0d0b);border-color:#1f2a1f;color:var(--text);box-shadow:0 0 0 1px #112c19 inset,0 0 12px #0a1}
   .wrap{padding:1rem;max-width:1100px;margin:0 auto}
   .grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));}
+  .grid.single-column{grid-template-columns:minmax(0,1fr);}  
   .card{background:linear-gradient(180deg,#0f1013,#0b0c0f);border:1px solid #1a1e21;border-radius:16px;padding:1rem;box-shadow:inset 0 1px 0 #1b221d;}
   .card h3{margin:.25rem 0 .75rem;font-family:Oswald,'Bebas Neue',Impact,sans-serif;letter-spacing:.4px}
   .muted{color:var(--muted);font-size:.9rem}
@@ -34,17 +35,85 @@
   .list-item{padding:.5rem .6rem;border:1px solid #171a1d;background:#0a0c0f;border-radius:10px}
   .tiny{font-size:.8rem;color:#aab5b5}
   .hidden{display:none}
+  .stack-buttons{display:flex;flex-direction:column;gap:.5rem;align-items:stretch}
+  .stack-buttons .fullwidth{width:100%}
+  .stack-buttons .btn,.stack-buttons .pill{width:100%}
+  @media(min-width:720px){
+    .stack-buttons{flex-direction:row;}
+    .stack-buttons .btn,.stack-buttons .pill{width:auto;flex:1}
+  }
+  .receipt-scan{display:flex;flex-direction:column;gap:.75rem;}
+  .receipt-preview{border:1px dashed #1f2428;border-radius:12px;padding:.75rem;background:#080a0d;display:flex;flex-direction:column;gap:.6rem;}
+  .receipt-preview.hidden{display:none;}
+  .receipt-preview img{width:100%;max-height:220px;object-fit:contain;border-radius:10px;background:#000;}
+  .receipt-ocr-status{font-size:.8rem;color:var(--muted);}
+  .form-grid{display:flex;flex-direction:column;gap:.75rem;}
+  .mobile-field-row{display:flex;flex-direction:column;gap:.5rem;}
+  @media(min-width:720px){
+    .mobile-field-row{flex-direction:row;}
+    .mobile-field-row>div{flex:1;}
+  }
+  .transaction-card{display:flex;flex-direction:column;gap:.5rem;}
+  .transaction-card h4{margin:0;font-size:1rem;}
+  .transaction-meta{display:flex;flex-wrap:wrap;gap:.35rem;font-size:.75rem;color:var(--muted);}
+  .transaction-meta span{background:#101215;border-radius:999px;padding:.2rem .6rem;}
+  .transaction-amount{font-weight:800;}
+  .transaction-notes{font-size:.85rem;color:#c7d0d0;}
   .vehicle-addon-row[data-included="true"]{opacity:.6;}
   .vehicle-addon-row[data-included="true"] input{pointer-events:none;opacity:.7;}
+  .vehicle-package-info{border-radius:12px;border:1px solid #15191c;background:#090b0d;padding:.65rem;margin-top:.5rem;display:flex;flex-direction:column;gap:.35rem;}
+  .vehicle-package-info.hidden{display:none;}
+  .vehicle-package-info h4{margin:0;font-size:.85rem;color:#f5f7f7;letter-spacing:.2px;}
+  .vehicle-package-info p{margin:0;color:#bac6c6;font-size:.85rem;line-height:1.4;}
+  .vehicle-package-info ul{margin:.1rem 0 0 1.1rem;padding:0;color:#95a6a6;font-size:.8rem;line-height:1.5;}
   .menu-pkg-card{background:linear-gradient(180deg,#121418,#0c0d10);border:1px solid #1a1e21;border-radius:16px;padding:.75rem;display:flex;flex-direction:column;gap:.6rem;}
+  .menu-pkg-card .pkg-header{display:flex;align-items:center;gap:.6rem;}
   .menu-pkg-card .pkg-name{width:100%;}
+  .menu-pkg-card .pkg-toggle{flex:0 0 auto;background:#0b0c0f;border:1px solid #1a1e21;color:#d5dddd;border-radius:10px;padding:.3rem .55rem;cursor:pointer;font-size:.85rem;font-weight:700;line-height:1;}
+  .menu-pkg-card .pkg-summary{font-size:.8rem;color:#96a4a4;cursor:pointer;}
+  .menu-pkg-card .pkg-body{display:flex;flex-direction:column;gap:.5rem;}
+  .menu-pkg-card[data-collapsed="true"] .pkg-body{display:none;}
   .menu-pkg-card .pkg-addon-options{display:flex;flex-wrap:wrap;gap:.4rem;}
   .pkg-addon-option{display:inline-flex;align-items:center;gap:.35rem;padding:.25rem .6rem;border:1px solid #1b1f22;border-radius:999px;background:#0a0c0f;font-size:.8rem;cursor:pointer;}
   .pkg-addon-option[data-selected="true"]{opacity:.6;}
   .pkg-addon-option input{margin:0;}
   .footnote{font-size:.8rem;color:#8ea59a}
+  .crew-callout{border-radius:14px;padding:.75rem;border:1px solid #1f2a1f;background:linear-gradient(180deg,#0d130f,#080c0a);color:#dbe9df;font-size:.85rem;line-height:1.4}
+  .crew-callout.alert{border-color:#3a2626;background:linear-gradient(180deg,#1b0f0f,#120909);color:#f4d6d6}
+  .crew-checklist-section{display:flex;flex-direction:column;gap:.5rem}
+  .crew-checklist-header{display:flex;justify-content:space-between;align-items:flex-end;gap:.75rem;flex-wrap:wrap}
+  .crew-checklist-items{display:flex;flex-direction:column;gap:.5rem}
+  .crew-checklist-item{display:flex;align-items:center;gap:.75rem;padding:.6rem;border:1px solid #15191c;background:#090b0d;border-radius:12px}
+  .crew-checklist-item[data-complete="true"]{border-color:#1f2a1f;background:#0d1310}
+  .crew-checklist-item[data-running="true"] .crew-timer{color:var(--green)}
+  .crew-checklist-item input[type=checkbox]{width:18px;height:18px}
+  .crew-step{flex:1}
+  .crew-step .tiny{color:#99a7a7}
+  .crew-timer{font-variant-numeric:tabular-nums;font-weight:700;min-width:72px;text-align:right}
+  .crew-timer-controls{display:flex;align-items:center;gap:.45rem}
   .drawer {position:fixed;right:0;top:0;height:100%;width:min(92vw,420px);transform:translateX(100%);transition:transform .25s ease;background:#050607;border-left:1px solid #14171a;z-index:20;display:flex;flex-direction:column}
   .drawer.open{transform:translateX(0)}
+  .job-panel{position:fixed;right:0;top:0;height:100%;width:min(96vw,520px);transform:translateX(100%);transition:transform .28s ease;background:#060708;border-left:1px solid #15191c;z-index:25;display:flex;flex-direction:column;box-shadow:-12px 0 40px rgba(0,0,0,.35)}
+  .job-panel.open{transform:translateX(0)}
+  .job-panel header{padding:1rem;border-bottom:1px solid #14171a;display:flex;flex-direction:column;gap:.35rem;background:linear-gradient(180deg,#080a0c,#050607)}
+  .job-panel header .row{align-items:center}
+  .job-panel-body{flex:1;overflow:auto;padding:1rem;display:flex;flex-direction:column;gap:1rem}
+  .job-meta-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.6rem}
+  .job-section{border:1px solid #15191c;background:#090b0d;border-radius:14px;padding:.85rem;display:flex;flex-direction:column;gap:.55rem}
+  .job-section h4{margin:0;font-family:Oswald,'Bebas Neue',Impact,sans-serif;letter-spacing:.4px;font-size:1rem}
+  .job-services{display:flex;flex-direction:column;gap:.45rem}
+  .job-service{display:flex;align-items:center;gap:.5rem;background:#0a0c0f;border:1px solid #15191c;padding:.5rem .6rem;border-radius:12px}
+  .job-service .service-main{flex:1}
+  .job-service .service-meta{font-size:.8rem;color:#96a4a4}
+  .job-timers{display:flex;flex-direction:column;gap:.5rem}
+  .job-timer{display:flex;align-items:center;gap:.6rem;background:#0a0c0f;border:1px solid #15191c;padding:.5rem .6rem;border-radius:12px}
+  .job-timer .timer-info{flex:1}
+  .job-timer .timer-label{font-weight:800}
+  .job-timer .timer-value{font-variant-numeric:tabular-nums;font-weight:800;font-size:1.05rem;color:#e4f6eb}
+  .job-timer[data-running="true"] .timer-value{color:var(--green)}
+  .job-timer-controls{display:flex;gap:.35rem;flex-wrap:wrap}
+  .job-timer-controls .pill{cursor:pointer}
+  .job-filter-active{background:linear-gradient(180deg,#102b1c,#0b1a12);color:#f2fbf7;border-color:#1f3a29;box-shadow:0 0 0 1px #173a26 inset}
 </style>
 </head>
 <body>
@@ -57,7 +126,9 @@
 
   <div class="tabs">
     <div class="tab active" data-tab="Dashboard">Dashboard</div>
+    <div class="tab" data-tab="Quotes">Quotes</div>
     <div class="tab" data-tab="Jobs">Jobs</div>
+    <div class="tab" data-tab="QuoteBuilder">Quote Builder</div>
     <div class="tab" data-tab="Clients">Clients</div>
   </div>
 
@@ -75,7 +146,7 @@
         <div class="card">
           <h3>Quick Actions</h3>
           <div class="row">
-            <button class="btn" onclick="UI.switchTab('Jobs')">Start a Quote</button>
+            <button class="btn" onclick="UI.startQuoteFlow()">Start a Quote</button>
             <button class="btn" onclick="UI.openExpenseForm()">Add Expense</button>
             <button class="btn" onclick="UI.switchTab('Clients')">Add Client</button>
             <button class="btn secondary" onclick="Data.exportCSV()">Export CSV</button>
@@ -88,14 +159,77 @@
       </div>
     </section>
 
+    <section id="Quotes" class="tabpage hidden">
+      <div class="grid single-column">
+        <div class="card">
+          <h3>Pending Quotes</h3>
+          <div class="muted tiny">Quotes stay here until you convert them into jobs or collect payment.</div>
+          <div class="stack-buttons" style="margin:.75rem 0 .5rem;">
+            <button class="btn fullwidth" onclick="UI.startQuoteFlow()">New Quote</button>
+            <button class="btn secondary fullwidth" onclick="UI.printQuotesSummary()">Print All Quotes</button>
+          </div>
+          <div id="quotesList" class="list"></div>
+        </div>
+      </div>
+    </section>
+
     <section id="Jobs" class="tabpage hidden">
+      <div class="grid">
+        <div class="card" style="grid-column:1 / -1;">
+          <h3>Job Board</h3>
+          <div class="row" style="flex-wrap:wrap;gap:.5rem;align-items:center;">
+            <div class="row" style="gap:.4rem;flex-wrap:wrap;">
+              <button class="pill" data-filter="all" onclick="UI.setJobFilter('all')">All</button>
+              <button class="pill" data-filter="today" onclick="UI.setJobFilter('today')">Today</button>
+              <button class="pill" data-filter="upcoming" onclick="UI.setJobFilter('upcoming')">Upcoming</button>
+              <button class="pill" data-filter="completed" onclick="UI.setJobFilter('completed')">Completed</button>
+              <button class="pill" data-filter="unpaid" onclick="UI.setJobFilter('unpaid')">Unpaid</button>
+            </div>
+            <div class="spacer"></div>
+            <button class="btn" onclick="UI.startQuoteFlow()">Create Quote</button>
+          </div>
+          <div id="jobsList" class="list" style="margin-top:.75rem;"></div>
+        </div>
+        <div class="card">
+          <h3>Schedule Planner</h3>
+          <label for="jobPlannerDate">Select day</label>
+          <input id="jobPlannerDate" type="date" onchange="UI.refreshJobPlanner()">
+          <div id="jobPlannerList" class="list" style="margin-top:.6rem;"></div>
+        </div>
+        <div class="card">
+          <h3>Performance Snapshot</h3>
+          <div id="jobPerformance" class="list" style="gap:.35rem;"></div>
+          <div class="footnote" style="margin-top:.6rem;">Completed job durations help track crew efficiency and plan future ETAs.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="QuoteBuilder" class="tabpage hidden">
       <div class="grid">
         <div class="card">
           <h3>Quote → Book → Pay</h3>
-
           <div class="row">
             <div><label>Client</label><select id="jobClient"></select></div>
             <div style="flex:0"><label>&nbsp;</label><button class="btn" onclick="UI.showQuickClient()">Quick Add Client</button></div>
+          </div>
+
+          <div class="row" style="margin-top:.6rem;flex-wrap:wrap;gap:.75rem;">
+            <div style="flex:1;min-width:160px;">
+              <label>Date</label>
+              <input id="jobDate" type="date">
+            </div>
+            <div style="flex:1;min-width:140px;">
+              <label>Start Time</label>
+              <input id="jobStart" type="time">
+            </div>
+            <div style="flex:1;min-width:140px;">
+              <label>End Time</label>
+              <input id="jobEnd" type="time">
+            </div>
+            <div style="flex:1;min-width:140px;">
+              <label>Estimated Duration</label>
+              <input id="jobDuration" placeholder="1h 45m">
+            </div>
           </div>
 
           <div id="quickClient" class="card hidden" style="margin:.5rem 0;">
@@ -110,15 +244,19 @@
             <div class="row"><button class="btn" onclick="App.addQuickClient()">Save Client</button><button class="btn secondary" onclick="UI.hideQuickClient()">Cancel</button></div>
           </div>
 
-          <div class="card" style="margin-top:.6rem;">
-            <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:.4rem;gap:.5rem;flex-wrap:wrap;">
-              <h3 style="margin:.25rem 0;">Vehicles</h3>
-              <div class="row" style="gap:.5rem;flex-wrap:wrap;justify-content:flex-end;">
-                <button class="btn secondary" onclick="UI.openCustomBuilder()">Edit Packages</button>
+            <div class="card" style="margin-top:.6rem;">
+              <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:.4rem;gap:.5rem;flex-wrap:wrap;">
+                <h3 style="margin:.25rem 0;">Vehicles</h3>
+                <div class="row" style="gap:.5rem;flex-wrap:wrap;justify-content:flex-end;">
+                  <button class="btn secondary" onclick="UI.openCustomBuilder()">Edit Packages</button>
                 <button class="btn secondary" onclick="UI.addVehicle()">Add Vehicle</button>
               </div>
             </div>
             <div id="vehiclesList" class="list"></div>
+            <div id="addonSummary" class="crew-callout" style="margin-top:.5rem;">
+              <div style="font-weight:800;">Add-on guidance</div>
+              <div class="tiny">Select packages and add-ons to see maintenance vs. full detail recommendations.</div>
+            </div>
             <div class="footnote">≤3 add-ons = Maintenance. 4+ or heavy soil → Full Detail upgrade.</div>
           </div>
 
@@ -153,15 +291,12 @@
             <div class="card"><div class="muted">Total</div><div id="jobTotal" style="font-size:1.4rem;font-weight:800">$0.00</div></div>
           </div>
 
-          <div class="row">
-            <button class="btn" onclick="App.saveJob()">Save Quote</button>
-            <button class="btn secondary" onclick="UI.printQuote()">Print / Save Quote</button>
+          <div class="stack-buttons">
+            <button id="quoteSaveBtn" class="btn fullwidth" onclick="App.saveJob({asQuote:true})">Save Quote</button>
+            <button id="jobSaveBtn" class="btn fullwidth" onclick="App.saveJob({asQuote:false})">Schedule Job</button>
+            <button class="btn secondary fullwidth" onclick="UI.printQuote()">Print / Save Quote</button>
+            <button id="jobEditCancel" class="btn secondary fullwidth hidden" type="button" onclick="UI.cancelJobEdit()">Cancel Edit</button>
           </div>
-        </div>
-
-        <div class="card">
-          <h3>Jobs</h3>
-          <div id="jobsList" class="list"></div>
         </div>
       </div>
     </section>
@@ -217,6 +352,17 @@
     </div>
   </div>
 
+  <div id="jobPanel" class="job-panel">
+    <header>
+      <div class="row" style="justify-content:space-between;gap:.5rem;">
+        <div id="jobPanelTitle" style="font-weight:800;font-size:1.1rem;">Job Details</div>
+        <button class="iconbtn" onclick="UI.closeJobPanel()">✖</button>
+      </div>
+      <div id="jobPanelSubtitle" class="tiny" style="color:#9fb2ae;"></div>
+    </header>
+    <div id="jobPanelBody" class="job-panel-body"></div>
+  </div>
+
   <div id="modalHost"></div>
 
 <script>
@@ -250,10 +396,10 @@ const DEFAULT_MENU = {
   },
   guidance: "Add ≤3 add-ons → stays at Maintenance Detail. 4+ or heavy soil → upgrade to Full Detail.",
   packageMeta: {
-    "Exterior Wash Only": {lock:false, includedAddons:[]},
-    "Interior Clean Only": {lock:false, includedAddons:[]},
-    "In & Out Combo": {lock:false, includedAddons:[]},
-    "Quick In & Out": {lock:false, includedAddons:[]},
+    "Exterior Wash Only": {lock:false, includedAddons:[], description:"Hand wash, foam bath, wheel faces, tire dressing, and streak-free glass."},
+    "Interior Clean Only": {lock:false, includedAddons:[], description:"Vacuum interior, wipe plastics, clean glass, and refresh touch points."},
+    "In & Out Combo": {lock:false, includedAddons:[], description:"Our balanced interior & exterior refresh with wash, vacuum, wipe-down, and glass."},
+    "Quick In & Out": {lock:false, includedAddons:[], description:"Express spruce up for maintenance customers needing a fast touch-up."},
     "Maintenance Detail": {lock:false, includedAddons:[
       "Wheels & Tires — Deep clean wheels, barrels, tires + gloss dressing",
       "Exterior Brush Detail — Emblems, trim, grilles, window seals",
@@ -261,7 +407,7 @@ const DEFAULT_MENU = {
       "Interior Protectant — UV / fade protection on plastics & vinyl",
       "Spray Sealant — Hydrophobic layer (3–6 mo. protection)",
       "Spot Stain Clean — 1–3 seat or carpet stains treated"
-    ]},
+    ], description:"Full maintenance service with high-touch interior and exterior detailing essentials."},
     "Full Detail": {lock:false, includedAddons:[
       "Wheels & Tires — Deep clean wheels, barrels, tires + gloss dressing",
       "Exterior Brush Detail — Emblems, trim, grilles, window seals",
@@ -272,12 +418,12 @@ const DEFAULT_MENU = {
       "Dog Hair Removal — Light–heavy removal using rubber brush + vac",
       "Odor Neutralizer — Deodorizing mist or fog",
       "Clay & Iron Decon — Removes bonded contaminants before protection"
-    ]},
+    ], description:"Comprehensive reset for vehicles needing the works plus odor & contamination removal."},
     "Dog Hair / Stain Focus": {lock:false, includedAddons:[
       "Dog Hair Removal — Light–heavy removal using rubber brush + vac",
       "Spot Stain Clean — 1–3 seat or carpet stains treated",
       "Odor Neutralizer — Deodorizing mist or fog"
-    ]}
+    ], description:"Targeted interior overhaul to tackle embedded hair, stains, and lingering odors."}
   }
 };
 
@@ -287,6 +433,59 @@ const DEFAULT_SETTINGS = {
 };
 
 const DEFAULT_BIZ = { name:"Polish Crew", headerTitle:"POLISH CREW — Accounting", logoDataUrl:"" };
+
+const CREW_CHECKLIST_SECTIONS = [
+  {
+    id: 'setup',
+    title: 'Setup',
+    goalMinutes: 10,
+    items: [
+      { id: 'setup-position', label: 'Position truck + hose for easy flow.', description: 'Stage the rig for an efficient workflow and protect the customer’s property.' },
+      { id: 'setup-prep', label: 'Prep bucket system, towels, brushes, and chemicals.', description: 'Separate interior, exterior, glass, and wheel towels. Confirm correct dilution.' },
+      { id: 'setup-power', label: 'Confirm power source or generator placement.', description: 'Keep exhaust safe and avoid detailing under direct sun when possible.' },
+      { id: 'setup-greet', label: 'Greet customer, confirm package, spotlight special issues.', description: 'Manage expectations before touching the vehicle.' }
+    ]
+  },
+  {
+    id: 'exterior',
+    title: 'Exterior Process',
+    goalMinutes: 35,
+    items: [
+      { id: 'ext-rinse', label: 'Rinse vehicle.', description: 'Knock down loose dirt before contact wash.' },
+      { id: 'ext-foam', label: 'Foam & wash top-down.', description: 'No dry wiping on paint — use lubricated mitts and detailer.' },
+      { id: 'ext-wheels', label: 'Clean wheels & tires.', description: 'Use dedicated brushes and towels for wheels.' },
+      { id: 'ext-final-rinse', label: 'Final rinse.', description: 'Check seams and badges for soap runoff.' },
+      { id: 'ext-dry', label: 'Dry with microfiber + blower.', description: 'Keep towels clean and avoid dragging on paint.' },
+      { id: 'ext-upsell', label: 'Offer Spray Wax / Sealant / Ceramic upsell.', description: 'Upsell once exterior is clean and dry for added protection.' },
+      { id: 'ext-glass', label: 'Tire shine + exterior glass.', description: 'Dress tires (not pedals) and finish glass streak-free.' }
+    ]
+  },
+  {
+    id: 'interior',
+    title: 'Interior Process',
+    goalMinutes: 45,
+    items: [
+      { id: 'int-trash', label: 'Remove trash & mats.', description: 'Keep customer belongings organized.' },
+      { id: 'int-vacuum', label: 'Vacuum rear to front.', description: 'Address pet hair or heavy soil with proper tools.' },
+      { id: 'int-wipe', label: 'Wipe plastics, buttons, cupholders.', description: 'Never dress pedals or steering wheel.' },
+      { id: 'int-brush', label: 'Brush seams, vents, and edges.', description: 'Use gentle detail brushes for vents and trim.' },
+      { id: 'int-glass', label: 'Clean interior glass.', description: 'Use fresh towels reserved for glass only.' },
+      { id: 'int-protect', label: 'Add interior protectant & scent.', description: 'Apply light, even coverage for UV protection.' },
+      { id: 'int-final-check', label: 'Final interior check.', description: 'Inspect steering wheel, door jambs, and screens.' }
+    ]
+  },
+  {
+    id: 'presentation',
+    title: 'Final Presentation',
+    goalMinutes: 10,
+    items: [
+      { id: 'final-walk', label: 'Walk around with customer.', description: 'Showcase results with confident energy.' },
+      { id: 'final-notes', label: 'Point out existing wear or permanent marks.', description: 'Set expectations and educate on what was corrected.' },
+      { id: 'final-payment', label: 'Collect payment (Cash / Zelle / Venmo).', description: 'Use official pricing — no unapproved discounts.' },
+      { id: 'final-testimonial', label: 'Request testimonial or photo.', description: 'Capture content for socials; highlight green brand accents.' }
+    ]
+  }
+];
 
 const AppState = { business: DEFAULT_BIZ, clients: [], menu: DEFAULT_MENU, jobs: [], transactions: [], mileage: [], settings: DEFAULT_SETTINGS };
 
@@ -322,13 +521,95 @@ const Storage = {
 };
 
 let S = Storage.load();
+ensurePackageMetaStructure();
+
+/*** Normalization ***/
+function ensurePackageMetaStructure(){
+  let changed=false;
+  if(!S.menu){
+    S.menu={sizes:[],packages:{},addons:{},packageMeta:{}};
+    changed=true;
+  }
+  if(!S.menu.packageMeta){
+    S.menu.packageMeta={};
+    changed=true;
+  }
+  for(const name of Object.keys(S.menu.packages||{})){
+    if(!S.menu.packageMeta[name]){
+      S.menu.packageMeta[name]={};
+      changed=true;
+    }
+    const meta=S.menu.packageMeta[name];
+    if(!Array.isArray(meta.includedAddons)){
+      meta.includedAddons=[];
+      changed=true;
+    }
+    if(typeof meta.description!=='string'){
+      meta.description='';
+      changed=true;
+    }
+    const lockValue=!!meta.lock;
+    if(meta.lock!==lockValue){
+      meta.lock=lockValue;
+      changed=true;
+    }
+  }
+  if(changed) Storage.save(S);
+}
 
 /*** Utils ***/
 function uid(){ return Math.random().toString(36).slice(2,10); }
 function fmt(n){ return "$"+Number(n||0).toFixed(2); }
 function el(tag, attrs={}, ...children){ const e=document.createElement(tag); for(const [k,v] of Object.entries(attrs)){ if(k==='class')e.className=v; else if(k==='html') e.innerHTML=v; else if(k.startsWith('on')) e.addEventListener(k.slice(2),v); else e.setAttribute(k,v); } children.forEach(c=>e.append(c)); return e; }
 function today(){ return new Date().toISOString().slice(0,10); }
-function pkgMeta(name){ return (S.menu.packageMeta && S.menu.packageMeta[name]) || {lock:false, includedAddons:[]}; }
+function parseDurationInput(value){
+  if(!value) return null;
+  const raw=String(value).trim();
+  if(!raw) return null;
+  const colonMatch=raw.match(/^(\d+):(\d{1,2})$/);
+  if(colonMatch){
+    const hrs=Number(colonMatch[1]);
+    const mins=Number(colonMatch[2]);
+    if(!Number.isNaN(hrs) && !Number.isNaN(mins)) return hrs*60+mins;
+  }
+  let total=0;
+  let matched=false;
+  const hourMatch=raw.match(/(\d+(?:\.\d+)?)\s*h/i);
+  if(hourMatch){
+    total+=Math.round(parseFloat(hourMatch[1])*60);
+    matched=true;
+  }
+  const minMatch=raw.match(/(\d+)\s*m/i);
+  if(minMatch){
+    total+=parseInt(minMatch[1],10);
+    matched=true;
+  }
+  if(!matched && /^\d+(?:\.\d+)?$/.test(raw)){
+    const numeric=parseFloat(raw);
+    if(raw.includes('.') && numeric<=24){
+      total+=Math.round(numeric*60);
+    } else {
+      total+=Math.round(numeric);
+    }
+    matched=true;
+  }
+  return matched && total>0 ? total : null;
+}
+function formatDurationMinutes(mins){
+  if(mins==null) return '';
+  const value=Math.max(0,Math.round(mins));
+  const hrs=Math.floor(value/60);
+  const rem=value%60;
+  if(hrs && rem) return `${hrs}h ${rem}m`;
+  if(hrs) return `${hrs}h`;
+  return `${rem}m`;
+}
+function pkgMeta(name){
+  const meta=(S.menu.packageMeta && S.menu.packageMeta[name])||{};
+  const included=Array.isArray(meta.includedAddons)?meta.includedAddons:[];
+  const description=typeof meta.description==='string'?meta.description:'';
+  return {lock:!!meta.lock, includedAddons:included, description};
+}
 
 const Calc = {
   sizeIndex(size){ return S.menu.sizes.indexOf(size); },
@@ -340,7 +621,7 @@ const Calc = {
       return job.vehicles.map(v=>({
         size: v.size || job.size || S.menu.sizes[0],
         base: Number(v.base||0),
-        addons: (v.addons||[]).map(a=>({name:a.name, price:Number(a.price||0)})),
+        addons: (v.addons||[]).map(a=>({name:a.name, price:Number(a.price||0), included:!!a.included})),
         pkg: v.pkg || job.pkg || '',
         label: v.label || ''
       }));
@@ -348,16 +629,61 @@ const Calc = {
     const count=Math.max(1, Number(job.vehicleCount||1));
     const base=Number(job.base||0);
     const size=job.size || S.menu.sizes[0];
-    const addons=(job.addons||[]).map(a=>({name:a.name, price:Number(a.price||0)}));
+    const addons=(job.addons||[]).map(a=>({name:a.name, price:Number(a.price||0), included:!!a.included}));
     return Array.from({length:count},()=>({
       size,
       base,
-      addons: addons.map(a=>({name:a.name, price:Number(a.price||0)})),
+      addons: addons.map(a=>({name:a.name, price:Number(a.price||0), included:!!a.included})),
       pkg: job.pkg || ''
     }));
   },
+  addonSummary(job){
+    const vehicles=this.vehicles(job);
+    const perVehicle=vehicles.map((v,idx)=>{
+      const addons=Array.isArray(v.addons)?v.addons:[];
+      const included=addons.filter(a=>a && a.included).length;
+      const custom=addons.filter(a=>a && !a.included).length;
+      return {index:idx,label:v.label||'',size:v.size||'',included,custom};
+    });
+    let legacyIncluded=0;
+    let legacyCustom=0;
+    if(!vehicles.length && Array.isArray(job.addons)){
+      for(const addon of job.addons){
+        if(addon?.included) legacyIncluded++;
+        else legacyCustom++;
+      }
+    }
+    const totals=perVehicle.reduce((acc,info)=>{
+      acc.custom+=info.custom;
+      acc.included+=info.included;
+      return acc;
+    },{custom:legacyCustom,included:legacyIncluded});
+    if(Array.isArray(job.extraCharges)){
+      for(const extra of job.extraCharges){
+        if(!extra) continue;
+        if(extra.included) totals.included++;
+        else totals.custom++;
+      }
+    }
+    const requiresUpgrade=totals.custom>=4;
+    const message=requiresUpgrade
+      ? '4+ custom add-ons selected. Upgrade to Full Detail pricing or adjust scope.'
+      : (totals.custom>0
+          ? '≤3 custom add-ons keeps this at Maintenance pricing. Track time carefully.'
+          : 'No custom add-ons selected. Maintain Maintenance Detail pricing.');
+    const upsell='Always offer Spray Wax / Sealant / Ceramic after the exterior is clean and dry.';
+    return {perVehicle, totalCustom:totals.custom, totalIncluded:totals.included, requiresUpgrade, message, upsell};
+  },
   vehicleCount(job){ return this.vehicles(job).length; },
-  subtotal(job){ return this.vehicles(job).reduce((t,v)=>t+this.vehicleSubtotal(v),0); },
+  subtotal(job){
+    const base=this.vehicles(job).reduce((t,v)=>t+this.vehicleSubtotal(v),0);
+    const extras=Array.isArray(job.extraCharges)?job.extraCharges.reduce((sum,charge)=>{
+      if(!charge) return sum;
+      if(charge.included) return sum;
+      return sum+Number(charge.price||0);
+    },0):0;
+    return base+extras;
+  },
   discount(job){
     const discType = job.discType;
     if(!discType || discType==='none') return 0;
@@ -386,6 +712,7 @@ const Calc = {
 const App = {
   init(){
     this.normalizeClients();
+    this.normalizeJobs();
     UI.initHeader();
     UI.initTabs();
     UI.populateClients();
@@ -400,6 +727,7 @@ const App = {
     UI.resetJobForm();
     UI.refreshJobsList();
     UI.refreshDashboard();
+    // Service worker intentionally disabled in no-SW build.
   },
   normalizeClients(){
     S.clients = Array.isArray(S.clients) ? S.clients : [];
@@ -413,11 +741,395 @@ const App = {
       }
     }
   },
+  normalizeJobs(){
+    S.jobs = Array.isArray(S.jobs) ? S.jobs : [];
+    for(const job of S.jobs){
+      this.ensureJobStructure(job);
+    }
+    Storage.save(S);
+  },
+  ensureJobStructure(job){
+    if(!job) return;
+    if(!Array.isArray(job.vehicles)) job.vehicles=[];
+    if(!Array.isArray(job.payments)) job.payments=[];
+    if(!job.schedule || typeof job.schedule!=='object'){
+      job.schedule={ date:job.date||today(), start:'', end:'', durationMinutes:null };
+    } else {
+      if(!job.schedule.date) job.schedule.date=job.date||today();
+      if(job.schedule.durationMinutes!=null) job.schedule.durationMinutes=Number(job.schedule.durationMinutes)||0;
+    }
+    if(!job.date) job.date=job.schedule.date||today();
+    if(!job.createdAt){
+      const base=job.schedule.date?`${job.schedule.date}T08:00:00`:`${today()}T08:00:00`;
+      job.createdAt=new Date(base).toISOString();
+    }
+    if(!Array.isArray(job.extraCharges)) job.extraCharges=[];
+    if(!Array.isArray(job.services) || !job.services.length){
+      job.services=this.createServicesFromVehicles(job);
+    } else {
+      this.normalizeServices(job);
+    }
+    this.ensureTimers(job);
+    this.ensureChecklist(job);
+  },
+  normalizeServices(job){
+    if(!Array.isArray(job.services)){
+      job.services=[];
+      return;
+    }
+    job.services=job.services.map(service=>{
+      const copy={...service};
+      copy.id=copy.id||uid();
+      copy.type=copy.type||'custom';
+      copy.name=copy.name||'Service';
+      if(copy.price!=null) copy.price=Number(copy.price||0);
+      copy.included=!!copy.included;
+      if(copy.vehicleIndex!=null) copy.vehicleIndex=Number(copy.vehicleIndex);
+      if(copy.vehicleLabel==null) copy.vehicleLabel='';
+      return copy;
+    });
+  },
+  createServicesFromVehicles(job){
+    const services=[];
+    const vehicles=Array.isArray(job.vehicles)?job.vehicles:[];
+    vehicles.forEach((vehicle,idx)=>{
+      const label=vehicle.label||`Vehicle ${idx+1}`;
+      if(vehicle.pkg){
+        services.push({id:uid(),type:'package',name:vehicle.pkg,vehicleIndex:idx,vehicleLabel:label,price:Number(vehicle.base||0)||0,included:false});
+      }
+      (vehicle.addons||[]).forEach(addon=>{
+        if(!addon?.name) return;
+        services.push({id:uid(),type:'addon',name:addon.name,vehicleIndex:idx,vehicleLabel:label,price:Number(addon.price||0)||0,included:!!addon.included});
+      });
+    });
+    if(Array.isArray(job.extraCharges)){
+      job.extraCharges.forEach(extra=>{
+        if(!extra?.name) return;
+        services.push({id:extra.id||uid(),type:extra.type||'custom',name:extra.name,vehicleIndex:extra.vehicleIndex!=null?Number(extra.vehicleIndex):null,vehicleLabel:extra.vehicleLabel||'',price:Number(extra.price||0)||0,included:!!extra.included});
+      });
+    }
+    return services;
+  },
+  createTimers(){
+    return {
+      overall:this.createTimer('overall','Overall Timer'),
+      setup:this.createTimer('setup','Setup / Prep'),
+      base:this.createTimer('base','Base Services'),
+      addons:this.createTimer('addons','Add-ons / Finishing')
+    };
+  },
+  createTimer(id,label){
+    return {id,label,elapsed:0,runningSince:null};
+  },
+  ensureTimers(job){
+    if(!job.timers || typeof job.timers!=='object'){
+      job.timers=this.createTimers();
+      return;
+    }
+    const defaults=this.createTimers();
+    for(const key of Object.keys(defaults)){
+      if(!job.timers[key]){
+        job.timers[key]=defaults[key];
+        continue;
+      }
+      const timer=job.timers[key];
+      if(typeof timer.label!=='string') timer.label=defaults[key].label;
+      if(typeof timer.elapsed!=='number') timer.elapsed=Number(timer.elapsed||0);
+      if(typeof timer.runningSince!=='number') timer.runningSince=null;
+      timer.id=timer.id||key;
+    }
+  },
+  serviceSlug(name){
+    return (name||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||uid();
+  },
+  collectAddonNames(job){
+    const names=[];
+    if(Array.isArray(job?.services)){
+      for(const service of job.services){
+        if(!service?.name) continue;
+        if((service.type==='addon'||service.type==='custom') && !names.includes(service.name)){
+          names.push(service.name);
+        }
+      }
+    }
+    if(Array.isArray(job?.vehicles)){
+      job.vehicles.forEach(vehicle=>{
+        (vehicle.addons||[]).forEach(addon=>{
+          if(addon?.name && !names.includes(addon.name)) names.push(addon.name);
+        });
+      });
+    }
+    if(Array.isArray(job?.extraCharges)){
+      job.extraCharges.forEach(extra=>{
+        if(extra?.name && !names.includes(extra.name)) names.push(extra.name);
+      });
+    }
+    return names;
+  },
+  timerElapsedMs(timer){
+    if(!timer) return 0;
+    const elapsed=Number(timer.elapsed||0);
+    if(timer.runningSince) return elapsed+Math.max(0, Date.now()-timer.runningSince);
+    return elapsed;
+  },
+  timerElapsedMinutes(timer){
+    return Math.round(this.timerElapsedMs(timer)/60000);
+  },
+  toggleTimer(jobId,key){
+    const job=S.jobs.find(x=>x.id===jobId);
+    if(!job) return;
+    this.ensureTimers(job);
+    const timer=job.timers[key];
+    if(!timer) return;
+    if(timer.runningSince){
+      timer.elapsed+=Date.now()-timer.runningSince;
+      timer.runningSince=null;
+    } else {
+      timer.runningSince=Date.now();
+      if(key!=='overall' && job.timers.overall && !job.timers.overall.runningSince){
+        job.timers.overall.runningSince=Date.now();
+      }
+    }
+    Storage.save(S);
+    UI.refreshJobsList();
+    UI.renderJobPanel(jobId);
+  },
+  resetTimer(jobId,key){
+    const job=S.jobs.find(x=>x.id===jobId);
+    if(!job) return;
+    this.ensureTimers(job);
+    const timer=job.timers[key];
+    if(!timer) return;
+    timer.elapsed=0;
+    timer.runningSince=null;
+    Storage.save(S);
+    UI.refreshJobsList();
+    UI.renderJobPanel(jobId);
+  },
+  setTimerMinutes(jobId,key,minutes){
+    const job=S.jobs.find(x=>x.id===jobId);
+    if(!job) return;
+    this.ensureTimers(job);
+    const timer=job.timers[key];
+    if(!timer) return;
+    timer.elapsed=Math.max(0, Math.round(Number(minutes||0)*60000));
+    timer.runningSince=null;
+    Storage.save(S);
+    UI.refreshJobsList();
+    UI.renderJobPanel(jobId);
+  },
+  addService(jobId, service){
+    const job=S.jobs.find(x=>x.id===jobId);
+    if(!job) return;
+    this.ensureJobStructure(job);
+    const entry={
+      id:uid(),
+      type:service.type||'custom',
+      name:service.name||'Service',
+      price:Number(service.price||0),
+      included:!!service.included,
+      vehicleIndex:service.vehicleIndex!=null?Number(service.vehicleIndex):null,
+      vehicleLabel:service.vehicleLabel||''
+    };
+    job.services.push(entry);
+    if(entry.type==='addon' || entry.type==='custom'){
+      job.extraCharges=Array.isArray(job.extraCharges)?job.extraCharges:[];
+      job.extraCharges.push({id:entry.id,name:entry.name,price:entry.price,included:entry.included,type:entry.type,vehicleIndex:entry.vehicleIndex,vehicleLabel:entry.vehicleLabel});
+    }
+    this.ensureChecklist(job);
+    Storage.save(S);
+    UI.refreshJobsList();
+    UI.renderJobPanel(jobId);
+  },
+  removeService(jobId, serviceId){
+    const job=S.jobs.find(x=>x.id===jobId);
+    if(!job || !Array.isArray(job.services)) return;
+    const idx=job.services.findIndex(s=>s.id===serviceId);
+    if(idx<0) return;
+    job.services.splice(idx,1);
+    if(Array.isArray(job.extraCharges)){
+      job.extraCharges=job.extraCharges.filter(extra=>extra?.id!==serviceId);
+    }
+    this.ensureChecklist(job);
+    Storage.save(S);
+    UI.refreshJobsList();
+    UI.renderJobPanel(jobId);
+  },
+  createChecklist(job=null){
+    return { sections: this.createChecklistSections(job) };
+  },
+  createChecklistSections(job=null){
+    const sections = CREW_CHECKLIST_SECTIONS.map(section=>({
+      id: section.id,
+      title: section.title,
+      goalMinutes: section.goalMinutes,
+      items: section.items.map(item=>({
+        id: item.id,
+        label: item.label,
+        description: item.description || '',
+        completed: false,
+        elapsed: 0,
+        runningSince: null
+      }))
+    }));
+    const dynamic=this.buildAddonChecklistSection(job);
+    if(dynamic) sections.push(dynamic);
+    return sections;
+  },
+  buildAddonChecklistSection(job){
+    if(!job) return null;
+    const addonNames=this.collectAddonNames(job);
+    if(!addonNames.length) return null;
+    const items=addonNames.map(name=>({
+      id:'addon-'+this.serviceSlug(name),
+      label:name,
+      description:'Confirm completion for this add-on or finishing touch.',
+      completed:false,
+      elapsed:0,
+      runningSince:null
+    }));
+    return {
+      id:'addons-dynamic',
+      title:'Add-ons & Finishing',
+      goalMinutes:Math.max(15, job.schedule?.durationMinutes ? Math.round(job.schedule.durationMinutes*0.25)||15 : 20),
+      items
+    };
+  },
+  ensureChecklist(job){
+    if(!job) return;
+    let changed=false;
+    if(!job.checklist || !Array.isArray(job.checklist.sections)){
+      job.checklist=this.createChecklist(job);
+      changed=true;
+    }
+    const sections=job.checklist.sections;
+    const templateMap=new Map(CREW_CHECKLIST_SECTIONS.map(section=>[section.id, section]));
+    for(const [sectionId, template] of templateMap){
+      let section=sections.find(s=>s.id===sectionId);
+      if(!section){
+        section={
+          id: template.id,
+          title: template.title,
+          goalMinutes: template.goalMinutes,
+          items: template.items.map(item=>({
+            id: item.id,
+            label: item.label,
+            description: item.description || '',
+            completed: false,
+            elapsed: 0,
+            runningSince: null
+          }))
+        };
+        sections.push(section);
+        changed=true;
+        continue;
+      }
+      if(section.title==null) section.title=template.title;
+      if(section.goalMinutes==null) section.goalMinutes=template.goalMinutes;
+      if(!Array.isArray(section.items)) section.items=[];
+      for(const itemTemplate of template.items){
+        let item=section.items.find(i=>i.id===itemTemplate.id);
+        if(!item){
+          section.items.push({
+            id: itemTemplate.id,
+            label: itemTemplate.label,
+            description: itemTemplate.description || '',
+            completed: false,
+            elapsed: 0,
+            runningSince: null
+          });
+          changed=true;
+        } else {
+          if(item.label==null) item.label=itemTemplate.label;
+          if(item.description==null && itemTemplate.description) item.description=itemTemplate.description;
+          if(item.elapsed==null) item.elapsed=0;
+          if(item.runningSince==null || typeof item.runningSince!=='number') item.runningSince=null;
+          if(typeof item.completed!=='boolean') item.completed=!!item.completed;
+        }
+      }
+    }
+    const dynamicTemplate=this.buildAddonChecklistSection(job);
+    const dynamicIndex=sections.findIndex(s=>s.id==='addons-dynamic');
+    if(dynamicTemplate){
+      let section=dynamicIndex>=0?sections[dynamicIndex]:null;
+      if(!section){
+        sections.push(dynamicTemplate);
+        changed=true;
+      } else {
+        if(section.title!==dynamicTemplate.title){ section.title=dynamicTemplate.title; changed=true; }
+        if(section.goalMinutes!==dynamicTemplate.goalMinutes){ section.goalMinutes=dynamicTemplate.goalMinutes; changed=true; }
+        if(!Array.isArray(section.items)) section.items=[];
+        const seen=new Set();
+        for(const itemTemplate of dynamicTemplate.items){
+          let item=section.items.find(i=>i.id===itemTemplate.id);
+          if(!item){
+            section.items.push({...itemTemplate});
+            changed=true;
+            item=section.items[section.items.length-1];
+          }
+          if(item.label!==itemTemplate.label){ item.label=itemTemplate.label; changed=true; }
+          if(item.description==null) item.description=itemTemplate.description;
+          if(item.elapsed==null) item.elapsed=0;
+          if(item.runningSince==null || typeof item.runningSince!=='number') item.runningSince=null;
+          if(typeof item.completed!=='boolean') item.completed=!!item.completed;
+          seen.add(itemTemplate.id);
+        }
+        const filtered=section.items.filter(i=>seen.has(i.id));
+        if(filtered.length!==section.items.length){
+          section.items=filtered;
+          changed=true;
+        }
+      }
+    } else if(dynamicIndex>=0){
+      sections.splice(dynamicIndex,1);
+      changed=true;
+    }
+    if(changed) Storage.save(S);
+  },
+  findChecklistItem(job, sectionId, itemId){
+    if(!job?.checklist?.sections) return {section:null,item:null};
+    const section=job.checklist.sections.find(s=>s.id===sectionId) || null;
+    const item=section?.items?.find(i=>i.id===itemId) || null;
+    return {section,item};
+  },
+  checklistElapsedMs(item){
+    if(!item) return 0;
+    const elapsed=Number(item.elapsed||0);
+    if(item.runningSince) return elapsed+Math.max(0,Date.now()-item.runningSince);
+    return elapsed;
+  },
+  setChecklistComplete(jobId, sectionId, itemId, completed){
+    const job=S.jobs.find(x=>x.id===jobId);
+    if(!job) return;
+    this.ensureChecklist(job);
+    const {item}=this.findChecklistItem(job,sectionId,itemId);
+    if(!item) return;
+    item.completed=!!completed;
+    if(item.completed && item.runningSince){
+      item.elapsed+=Date.now()-item.runningSince;
+      item.runningSince=null;
+    }
+    Storage.save(S);
+  },
+  toggleChecklistTimer(jobId, sectionId, itemId){
+    const job=S.jobs.find(x=>x.id===jobId);
+    if(!job) return;
+    this.ensureChecklist(job);
+    const {item}=this.findChecklistItem(job,sectionId,itemId);
+    if(!item) return;
+    if(item.runningSince){
+      item.elapsed+=Date.now()-item.runningSince;
+      item.runningSince=null;
+    } else {
+      item.runningSince=Date.now();
+    }
+    Storage.save(S);
+  },
   addClient(){ const name=document.getElementById('cName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(), name, phone:document.getElementById('cPhone').value.trim(), notes:document.getElementById('cNotes').value.trim(), discount:{type:document.getElementById('cDiscType').value, value:Number(document.getElementById('cDiscValue').value||0)}, vehicles:[]}; S.clients.push(c); Storage.save(S); UI.populateClients(); UI.flash('Client added.'); document.getElementById('cName').value='';document.getElementById('cPhone').value='';document.getElementById('cNotes').value='';document.getElementById('cDiscType').value='none';document.getElementById('cDiscValue').value='0'; },
   addQuickClient(){ const name=document.getElementById('qcName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(), name, phone:document.getElementById('qcPhone').value.trim(), notes:document.getElementById('qcNotes').value.trim(), discount:{type:document.getElementById('qcDiscType').value, value:Number(document.getElementById('qcDiscValue').value||0)}, vehicles:[]}; S.clients.push(c); Storage.save(S); UI.populateClients(c.id); UI.hideQuickClient(); UI.flash('Client added.'); UI.onClientChange(); },
   syncClientVehicles(job,{updateLastService=false}={}){
     const client=S.clients.find(x=>x.id===job.clientId);
-    if(!client){ Storage.save(S); return; }
+    if(!client) return;
     if(!Array.isArray(client.vehicles)) client.vehicles=[];
     for(const vehicle of job.vehicles||[]){
       const label=(vehicle.label||'').trim();
@@ -449,11 +1161,163 @@ const App = {
     Storage.save(S);
     UI.populateClients(job.clientId);
   },
-  saveJob(){ const clientId=document.getElementById('jobClient').value; if(!clientId) return alert('Client is required'); const vehicles=UI.collectVehicles(); if(!vehicles.length) return alert('Add at least one vehicle'); if(vehicles.some(v=>!v.pkg)) return alert('Select a package for each vehicle'); const discType=document.getElementById('jobDiscType').value; const discValue=Number(document.getElementById('jobDiscValue').value||0); const discScope=document.getElementById('jobDiscScope').value; const notes=document.getElementById('jobNotes').value.trim(); const primaryPkg=vehicles[0]?.pkg||''; const job={id:uid(), date:today(), clientId,pkg:primaryPkg,vehicles,discType,discValue,discScope,notes,status:"Quoted",payments:[]}; job.size=vehicles[0]?.size||''; job.vehicleCount=vehicles.length; S.jobs.unshift(job); Storage.save(S); this.syncClientVehicles(job); UI.refreshJobsList(); UI.resetJobForm(); UI.flash('Quote saved.'); },
-  updateJobStatus(id,next){ const j=S.jobs.find(x=>x.id===id); if(!j) return; j.status=next; if(next==='Complete'||next==='Paid'){ this.syncClientVehicles(j,{updateLastService:true}); }
-    else { Storage.save(S); UI.populateClients(j.clientId); }
+  saveJob(options={}){
+    const asQuote=!!(options && options.asQuote);
+    const clientId=document.getElementById('jobClient').value;
+    if(!clientId) return alert('Client is required');
+    const vehicles=UI.collectVehicles();
+    if(!vehicles.length) return alert('Add at least one vehicle');
+    if(vehicles.some(v=>!v.pkg)) return alert('Select a package for each vehicle');
+    const discType=document.getElementById('jobDiscType').value;
+    const discValue=Number(document.getElementById('jobDiscValue').value||0);
+    const discScopeValue=document.getElementById('jobDiscScope').value;
+    const discScope=discScopeValue==='vehicle'?'vehicle':'job';
+    const notes=document.getElementById('jobNotes').value.trim();
+    const scheduleDate=document.getElementById('jobDate').value || today();
+    const scheduleStart=document.getElementById('jobStart').value || '';
+    const scheduleEnd=document.getElementById('jobEnd').value || '';
+    const scheduleDuration=parseDurationInput(document.getElementById('jobDuration').value);
+    const primaryPkg=vehicles[0]?.pkg||'';
+    const schedule={date:scheduleDate,start:scheduleStart,end:scheduleEnd,durationMinutes:scheduleDuration};
+    if(UI.editingJobId){
+      const job=S.jobs.find(x=>x.id===UI.editingJobId);
+      if(job){
+        const previousStatus=job.status;
+        job.clientId=clientId;
+        job.pkg=primaryPkg;
+        job.vehicles=vehicles.map(v=>({
+          ...v,
+          addons:Array.isArray(v.addons)?v.addons.map(a=>({...a})) : []
+        }));
+        job.discType=discType;
+        job.discValue=discValue;
+        job.discScope=discScope;
+        job.notes=notes;
+        job.schedule=schedule;
+        job.date=scheduleDate;
+        job.size=vehicles[0]?.size||'';
+        job.vehicleCount=vehicles.length;
+        if(Array.isArray(job.extraCharges)){
+          job.extraCharges=job.extraCharges.map(extra=>{
+            if(!extra) return extra;
+            const copy={...extra};
+            const idx=copy.vehicleIndex!=null?Number(copy.vehicleIndex):-1;
+            if(copy.vehicleIndex!=null) copy.vehicleIndex=idx;
+            if(idx>=vehicles.length){
+              copy.vehicleIndex=null;
+              copy.vehicleLabel='';
+            }
+            return copy;
+          });
+        } else {
+          job.extraCharges=[];
+        }
+        job.services=this.createServicesFromVehicles(job);
+        this.normalizeServices(job);
+        this.ensureChecklist(job);
+        Storage.save(S);
+        this.syncClientVehicles(job);
+        UI.refreshJobsList();
+        UI.renderJobPanel(job.id,true);
+        UI.resetJobForm();
+        let converted=false;
+        if(asQuote){
+          if(!['Paid','Complete'].includes(job.status)){
+            job.status='Quoted';
+            Storage.save(S);
+            UI.refreshJobsList();
+          }
+          UI.flash('Quote updated.');
+          UI.switchTab('Quotes');
+        } else {
+          if(previousStatus==='Quoted'){
+            job.status='Booked';
+            Storage.save(S);
+            UI.refreshJobsList();
+            converted=true;
+          }
+          if(converted){
+            UI.flash('Quote converted to job.');
+            UI.switchTab('Jobs');
+          } else {
+            UI.flash('Job updated.');
+          }
+        }
+        return;
+      }
+      UI.editingJobId=null;
+      UI.updateJobFormEditingUI(null);
+      UI.flash('Could not find the original job. A new job will be scheduled instead.');
+    }
+    const job={
+      id:uid(),
+      date:scheduleDate,
+      createdAt:new Date().toISOString(),
+      clientId,
+      pkg:primaryPkg,
+      vehicles,
+      discType,
+      discValue,
+      discScope,
+      notes,
+      status:asQuote?'Quoted':'Booked',
+      payments:[],
+      schedule,
+      extraCharges:[]
+    };
+    job.size=vehicles[0]?.size||'';
+    job.vehicleCount=vehicles.length;
+    job.services=this.createServicesFromVehicles(job);
+    job.timers=this.createTimers();
+    job.checklist=this.createChecklist(job);
+    this.ensureChecklist(job);
+    S.jobs.unshift(job);
+    Storage.save(S);
+    this.syncClientVehicles(job);
     UI.refreshJobsList();
-    UI.flash('Status: '+next); },
+    UI.resetJobForm();
+    if(asQuote){
+      UI.flash('Quote saved.');
+      UI.switchTab('Quotes');
+    } else {
+      UI.flash('Job scheduled.');
+      UI.switchTab('Jobs');
+    }
+  },
+  updateJobStatus(id,next){
+    const job=S.jobs.find(x=>x.id===id);
+    if(!job) return;
+    this.ensureJobStructure(job);
+    job.status=next;
+    let savedViaSync=false;
+    if(next==='In Progress' && !job.startedAt){
+      job.startedAt=new Date().toISOString();
+      if(job.timers?.overall && !job.timers.overall.runningSince){
+        job.timers.overall.runningSince=Date.now();
+      }
+    }
+    if(next==='Complete' || next==='Paid'){
+      job.completedAt=new Date().toISOString();
+      if(job.timers){
+        for(const timer of Object.values(job.timers)){
+          if(timer?.runningSince){
+            timer.elapsed+=Date.now()-timer.runningSince;
+            timer.runningSince=null;
+          }
+        }
+      }
+      job.totalMinutes=this.timerElapsedMinutes(job.timers?.overall||{elapsed:0});
+      this.syncClientVehicles(job,{updateLastService:true});
+      savedViaSync=true;
+    }
+    if(!savedViaSync){
+      Storage.save(S);
+      UI.populateClients(job.clientId);
+    }
+    UI.refreshJobsList();
+    UI.renderJobPanel(id);
+    UI.flash('Status: '+next);
+  },
   takePayment(id){
     const j=S.jobs.find(x=>x.id===id);
     if(!j) return;
@@ -465,35 +1329,71 @@ const App = {
     j.payments.push({date:today(),method,amount});
     const paid2=j.payments.reduce((t,p)=>t+Number(p.amount||0),0);
     if(paid2+1e-6>=Calc.total(j)){
-      j.status='Paid';
       const vehicleLabel=UI.jobVehicleSummary(j);
       const pkgLabel=UI.jobPackageLabel(j);
       const itemLabel=vehicleLabel?`${pkgLabel} — ${vehicleLabel}`:pkgLabel;
-      S.transactions.push({id:uid(), type:'Income', date:today(), category:'Package', item:itemLabel, clientId:j.clientId, vendor:'', payment:method, amount:Calc.total(j), notes:'Discount: '+(j.discType||'none')+' '+(j.discValue||0)});
-      this.syncClientVehicles(j,{updateLastService:true});
+      S.transactions.push({id:uid(), jobId:j.id, type:'Income', date:today(), category:'Package', item:itemLabel, clientId:j.clientId, vendor:'', payment:method, amount:Calc.total(j), notes:'Discount: '+(j.discType||'none')+' '+(j.discValue||0)});
+      this.updateJobStatus(j.id,'Paid');
       UI.flash('Paid in full. Income posted.');
     } else {
       Storage.save(S);
       UI.populateClients(j.clientId);
+      UI.refreshJobsList();
+      UI.renderJobPanel(id);
       UI.flash('Partial payment recorded.');
     }
-    UI.refreshJobsList();
     UI.refreshDashboard();
   },
-  deleteJob(id){ if(!confirm('Delete this job?')) return; S.jobs=S.jobs.filter(x=>x.id!==id); Storage.save(S); UI.refreshJobsList(); },
-  addExpenseRecord(rec){ S.transactions.push(rec); Storage.save(S); UI.refreshDashboard(); }
+  deleteJob(id){
+    if(!confirm('Delete this job?')) return;
+    const before=S.transactions.length;
+    S.jobs=S.jobs.filter(x=>x.id!==id);
+    S.transactions=S.transactions.filter(t=>t.jobId!==id);
+    Storage.save(S);
+    if(UI.jobPanelJobId===id) UI.closeJobPanel();
+    UI.refreshJobsList();
+    UI.refreshDashboard();
+    const removed=before!==S.transactions.length;
+    UI.flash(removed?'Job and related income removed.':'Job deleted.');
+  },
+  deleteTransaction(id){
+    const idx=S.transactions.findIndex(t=>t.id===id);
+    if(idx<0) return false;
+    if(!confirm('Delete this record?')) return false;
+    S.transactions.splice(idx,1);
+    Storage.save(S);
+    UI.refreshDashboard();
+    UI.flash('Transaction deleted.');
+    return true;
+  },
+  addExpenseRecord(rec){
+    const record={id:rec.id||uid(), type:'Expense', date:rec.date, category:rec.category, item:rec.item||'', clientId:rec.clientId||null, vendor:rec.vendor||'', payment:rec.payment||'', amount:Number(rec.amount||0), notes:rec.notes||'', receiptImage:rec.receiptImage||null};
+    S.transactions.push(record);
+    Storage.save(S);
+    UI.refreshDashboard();
+  }
 };
 
 /*** UI ***/
 const UI = {
+  checklistTicker:null,
+  checklistHost:null,
+  checklistJobId:null,
+  ocrPromise:null,
+  jobFilter:'all',
+  jobPanelJobId:null,
+  editingJobId:null,
   initHeader(){ const logo=document.getElementById('headerLogo'); logo.src=S.business.logoDataUrl||'icon-192.png'; document.getElementById('headerTitle').textContent=S.business.headerTitle||'POLISH CREW — Accounting'; document.getElementById('openDrawer').onclick=()=>UI.toggleDrawer(true); },
   switchTab(name){ document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.getAttribute('data-tab')===name)); document.querySelectorAll('.tabpage').forEach(p=>p.classList.add('hidden')); document.getElementById(name).classList.remove('hidden'); },
   initTabs(){ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>UI.switchTab(t.getAttribute('data-tab')))); },
   packageOptionLabel(name,size){
     const price=Calc.base(name,size);
-    const included=(pkgMeta(name).includedAddons||[]).filter(Boolean);
+    const meta=pkgMeta(name);
+    const included=(meta.includedAddons||[]).filter(Boolean);
+    const description=(meta.description||'').trim();
+    const descText=description?` • ${description}`:'';
     const includeText=included.length?` • Includes: ${included.join(', ')}`:'';
-    return `${name} — ${fmt(price)}${includeText}`;
+    return `${name} — ${fmt(price)}${descText}${includeText}`;
   },
   updatePackageSelectOptions(sel,{preferred}={}){
     if(!sel) return;
@@ -554,6 +1454,87 @@ const UI = {
   },
   onClientChange(){
     UI.refreshClientVehicleOptions();
+  },
+  updateJobFormEditingUI(job){
+    const saveBtn=document.getElementById('jobSaveBtn');
+    const quoteBtn=document.getElementById('quoteSaveBtn');
+    const cancelBtn=document.getElementById('jobEditCancel');
+    if(job){
+      if(saveBtn) saveBtn.textContent=job.status==='Quoted'?'Book Job':'Update Job';
+      if(quoteBtn){
+        if(['Paid','Complete'].includes(job.status)){
+          quoteBtn.classList.add('hidden');
+        } else {
+          quoteBtn.classList.remove('hidden');
+          quoteBtn.textContent=job.status==='Quoted'?'Update Quote':'Save as Quote';
+        }
+      }
+      if(cancelBtn) cancelBtn.classList.remove('hidden');
+    } else {
+      if(saveBtn) saveBtn.textContent='Schedule Job';
+      if(quoteBtn){
+        quoteBtn.classList.remove('hidden');
+        quoteBtn.textContent='Save Quote';
+      }
+      if(cancelBtn) cancelBtn.classList.add('hidden');
+    }
+  },
+  editJob(jobId){
+    const job=S.jobs.find(x=>x.id===jobId);
+    if(!job) return;
+    App.ensureJobStructure(job);
+    this.switchTab('QuoteBuilder');
+    this.editingJobId=jobId;
+    this.populateClients(job.clientId);
+    const clientSel=document.getElementById('jobClient');
+    if(clientSel) clientSel.value=job.clientId||'';
+    const list=document.getElementById('vehiclesList');
+    if(list){
+      list.innerHTML='';
+    }
+    this.onClientChange();
+    if(list){
+      if(Array.isArray(job.vehicles) && job.vehicles.length){
+        job.vehicles.forEach(vehicle=>{
+          const clone={...vehicle};
+          if(Array.isArray(vehicle.addons)) clone.addons=vehicle.addons.map(a=>({...a}));
+          this.addVehicle(clone);
+        });
+      } else {
+        this.addVehicle();
+      }
+    }
+    const schedule=job.schedule||{};
+    const dateInput=document.getElementById('jobDate');
+    if(dateInput) dateInput.value=schedule.date || job.date || today();
+    const startInput=document.getElementById('jobStart');
+    if(startInput) startInput.value=schedule.start || '';
+    const endInput=document.getElementById('jobEnd');
+    if(endInput) endInput.value=schedule.end || '';
+    const durationInput=document.getElementById('jobDuration');
+    if(durationInput){
+      const mins=Number(schedule.durationMinutes||0);
+      durationInput.value=mins>0?formatDurationMinutes(mins):'';
+    }
+    const discTypeSel=document.getElementById('jobDiscType');
+    if(discTypeSel) discTypeSel.value=job.discType||'none';
+    const discValueInput=document.getElementById('jobDiscValue');
+    if(discValueInput) discValueInput.value=Number(job.discValue||0);
+    const discScopeSel=document.getElementById('jobDiscScope');
+    if(discScopeSel) discScopeSel.value=job.discScope==='vehicle'?'vehicle':'job';
+    const notesInput=document.getElementById('jobNotes');
+    if(notesInput) notesInput.value=job.notes||'';
+    this.updateTotals();
+    this.updateJobFormEditingUI(job);
+    this.flash('Edit mode enabled for this job.');
+  },
+  cancelJobEdit(){
+    if(!this.editingJobId){
+      this.updateJobFormEditingUI(null);
+      return;
+    }
+    this.resetJobForm();
+    this.flash('Edit cancelled.');
   },
   openClientVehicles(id){
     const client=S.clients.find(c=>c.id===id);
@@ -707,6 +1688,8 @@ const UI = {
     header.append(removeWrap);
 
     row.append(header);
+    const pkgInfo=el('div',{class:'vehicle-package-info hidden'});
+    row.append(pkgInfo);
     const addonsHost=el('div',{class:'list vehicle-addons',style:'margin-top:.6rem;gap:.4rem;'});
     row.append(addonsHost);
     list.append(row);
@@ -776,7 +1759,36 @@ const UI = {
     }
     if(baseInput) baseInput.disabled=!!meta.lock;
     row.setAttribute('data-pkg',pkg);
+    UI.renderVehiclePackageInfo(row, meta);
     if(!skipAddons) UI.renderVehicleAddons(row);
+  },
+  renderVehiclePackageInfo(row, metaOverride=null){
+    const info=row.querySelector('.vehicle-package-info');
+    if(!info) return;
+    const pkgSel=row.querySelector('.vehicle-package');
+    const pkg=pkgSel?.value || '';
+    const size=row.querySelector('.vehicle-size')?.value || S.menu.sizes[0] || '';
+    if(!pkg){
+      info.innerHTML='';
+      info.classList.add('hidden');
+      return;
+    }
+    const meta=metaOverride || pkgMeta(pkg);
+    const included=(meta.includedAddons||[]).filter(Boolean);
+    const description=(meta.description||'').trim();
+    info.innerHTML='';
+    info.classList.remove('hidden');
+    info.append(el('h4',{}, pkg));
+    info.append(el('div',{class:'tiny',style:'color:#9fb2ae;font-weight:700;'},`Base for ${size||'selected size'}: ${fmt(Calc.base(pkg,size))}`));
+    if(description) info.append(el('p',{}, description));
+    if(included.length){
+      info.append(el('div',{class:'muted',style:'font-size:.8rem;font-weight:700;color:#9db0a9;'},'Included add-ons'));
+      const list=el('ul',{});
+      included.forEach(name=>list.append(el('li',{},name)));
+      info.append(list);
+    } else if(!description){
+      info.append(el('p',{class:'tiny',style:'color:#8f9a9a;'},'No add-ons are included by default for this package.'));
+    }
   },
   renderVehicleAddons(row,preset=null){
     const host=row.querySelector('.vehicle-addons');
@@ -863,6 +1875,7 @@ const UI = {
     includedSet.forEach(name=>{
       if(!initialMap.has(name)) initialMap.set(name,{name, price:0, included:true});
       else {
+        const item=initialMap.get(name);
         initialMap.set(name,{name, price:0, included:true});
       }
     });
@@ -902,7 +1915,8 @@ const UI = {
         const priceInput=aRow.querySelector('input[type=number]');
         const name=aRow.getAttribute('data-name');
         const price=Number(priceInput?.value||0);
-        return {name, price};
+        const included=aRow.getAttribute('data-included')==='true';
+        return {name, price, included};
       }).filter(a=>a && a.name);
       const vehicle={size, base, addons, pkg};
       if(label) vehicle.label=label;
@@ -925,6 +1939,32 @@ const UI = {
     document.getElementById('jobSubtotal').textContent=fmt(subtotal);
     document.getElementById('jobDiscount').textContent=fmt(discount);
     document.getElementById('jobTotal').textContent=fmt(total);
+    this.renderAddonSummary(vehicles);
+  },
+  renderAddonSummary(vehicles){
+    const host=document.getElementById('addonSummary');
+    if(!host) return;
+    host.innerHTML='';
+    if(!vehicles.length){
+      host.append(el('div',{style:'font-weight:800;'},'Add-on guidance'));
+      host.append(el('div',{class:'tiny'},'Add vehicles to compare Maintenance vs. Full Detail.'));
+      host.classList.remove('alert');
+      return;
+    }
+    const summary=Calc.addonSummary({vehicles});
+    host.append(el('div',{style:'font-weight:800;'}, summary.requiresUpgrade ? '⚠️ Add-on upgrade recommended' : 'Add-on guidance'));
+    host.append(el('div',{class:'tiny'}, summary.message));
+    if(summary.totalIncluded){
+      host.append(el('div',{class:'tiny'}, `Included add-ons: ${summary.totalIncluded}`));
+    }
+    if(summary.perVehicle.length>1){
+      host.append(el('div',{class:'tiny'}, summary.perVehicle.map((info,idx)=>`Vehicle ${idx+1}: ${info.custom} custom / ${info.included} included`).join(' · ')));
+    } else if(summary.perVehicle.length===1){
+      const info=summary.perVehicle[0];
+      host.append(el('div',{class:'tiny'}, `${info.custom} custom · ${info.included} included add-ons`));
+    }
+    host.append(el('div',{class:'tiny'}, summary.upsell));
+    host.classList.toggle('alert', summary.requiresUpgrade);
   },
   refreshDashboard(){
     const month=today().slice(0,7);
@@ -946,7 +1986,38 @@ const UI = {
     if(netEl) netEl.textContent=fmt(net);
   },
   quickDisc(type,val){ document.getElementById('jobDiscType').value=type; document.getElementById('jobDiscValue').value=val; UI.updateTotals(); },
-  resetJobForm(){ const list=document.getElementById('vehiclesList'); if(list) list.innerHTML=''; this.addVehicle(); this.handlePackageChange(); document.getElementById('jobDiscType').value='none'; document.getElementById('jobDiscValue').value='0'; document.getElementById('jobDiscScope').value='job'; document.getElementById('jobNotes').value=''; this.updateTotals(); },
+  resetJobForm(){
+    const list=document.getElementById('vehiclesList');
+    if(list) list.innerHTML='';
+    this.addVehicle();
+    this.handlePackageChange();
+    const discType=document.getElementById('jobDiscType');
+    if(discType) discType.value='none';
+    const discValue=document.getElementById('jobDiscValue');
+    if(discValue) discValue.value='0';
+    const discScope=document.getElementById('jobDiscScope');
+    if(discScope) discScope.value='job';
+    const notes=document.getElementById('jobNotes');
+    if(notes) notes.value='';
+    const dateInput=document.getElementById('jobDate');
+    if(dateInput) dateInput.value=today();
+    const startInput=document.getElementById('jobStart');
+    if(startInput) startInput.value='';
+    const endInput=document.getElementById('jobEnd');
+    if(endInput) endInput.value='';
+    const durationInput=document.getElementById('jobDuration');
+    if(durationInput) durationInput.value='';
+    this.editingJobId=null;
+    this.updateJobFormEditingUI(null);
+    const quoteBtn=document.getElementById('quoteSaveBtn');
+    if(quoteBtn){
+      quoteBtn.textContent='Save Quote';
+      quoteBtn.classList.remove('hidden');
+    }
+    const jobBtn=document.getElementById('jobSaveBtn');
+    if(jobBtn) jobBtn.textContent='Schedule Job';
+    this.updateTotals();
+  },
   jobVehicleSummary(job){ const vehicles=Calc.vehicles(job); if(!vehicles.length) return ''; const counts={}; vehicles.forEach(v=>{ const key=v.size||'Vehicle'; counts[key]=(counts[key]||0)+1; }); return Object.entries(counts).map(([size,count])=>count>1?`${size} × ${count}`:size).join(', '); },
   jobPackageLabel(job){
     const vehicles=Calc.vehicles(job);
@@ -955,17 +2026,931 @@ const UI = {
     if(names.length>1) return 'Multiple Packages';
     return job.pkg || '';
   },
-  refreshJobsList(){ const list=document.getElementById('jobsList'); list.innerHTML=''; for(const j of S.jobs){ const c=S.clients.find(x=>x.id===j.clientId); const paid=(j.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0); const due=Math.max(0,Calc.total(j)-paid); const vehicleSummary=this.jobVehicleSummary(j); const pkgLabel=this.jobPackageLabel(j); const subtitle=vehicleSummary?`${pkgLabel} — ${vehicleSummary}`:pkgLabel; list.append(el('div',{class:'list-item'}, el('div',{class:'row',style:'justify-content:space-between;'}, el('div',{html:`<b>${c?.name||'Unknown'}</b> <span class='tiny'>${subtitle}</span>`}), el('div',{class:'tiny'}, j.status)), el('div',{class:'row',style:'justify-content:space-between;margin-top:.25rem;'}, el('div',{class:'tiny'}, `Total: ${Calc.total(j).toFixed(2)}`), el('div',{class:'tiny'}, paid>0? `Paid: ${paid.toFixed(2)}${due>0?` (Due ${due.toFixed(2)})`:''}` : 'Unpaid')), el('div',{class:'row',style:'gap:.5rem;margin-top:.4rem;'}, ...(j.status==='Quoted'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Booked')},'Book')]:[]), ...(j.status==='Booked'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'In Progress')},'Start')]:[]), ...(j.status==='In Progress'?[el('button',{class:'pill',onclick:()=>App.updateJobStatus(j.id,'Complete')},'Complete')]:[]), ...(j.status!=='Paid'?[el('button',{class:'pill',onclick:()=>App.takePayment(j.id)},'Take Payment')]:[]), el('button',{class:'pill',onclick:()=>UI.openPrintDetails(j.id)},'Print Quote'), el('button',{class:'pill',onclick:()=>App.deleteJob(j.id)},'Delete') )) ); } const recent=document.getElementById('recentList'); if(recent){ recent.innerHTML=''; for(const j of S.jobs.slice(0,5)){ const c=S.clients.find(x=>x.id===j.clientId); const vehicleSummary=this.jobVehicleSummary(j); const pkgLabel=this.jobPackageLabel(j); const summaryText=vehicleSummary?`${pkgLabel} — ${vehicleSummary}`:pkgLabel; recent.append(el('div',{class:'list-item'}, `${j.date} · ${c?.name||'Unknown'} · ${summaryText} (${j.status})`)); } } },
+  buildJobCard(job,{context='jobs'}={}){
+    App.ensureJobStructure(job);
+    const client=S.clients.find(x=>x.id===job.clientId);
+    const scheduleDate=job.schedule?.date || job.date || '';
+    const dateLabel=scheduleDate ? new Date(scheduleDate+'T00:00:00').toLocaleDateString() : 'No date';
+    const timeLabel=job.schedule?.start ? `${job.schedule.start}${job.schedule.end?` – ${job.schedule.end}`:''}` : 'Any time';
+    const summary=this.jobPackageLabel(job);
+    const vehicleSummary=this.jobVehicleSummary(job);
+    const paid=(job.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0);
+    const total=Calc.total(job);
+    const due=Math.max(0,total-paid);
+    const timerMinutes=App.timerElapsedMinutes(job.timers?.overall||{elapsed:0});
+    const card=el('div',{class:'list-item job-card'});
+    const header=el('div',{class:'row',style:'justify-content:space-between;gap:.5rem;flex-wrap:wrap;align-items:center;'},
+      el('div',{style:'font-weight:800;'}, client?.name||'Unknown'),
+      el('div',{class:'pill'}, job.status)
+    );
+    const subtextParts=[summary];
+    if(vehicleSummary) subtextParts.push(vehicleSummary);
+    const subtitleText=subtextParts.filter(Boolean).join(' • ');
+    if(subtitleText){
+      header.append(el('div',{class:'tiny',style:'color:#96a4a4;margin-top:.15rem;'}, subtitleText));
+    }
+    const metaGrid=el('div',{class:'job-meta-grid',style:'margin-top:.6rem;'},
+      el('div',{}, el('div',{class:'tiny'},'Scheduled'), el('div',{style:'font-weight:700;'}, `${dateLabel}${timeLabel?` · ${timeLabel}`:''}`)),
+      el('div',{}, el('div',{class:'tiny'},'Total'), el('div',{style:'font-weight:700;'}, fmt(total))),
+      el('div',{}, el('div',{class:'tiny'},'Paid'), el('div',{style:'font-weight:700;'}, fmt(paid))),
+      el('div',{}, el('div',{class:'tiny'},'Due'), el('div',{style:'font-weight:700;color:'+(due>0?'#f5d7d7':'#9fb2ae')}, fmt(due))),
+      el('div',{}, el('div',{class:'tiny'},'Tracked Time'), el('div',{style:'font-weight:700;'}, timerMinutes?formatDurationMinutes(timerMinutes):'--'))
+    );
+    const actionsContainer=el('div',{class:'stack-buttons',style:'margin-top:.75rem;'});
+    const actions=[];
+    const openJob=()=>UI.openJob(job.id);
+    const editJob=()=>UI.editJob(job.id);
+    if(context==='jobs'){
+      actions.push(el('button',{class:'pill',onclick:openJob},'View Job'));
+      actions.push(el('button',{class:'pill',onclick:editJob},'Edit Job'));
+      if(job.status==='Quoted'){
+        actions.push(el('button',{class:'btn secondary',onclick:()=>{ App.updateJobStatus(job.id,'Booked'); UI.switchTab('Jobs'); }},'Convert to Job'));
+      }
+      if(job.status==='Booked') actions.push(el('button',{class:'pill',onclick:()=>App.updateJobStatus(job.id,'In Progress')},'Start Job'));
+      if(job.status==='In Progress') actions.push(el('button',{class:'pill',onclick:()=>App.updateJobStatus(job.id,'Complete')},'Mark Complete'));
+      if(job.status==='Complete') actions.push(el('button',{class:'pill',onclick:()=>App.updateJobStatus(job.id,'Paid')},'Mark Paid'));
+      if(due>0.01) actions.push(el('button',{class:'pill',onclick:()=>App.takePayment(job.id)},'Take Payment'));
+      actions.push(el('button',{class:'pill',onclick:()=>UI.openChecklist(job.id)},'Checklist'));
+      actions.push(el('button',{class:'pill',onclick:()=>UI.openPrintDetails(job.id)},'Print Summary'));
+      actions.push(el('button',{class:'pill',onclick:()=>App.deleteJob(job.id)},'Delete'));
+    } else {
+      actions.push(el('button',{class:'pill',onclick:editJob},'Edit Quote'));
+      actions.push(el('button',{class:'btn',onclick:()=>{ App.updateJobStatus(job.id,'Booked'); UI.switchTab('Jobs'); UI.flash('Quote converted to job.'); }},'Convert to Job'));
+      actions.push(el('button',{class:'pill',onclick:()=>UI.openPrintDetails(job.id)},'Print Quote'));
+      actions.push(el('button',{class:'pill',onclick:()=>App.deleteJob(job.id)},'Delete Quote'));
+    }
+    actions.forEach(btn=>actionsContainer.append(btn));
+    card.append(header, metaGrid, actionsContainer);
+    return card;
+  },
+  buildTransactionCard(tx,{showType=true}={}){
+    const card=el('div',{class:'list-item transaction-card'});
+    const titleParts=[];
+    if(showType && tx.type) titleParts.push(tx.type);
+    if(tx.category) titleParts.push(tx.category);
+    const title=titleParts.join(' • ') || 'Transaction';
+    const left=el('div',{});
+    left.append(el('h4',{}, title));
+    if(tx.item) left.append(el('div',{class:'tiny'}, tx.item));
+    if(tx.vendor) left.append(el('div',{class:'tiny'}, tx.vendor));
+    const amountValue=Number(tx.amount||0);
+    const amountLabel=fmt(amountValue);
+    const amountColor=tx.type==='Expense'?'#f5d7d7':'#9fe4b9';
+    const right=el('div',{style:'display:flex;flex-direction:column;align-items:flex-end;gap:.25rem;'});
+    if(tx.date) right.append(el('div',{class:'tiny'}, tx.date));
+    right.append(el('div',{class:'transaction-amount',style:`color:${amountColor};`}, amountLabel));
+    const header=el('div',{class:'row',style:'justify-content:space-between;align-items:flex-start;gap:.5rem;'}, left,right);
+    card.append(header);
+    const meta=el('div',{class:'transaction-meta'});
+    if(tx.payment) meta.append(el('span',{}, tx.payment));
+    if(tx.clientId){
+      const clientName=this.clientName(tx.clientId);
+      if(clientName) meta.append(el('span',{}, clientName));
+    }
+    if(tx.type==='Income' && tx.jobId) meta.append(el('span',{}, 'Linked to job'));
+    if(meta.childElementCount) card.append(meta);
+    if(tx.notes) card.append(el('div',{class:'transaction-notes'}, tx.notes));
+    const actions=el('div',{class:'stack-buttons'});
+    if(tx.receiptImage){
+      actions.append(el('button',{class:'btn secondary fullwidth',onclick:()=>this.showReceipt({image:tx.receiptImage,vendor:tx.vendor,date:tx.date,amount:amountLabel})},'View Receipt'));
+    }
+    actions.append(el('button',{class:'btn secondary fullwidth',onclick:()=>{ if(App.deleteTransaction(tx.id)) card.remove(); }},'Delete'));
+    card.append(actions);
+    return card;
+  },
+  setJobFilter(filter){
+    this.jobFilter=filter;
+    this.refreshJobsList();
+  },
+  refreshJobsList(){
+    const list=document.getElementById('jobsList');
+    if(!list) return;
+    document.querySelectorAll('[data-filter]').forEach(btn=>{
+      const filter=btn.getAttribute('data-filter');
+      btn.classList.toggle('job-filter-active', filter===this.jobFilter);
+    });
+    const todayStr=today();
+    const jobs=[...S.jobs];
+    jobs.forEach(job=>App.ensureJobStructure(job));
+    jobs.sort((a,b)=>{
+      const dateA=(a.schedule?.date||a.date||'')+(a.schedule?.start||'');
+      const dateB=(b.schedule?.date||b.date||'')+(b.schedule?.start||'');
+      return dateA.localeCompare(dateB);
+    });
+    const filtered=jobs.filter(job=>{
+      if(job.status==='Quoted') return false;
+      const scheduleDate=job.schedule?.date || job.date || '';
+      const paid=(job.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0);
+      const due=Math.max(0,Calc.total(job)-paid);
+      switch(this.jobFilter){
+        case 'today': return scheduleDate===todayStr;
+        case 'upcoming': return scheduleDate>todayStr && !['Complete','Paid'].includes(job.status);
+        case 'completed': return ['Complete','Paid'].includes(job.status);
+        case 'unpaid': return due>0.01;
+        default: return true;
+      }
+    });
+    list.innerHTML='';
+    if(!filtered.length){
+      list.append(el('div',{class:'tiny'},'No jobs match the current filter.'));
+    }
+    for(const job of filtered){
+      list.append(this.buildJobCard(job,{context:'jobs'}));
+    }
+    const recent=document.getElementById('recentList');
+    if(recent){
+      recent.innerHTML='';
+      jobs.filter(job=>job.status!=='Quoted').slice(0,5).forEach(job=>{
+        const client=S.clients.find(x=>x.id===job.clientId);
+        const vehicleSummary=this.jobVehicleSummary(job);
+        const pkgLabel=this.jobPackageLabel(job);
+        const summaryText=vehicleSummary?`${pkgLabel} — ${vehicleSummary}`:pkgLabel;
+        recent.append(el('div',{class:'list-item'}, `${job.schedule?.date||job.date||''} · ${client?.name||'Unknown'} · ${summaryText} (${job.status})`));
+      });
+    }
+    this.refreshJobPerformance();
+    this.refreshJobPlanner();
+    this.refreshQuotesList();
+  },
+  refreshQuotesList(){
+    const list=document.getElementById('quotesList');
+    if(!list) return;
+    list.innerHTML='';
+    const quotes=S.jobs.filter(job=>job.status==='Quoted');
+    if(!quotes.length){
+      list.append(el('div',{class:'tiny'},'No pending quotes right now.'));
+      return;
+    }
+    quotes.sort((a,b)=>{
+      const createdA=a.createdAt||'';
+      const createdB=b.createdAt||'';
+      return createdB.localeCompare(createdA);
+    });
+    quotes.forEach(job=>{
+      list.append(this.buildJobCard(job,{context:'quotes'}));
+    });
+  },
+  startQuoteFlow(){
+    this.switchTab('QuoteBuilder');
+    this.resetJobForm();
+    this.flash('Ready to build a quote.');
+  },
+  printQuotesSummary(){
+    const quotes=S.jobs.filter(job=>job.status==='Quoted');
+    if(!quotes.length){
+      alert('No pending quotes to print.');
+      return;
+    }
+    const rows=quotes.map(job=>{
+      const client=S.clients.find(c=>c.id===job.clientId);
+      const scheduleDate=job.schedule?.date || job.date || '';
+      const dateLabel=scheduleDate?new Date(scheduleDate+'T00:00:00').toLocaleDateString():'--';
+      const summary=this.jobPackageLabel(job);
+      const vehicle=this.jobVehicleSummary(job);
+      const total=fmt(Calc.total(job));
+      return `<tr><td>${client?.name||'Unknown'}</td><td>${dateLabel}</td><td>${summary}${vehicle?`<div class="sub">${vehicle}</div>`:''}</td><td style="text-align:right">${total}</td></tr>`;
+    }).join('');
+    const popup=window.open('','_blank');
+    if(!popup || popup.closed){
+      alert('Please allow pop-ups to view the printable list.');
+      return;
+    }
+    const html=`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pending Quotes</title>
+  <style>
+    body{margin:0;font-family:Montserrat,Arial,sans-serif;background:#eef2f4;color:#102018;}
+    .toolbar{position:sticky;top:0;padding:12px 18px;background:#fff;display:flex;justify-content:flex-end;gap:8px;border-bottom:1px solid #d6dde0;}
+    .toolbar button{padding:8px 14px;border-radius:12px;border:none;font-weight:700;cursor:pointer;background:#0d1f15;color:#f2fbf6;}
+    .sheet{max-width:860px;margin:24px auto;background:#fff;padding:24px;border-radius:18px;box-shadow:0 24px 60px rgba(14,28,26,.15);}
+    table{width:100%;border-collapse:collapse;}
+    th,td{padding:10px 12px;text-align:left;border-bottom:1px solid #e2e8eb;}
+    th{font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:#5b6d66;}
+    td{font-size:14px;vertical-align:top;}
+    td .sub{color:#73827c;font-size:12px;margin-top:4px;}
+    @media print{body{background:#fff;} .toolbar{display:none;} .sheet{box-shadow:none;border-radius:0;margin:0;padding:0;}}
+  </style>
+</head>
+<body>
+  <div class="toolbar"><button onclick="window.print()">Print</button></div>
+  <div class="sheet">
+    <h2 style="margin:0 0 12px;font-size:24px;">Pending Quotes</h2>
+    <table>
+      <thead><tr><th>Client</th><th>Date</th><th>Summary</th><th style="text-align:right">Total</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>
+</body>
+</html>`;
+    popup.document.write(html);
+    popup.document.close();
+  },
+  loadOcr(){
+    if(window.Tesseract) return Promise.resolve(window.Tesseract);
+    if(this.ocrPromise) return this.ocrPromise;
+    this.ocrPromise=new Promise((resolve,reject)=>{
+      const script=document.createElement('script');
+      script.src='https://cdn.jsdelivr.net/npm/tesseract.js@4.0.3/dist/tesseract.min.js';
+      script.async=true;
+      script.onload=()=>resolve(window.Tesseract);
+      script.onerror=()=>reject(new Error('Failed to load OCR engine'));
+      document.head.append(script);
+    });
+    return this.ocrPromise;
+  },
+  detectPaymentMethod(text){
+    const methods=Array.isArray(S.settings.paymentMethods)?S.settings.paymentMethods:[];
+    const normalized=String(text||'').toLowerCase();
+    const dictionary={
+      cash:['cash'],
+      card:['visa','mastercard','amex','credit','debit','discover','card','mc'],
+      zelle:['zelle'],
+      venmo:['venmo'],
+      'cash app':['cashapp','cash app'],
+      cashapp:['cashapp','cash app'],
+      bank:['bank','ach','wire','transfer','checking']
+    };
+    for(const method of methods){
+      const key=method.toLowerCase();
+      const tokens=dictionary[key] || [key];
+      if(tokens.some(token=>normalized.includes(token))) return method;
+    }
+    return '';
+  },
+  parseReceiptText(raw){
+    const text=String(raw||'');
+    const clean=text.replace(/\r/g,'');
+    const lines=clean.split(/\n+/).map(line=>line.trim()).filter(Boolean);
+    let vendor='';
+    for(const line of lines){
+      if(!line) continue;
+      if(/total|amount|invoice|receipt|tax|change|item|qty|cashier|order|payment/i.test(line)) continue;
+      const cleaned=line.replace(/[^A-Za-z0-9 .&@\-]/g,' ').trim();
+      if(cleaned){ vendor=cleaned.slice(0,60); break; }
+    }
+    if(!vendor && lines.length) vendor=lines[0].slice(0,60);
+    const isoFromParts=(year,month,day)=>{
+      let y=Number(year);
+      let m=Number(month);
+      let d=Number(day);
+      if(y<100) y+=y>=70?1900:2000;
+      if(!(y>1900 && y<2100) || !(m>=1 && m<=12) || !(d>=1 && d<=31)) return '';
+      return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    };
+    let date='';
+    const isoMatch=clean.match(/(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);
+    if(isoMatch) date=isoFromParts(isoMatch[1],isoMatch[2],isoMatch[3]);
+    if(!date){
+      const usMatch=clean.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})/);
+      if(usMatch) date=isoFromParts(usMatch[3],usMatch[1],usMatch[2]);
+    }
+    if(!date){
+      const monthNames=['january','february','march','april','may','june','july','august','september','october','november','december'];
+      const monthMatch=clean.match(/(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:,)?\s*(\d{2,4})/i);
+      if(monthMatch){
+        const monthIndex=monthNames.findIndex(name=>name.startsWith(monthMatch[1].toLowerCase()));
+        if(monthIndex>=0) date=isoFromParts(monthMatch[3],monthIndex+1,monthMatch[2]);
+      }
+    }
+    let amountValue=0;
+    for(const line of lines){
+      if(/total|balance|amount due/i.test(line)){
+        const match=line.match(/(\d{1,3}(?:,\d{3})*\.\d{2})/);
+        if(match){
+          amountValue=parseFloat(match[1].replace(/,/g,''));
+          break;
+        }
+      }
+    }
+    if(!amountValue){
+      const matches=[...clean.matchAll(/(\d{1,3}(?:,\d{3})*\.\d{2})/g)];
+      for(const match of matches){
+        const candidate=parseFloat(match[1].replace(/,/g,''));
+        if(candidate>amountValue) amountValue=candidate;
+      }
+    }
+    const payment=this.detectPaymentMethod(clean);
+    return {
+      vendor,
+      date,
+      amount:amountValue?amountValue.toFixed(2):'',
+      payment
+    };
+  },
+  showReceipt({image,vendor,date,amount}={}){
+    if(!image) return;
+    const details=[];
+    if(vendor) details.push(vendor);
+    if(date) details.push(date);
+    if(amount) details.push(amount);
+    const body=el('div',{class:'receipt-preview',style:'max-height:none;'}, el('img',{src:image}));
+    if(details.length) body.append(el('div',{class:'receipt-ocr-status'}, details.join(' • ')));
+    this.modal('Receipt',(close)=>close(), body,'Close',false,true);
+  },
+  openJob(id){
+    this.jobPanelJobId=id;
+    this.renderJobPanel(id,true);
+    const panel=document.getElementById('jobPanel');
+    if(panel) panel.classList.add('open');
+  },
+  closeJobPanel(){
+    const panel=document.getElementById('jobPanel');
+    if(panel) panel.classList.remove('open');
+    this.jobPanelJobId=null;
+  },
+  renderJobPanel(jobId,force=false){
+    const panel=document.getElementById('jobPanel');
+    const body=document.getElementById('jobPanelBody');
+    if(!panel || !body) return;
+    if(!force && this.jobPanelJobId!==jobId && !panel.classList.contains('open')) return;
+    const job=S.jobs.find(x=>x.id===jobId);
+    if(!job){
+      this.closeJobPanel();
+      return;
+    }
+    this.jobPanelJobId=jobId;
+    App.ensureJobStructure(job);
+    const client=S.clients.find(c=>c.id===job.clientId);
+    const titleEl=document.getElementById('jobPanelTitle');
+    const subtitleEl=document.getElementById('jobPanelSubtitle');
+    if(titleEl) titleEl.textContent=`${client?.name||'Unknown'} — ${job.status}`;
+    const scheduleDate=job.schedule?.date || job.date || '';
+    const dateLabel=scheduleDate?new Date(scheduleDate+'T00:00:00').toLocaleDateString():'No date';
+    const timeLabel=job.schedule?.start ? `${job.schedule.start}${job.schedule?.end?` – ${job.schedule.end}`:''}` : 'Any time';
+    const summary=this.jobPackageLabel(job);
+    if(subtitleEl) subtitleEl.textContent=`${dateLabel}${timeLabel?` · ${timeLabel}`:''} • ${summary}`;
+    body.innerHTML='';
+    const scheduleSection=el('div',{class:'job-section'},
+      el('h4',{},'Schedule'),
+      el('div',{class:'tiny'},'Date'),
+      el('div',{style:'font-weight:700;'}, dateLabel),
+      el('div',{class:'tiny'},'Time'),
+      el('div',{style:'font-weight:700;'}, timeLabel),
+      el('div',{class:'tiny'},'Estimated Duration'),
+      el('div',{style:'font-weight:700;'}, job.schedule?.durationMinutes?formatDurationMinutes(job.schedule.durationMinutes):'Not set'),
+      el('div',{class:'tiny'},'Package'),
+      el('div',{style:'font-weight:700;'}, summary),
+      el('button',{class:'btn secondary',onclick:()=>UI.editJob(job.id)},'Edit Job Details')
+    );
+    const total=Calc.total(job);
+    const paid=(job.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0);
+    const due=Math.max(0,total-paid);
+    const financialSection=el('div',{class:'job-section'},
+      el('h4',{},'Financials'),
+      el('div',{class:'tiny'},'Total'),
+      el('div',{style:'font-weight:700;'}, fmt(total)),
+      el('div',{class:'tiny'},'Paid'),
+      el('div',{style:'font-weight:700;'}, fmt(paid)),
+      el('div',{class:'tiny'},'Balance Due'),
+      el('div',{style:'font-weight:700;color:'+(due>0?'#f5d7d7':'#9fb2ae')}, fmt(due))
+    );
+    if(due>0.01){
+      financialSection.append(el('button',{class:'btn',onclick:()=>App.takePayment(job.id)},'Take Payment'));
+    }
+    if(Array.isArray(job.payments) && job.payments.length){
+      const paymentList=el('div',{class:'job-services'});
+      job.payments.forEach(p=>{
+        paymentList.append(el('div',{class:'job-service'},
+          el('div',{class:'service-main'}, `${p.date} — ${p.method||'Payment'}`),
+          el('div',{class:'service-meta'}, fmt(Number(p.amount||0)))
+        ));
+      });
+      financialSection.append(el('div',{class:'tiny'},'Payments'));
+      financialSection.append(paymentList);
+    }
+    const servicesSection=el('div',{class:'job-section'},
+      el('h4',{},'Services'),
+      el('button',{class:'btn',onclick:()=>UI.openAddService(job.id)},'Add Service')
+    );
+    const servicesList=el('div',{class:'job-services'});
+    if(job.services?.length){
+      job.services.forEach(service=>{
+        const metaParts=[];
+        if(service.type) metaParts.push(service.type.charAt(0).toUpperCase()+service.type.slice(1));
+        if(service.vehicleLabel) metaParts.push(service.vehicleLabel);
+        const metaText=metaParts.join(' • ');
+        const priceLabel=service.included?'Included':fmt(service.price||0);
+        const info=el('div',{class:'service-main'},
+          el('div',{style:'font-weight:700;'}, service.name||'Service')
+        );
+        if(metaText) info.append(el('div',{class:'service-meta'}, metaText));
+        const row=el('div',{class:'job-service'},
+          info,
+          el('div',{class:'service-meta'}, priceLabel)
+        );
+        if(service.type!=='package'){
+          row.append(el('button',{class:'btn secondary',onclick:()=>App.removeService(job.id,service.id)},'Remove'));
+        }
+        servicesList.append(row);
+      });
+    } else {
+      servicesList.append(el('div',{class:'tiny'},'No services logged yet.'));
+    }
+    servicesSection.append(servicesList);
+    const timersSection=el('div',{class:'job-section'}, el('h4',{},'Timers'));
+    const timersWrap=el('div',{class:'job-timers'});
+    const timerOrder=['overall','setup','base','addons'];
+    timerOrder.forEach(key=>{
+      const timer=job.timers?.[key];
+      if(!timer) return;
+      const minutes=App.timerElapsedMinutes(timer);
+      const running=!!timer.runningSince;
+      const row=el('div',{class:'job-timer', 'data-running':running?'true':'false'},
+        el('div',{class:'timer-info'},
+          el('div',{class:'timer-label'}, timer.label||key),
+          el('div',{class:'service-meta'}, running?'Running':'Paused')
+        ),
+        el('div',{class:'timer-value'}, formatDurationMinutes(minutes)),
+        (()=>{
+          const controls=el('div',{class:'job-timer-controls'});
+          controls.append(el('button',{class:'pill',onclick:()=>App.toggleTimer(job.id,key)}, running?'Pause':'Start'));
+          controls.append(el('button',{class:'pill',onclick:()=>App.resetTimer(job.id,key)},'Reset'));
+          controls.append(el('button',{class:'pill',onclick:()=>UI.promptTimerAdjust(job.id,key)},'Adjust'));
+          return controls;
+        })()
+      );
+      timersWrap.append(row);
+    });
+    timersSection.append(timersWrap);
+    const checklistSection=el('div',{class:'job-section'}, el('h4',{},'Checklist'));
+    const checklist=job.checklist?.sections||[];
+    const totalItems=checklist.reduce((sum,section)=>sum+(section.items?.length||0),0);
+    const completeItems=checklist.reduce((sum,section)=>sum+(section.items?.filter(i=>i.completed).length||0),0);
+    checklistSection.append(el('div',{class:'tiny'}, `${completeItems} of ${totalItems} items complete`));
+    checklistSection.append(el('button',{class:'btn secondary',onclick:()=>UI.openChecklist(job.id)},'Open Checklist'));
+    const notesSection=el('div',{class:'job-section'}, el('h4',{},'Notes & Summary'));
+    notesSection.append(el('div',{class:'tiny'}, job.notes||'No notes for this job.'));
+    const performanceRow=el('div',{class:'service-meta'}, `Tracked time: ${formatDurationMinutes(App.timerElapsedMinutes(job.timers?.overall||{elapsed:0}))}`);
+    notesSection.append(performanceRow);
+    if(job.totalMinutes){
+      notesSection.append(el('div',{class:'service-meta'}, `Logged duration: ${formatDurationMinutes(job.totalMinutes)}`));
+    }
+    body.append(scheduleSection, financialSection, servicesSection, timersSection, checklistSection, notesSection);
+  },
+  promptTimerAdjust(jobId,key){
+    const job=S.jobs.find(x=>x.id===jobId);
+    if(!job) return;
+    App.ensureTimers(job);
+    const timer=job.timers?.[key];
+    if(!timer) return;
+    const current=App.timerElapsedMinutes(timer);
+    const input=prompt('Set duration (e.g., 1h 45m or 105)', formatDurationMinutes(current));
+    if(!input) return;
+    const mins=parseDurationInput(input);
+    if(mins==null) return alert('Unable to parse duration.');
+    App.setTimerMinutes(jobId,key,mins);
+  },
+  openAddService(jobId){
+    const job=S.jobs.find(x=>x.id===jobId);
+    if(!job) return;
+    App.ensureJobStructure(job);
+    const typeSel=el('select',{},
+      el('option',{value:'addon'},'Menu Add-on'),
+      el('option',{value:'custom'},'Custom Service')
+    );
+    const addonSel=el('select',{});
+    addonSel.append(el('option',{value:''},'Select add-on'));
+    Object.keys(S.menu.addons).forEach(name=>addonSel.append(el('option',{value:name},name)));
+    const nameInput=el('input',{placeholder:'Service name'});
+    const priceInput=el('input',{type:'number',min:'0',step:'0.01',placeholder:'0.00',value:'0.00'});
+    const includedRow=el('label',{}, el('input',{type:'checkbox',id:'svcIncluded',style:'margin-right:.4rem;'}),'Included (no charge)');
+    const vehicleSel=el('select',{});
+    vehicleSel.append(el('option',{value:''},'Apply to job'));
+    (job.vehicles||[]).forEach((vehicle,idx)=>{
+      const label=vehicle.label||`Vehicle ${idx+1}`;
+      vehicleSel.append(el('option',{value:String(idx)}, label));
+    });
+    const addonRow=el('div',{}, el('label',{},'Add-on'), addonSel);
+    const nameRow=el('div',{}, el('label',{},'Name'), nameInput);
+    const priceRow=el('div',{}, el('label',{},'Price'), priceInput);
+    const vehicleRow=el('div',{}, el('label',{},'Vehicle'), vehicleSel);
+    const content=el('div',{},
+      el('label',{},'Service Type'),
+      typeSel,
+      addonRow,
+      nameRow,
+      priceRow,
+      vehicleRow,
+      includedRow
+    );
+    const syncControls=()=>{
+      const isAddon=typeSel.value==='addon';
+      addonRow.style.display=isAddon?'block':'none';
+      if(isAddon){
+        nameRow.style.display='none';
+        if(addonSel.value){
+          nameInput.value=addonSel.value;
+        }
+        if(!priceInput.value){
+          const idx=vehicleSel.value?Number(vehicleSel.value):0;
+          const size=job.vehicles?.[idx]?.size || job.size || S.menu.sizes[0];
+          priceInput.value=Number(Calc.addonPrice(addonSel.value,size)||0).toFixed(2);
+        }
+      } else {
+        nameRow.style.display='block';
+      }
+    };
+    typeSel.addEventListener('change',syncControls);
+    addonSel.addEventListener('change',()=>{
+      if(addonSel.value){
+        nameInput.value=addonSel.value;
+        const idx=vehicleSel.value?Number(vehicleSel.value):0;
+        const size=job.vehicles?.[idx]?.size || job.size || S.menu.sizes[0];
+        priceInput.value=Number(Calc.addonPrice(addonSel.value,size)||0).toFixed(2);
+      }
+    });
+    vehicleSel.addEventListener('change',()=>{
+      if(typeSel.value==='addon' && addonSel.value){
+        const idx=vehicleSel.value?Number(vehicleSel.value):0;
+        const size=job.vehicles?.[idx]?.size || job.size || S.menu.sizes[0];
+        priceInput.value=Number(Calc.addonPrice(addonSel.value,size)||0).toFixed(2);
+      }
+    });
+    syncControls();
+    UI.modal('Add Service',(close)=>{
+      const type=typeSel.value;
+      const included=content.querySelector('#svcIncluded').checked;
+      let name=type==='addon'?addonSel.value:nameInput.value.trim();
+      if(!name){
+        alert('Service name is required.');
+        return;
+      }
+      const price=Number(priceInput.value||0);
+      const vehicleIndex=vehicleSel.value?Number(vehicleSel.value):null;
+      const vehicleLabel=vehicleIndex!=null?((job.vehicles?.[vehicleIndex]?.label)||`Vehicle ${vehicleIndex+1}`):'';
+      App.addService(jobId,{type,name,price,included,vehicleIndex,vehicleLabel});
+      close();
+    }, content, 'Save Service');
+  },
+  refreshJobPlanner(){
+    const input=document.getElementById('jobPlannerDate');
+    const list=document.getElementById('jobPlannerList');
+    if(!input || !list) return;
+    if(!input.value) input.value=today();
+    const target=input.value;
+    const jobs=S.jobs.filter(job=>(job.schedule?.date||job.date||'')===target);
+    jobs.forEach(job=>App.ensureJobStructure(job));
+    jobs.sort((a,b)=>(a.schedule?.start||'').localeCompare(b.schedule?.start||''));
+    list.innerHTML='';
+    if(!jobs.length){
+      list.append(el('div',{class:'tiny'},'No jobs scheduled.'));
+      return;
+    }
+    jobs.forEach(job=>{
+      const client=S.clients.find(c=>c.id===job.clientId);
+      const start=job.schedule?.start || 'Any time';
+      const summary=this.jobPackageLabel(job);
+      const due=Math.max(0,Calc.total(job)-(job.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0));
+      const item=el('div',{class:'list-item'},
+        el('div',{style:'font-weight:700;'}, `${start} · ${client?.name||'Unknown'}`),
+        el('div',{class:'tiny'}, `${summary} — ${job.status}${due>0?` · Due ${fmt(due)}`:''}`),
+        el('div',{class:'row',style:'gap:.35rem;margin-top:.35rem;'},
+          el('button',{class:'pill',onclick:()=>UI.openJob(job.id)},'Open'),
+          el('button',{class:'pill',onclick:()=>UI.editJob(job.id)},'Edit'),
+          el('button',{class:'pill',onclick:()=>UI.openChecklist(job.id)},'Checklist')
+        )
+      );
+      list.append(item);
+    });
+  },
+  refreshJobPerformance(){
+    const host=document.getElementById('jobPerformance');
+    if(!host) return;
+    host.innerHTML='';
+    const todayStr=today();
+    const active=S.jobs.filter(job=>['Booked','In Progress'].includes(job.status)).length;
+    const todays=S.jobs.filter(job=>job.status!=='Quoted' && (job.schedule?.date||job.date||'')===todayStr).length;
+    const completed=S.jobs.filter(job=>['Complete','Paid'].includes(job.status)).length;
+    const unpaid=S.jobs.reduce((sum,job)=>{
+      if(job.status==='Quoted') return sum;
+      const paid=(job.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0);
+      return sum+Math.max(0,Calc.total(job)-paid);
+    },0);
+    const minutesTracked=S.jobs.reduce((sum,job)=>{
+      if(job.totalMinutes) return sum+Number(job.totalMinutes||0);
+      return sum+App.timerElapsedMinutes(job.timers?.overall||{elapsed:0});
+    },0);
+    host.append(el('div',{style:'font-weight:700;'}, `Active jobs: ${active}`));
+    host.append(el('div',{class:'tiny'}, `Scheduled today: ${todays}`));
+    host.append(el('div',{class:'tiny'}, `Completed/Paid: ${completed}`));
+    host.append(el('div',{class:'tiny'}, `Tracked time: ${formatDurationMinutes(minutesTracked)}`));
+    host.append(el('div',{class:'tiny'}, `Unpaid balance: ${fmt(unpaid)}`));
+  },
   openPrintDetails(id){
     const j = S.jobs.find(x => x.id === id);
     if (!j) return;
     UI.renderPrintSheet(j);
   },
+  openChecklist(id){
+    const job=S.jobs.find(x=>x.id===id);
+    if(!job) return;
+    App.ensureChecklist(job);
+    const content=el('div',{class:'list',style:'gap:.75rem;'});
+    const closeModal=(close)=>{
+      UI.stopChecklistTicker();
+      UI.checklistHost=null;
+      UI.checklistJobId=null;
+      close();
+    };
+    UI.modal('Crew Checklist',closeModal,content,'Close',false,true);
+    UI.checklistHost=content;
+    UI.checklistJobId=id;
+    UI.renderChecklist(id);
+    UI.startChecklistTicker();
+  },
+  renderChecklist(jobId){
+    const host=UI.checklistHost;
+    if(!host) return;
+    const job=S.jobs.find(x=>x.id===jobId);
+    if(!job) return;
+    App.ensureChecklist(job);
+    const addonInfo=Calc.addonSummary(job);
+    host.innerHTML='';
+    const callout=el('div',{class:`crew-callout${addonInfo.requiresUpgrade?' alert':''}`});
+    callout.append(el('div',{style:'font-weight:800;'}, addonInfo.requiresUpgrade?'⚠️ Add-on upgrade recommended':'Add-on logic snapshot'));
+    callout.append(el('div',{class:'tiny'}, addonInfo.message));
+    if(addonInfo.totalIncluded){
+      callout.append(el('div',{class:'tiny'}, `Included add-ons: ${addonInfo.totalIncluded}`));
+    }
+    if(addonInfo.perVehicle.length){
+      callout.append(el('div',{class:'tiny'}, addonInfo.perVehicle.map((info,idx)=>{
+        const label=info.label?info.label:`Vehicle ${idx+1}`;
+        return `${label}: ${info.custom} custom / ${info.included} included`;
+      }).join(' · ')));
+    }
+    callout.append(el('div',{class:'tiny'}, addonInfo.upsell));
+    host.append(callout);
+
+    job.checklist.sections.forEach(section=>{
+      const sectionCard=el('div',{class:'card crew-checklist-section'});
+      const completed=section.items.filter(i=>i.completed).length;
+      const totalItems=section.items.length;
+      const totalMs=section.items.reduce((sum,item)=>sum+App.checklistElapsedMs(item),0);
+
+      const header=el('div',{class:'crew-checklist-header','data-section':section.id});
+      header.append(el('div',{style:'font-weight:800;font-size:1.05rem;'}, section.title));
+      const headerMeta=el('div',{style:'display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;'});
+      headerMeta.append(el('div',{class:'tiny'}, `${completed}/${totalItems} complete`));
+      headerMeta.append(el('div',{class:'tiny crew-header-time'}, `Time ${UI.formatDuration(totalMs)}`));
+      if(section.goalMinutes){
+        headerMeta.append(el('div',{class:'tiny'}, `Goal ${section.goalMinutes} min`));
+      }
+      header.append(headerMeta);
+      sectionCard.append(header);
+
+      const itemsWrap=el('div',{class:'crew-checklist-items'});
+      section.items.forEach(item=>{
+        const key=`${section.id}:${item.id}`;
+        const row=el('div',{class:'crew-checklist-item','data-key':key,'data-running':item.runningSince?'true':'false','data-complete':item.completed?'true':'false'});
+        const checkbox=el('input',{type:'checkbox'});
+        checkbox.checked=item.completed;
+        checkbox.addEventListener('change',()=>{
+          App.setChecklistComplete(job.id, section.id, item.id, checkbox.checked);
+          UI.renderChecklist(job.id);
+        });
+        const step=el('div',{class:'crew-step'});
+        step.append(el('div',{style:'font-weight:600;'}, item.label));
+        if(item.description){
+          step.append(el('div',{class:'tiny'}, item.description));
+        }
+        const timerWrap=el('div',{class:'crew-timer-controls'});
+        const timer=el('div',{class:'crew-timer','data-key':key}, UI.formatDuration(App.checklistElapsedMs(item)));
+        timerWrap.append(timer);
+        const toggleBtn=el('button',{class:'btn secondary'}, item.runningSince?'Stop':'Start');
+        toggleBtn.addEventListener('click',()=>{
+          App.toggleChecklistTimer(job.id, section.id, item.id);
+          UI.renderChecklist(job.id);
+        });
+        timerWrap.append(toggleBtn);
+        row.append(checkbox, step, timerWrap);
+        itemsWrap.append(row);
+      });
+      sectionCard.append(itemsWrap);
+      host.append(sectionCard);
+    });
+
+    UI.updateChecklistTimers();
+  },
+  startChecklistTicker(){
+    UI.stopChecklistTicker();
+    if(!UI.checklistHost || !UI.checklistJobId) return;
+    UI.checklistTicker=setInterval(()=>UI.updateChecklistTimers(),1000);
+    UI.updateChecklistTimers();
+  },
+  stopChecklistTicker(){
+    if(UI.checklistTicker){
+      clearInterval(UI.checklistTicker);
+      UI.checklistTicker=null;
+    }
+  },
+  updateChecklistTimers(){
+    if(!UI.checklistHost || !UI.checklistJobId) return;
+    const job=S.jobs.find(x=>x.id===UI.checklistJobId);
+    if(!job) return;
+    App.ensureChecklist(job);
+    job.checklist.sections.forEach(section=>{
+      const headerTime=UI.checklistHost.querySelector(`.crew-checklist-header[data-section="${section.id}"] .crew-header-time`);
+      if(headerTime){
+        const totalMs=section.items.reduce((sum,item)=>sum+App.checklistElapsedMs(item),0);
+        headerTime.textContent=`Time ${UI.formatDuration(totalMs)}`;
+      }
+      section.items.forEach(item=>{
+        const key=`${section.id}:${item.id}`;
+        const timerNode=UI.checklistHost.querySelector(`.crew-timer[data-key="${key}"]`);
+        if(timerNode){
+          timerNode.textContent=UI.formatDuration(App.checklistElapsedMs(item));
+        }
+        const row=UI.checklistHost.querySelector(`.crew-checklist-item[data-key="${key}"]`);
+        if(row){
+          row.setAttribute('data-running', item.runningSince?'true':'false');
+          row.setAttribute('data-complete', item.completed?'true':'false');
+        }
+      });
+    });
+  },
+  formatDuration(ms){
+    const totalSeconds=Math.max(0,Math.floor(ms/1000));
+    const hours=Math.floor(totalSeconds/3600);
+    const minutes=Math.floor((totalSeconds%3600)/60);
+    const seconds=totalSeconds%60;
+    if(hours>0){
+      return `${hours}:${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
+    }
+    return `${minutes}:${String(seconds).padStart(2,'0')}`;
+  },
   showQuickClient(){ document.getElementById('quickClient').classList.remove('hidden'); },
   hideQuickClient(){ document.getElementById('quickClient').classList.add('hidden'); },
-  openExpenseForm(){ const m=this.modal('Add Expense', (close)=>{ const date=m.querySelector('#exDate').value; const cat=m.querySelector('#exCat').value; const vendor=m.querySelector('#exVendor').value.trim(); const pay=m.querySelector('#exPay').value; const amt=Number(m.querySelector('#exAmt').value||0); const notes=m.querySelector('#exNotes').value.trim(); if(!amt)return alert('Amount required'); App.addExpenseRecord({id:uid(),type:'Expense',date,category:cat,item:'',clientId:null,vendor,payment:pay,amount:amt,notes}); close(); UI.flash('Expense added.'); }, el('div',{}, el('label',{},'Date'), el('input',{id:'exDate',type:'date',value:today()}), el('label',{},'Category'), (()=>{ const s=el('select',{id:'exCat'}); for(const c of S.settings.categories) if(c!=='Package'&&c!=='Add-on') s.append(el('option',{value:c},c)); return s; })(), el('label',{},'Vendor'), el('input',{id:'exVendor'}), el('div',{class:'row'}, el('div',{}, el('label',{},'Payment'), (()=>{ const s=el('select',{id:'exPay'}); for(const p of S.settings.paymentMethods) s.append(el('option',{value:p},p)); return s; })()), el('div',{}, el('label',{},'Amount'), el('input',{id:'exAmt',type:'number',min:'0',step:'0.01'}))), el('label',{},'Notes'), el('textarea',{id:'exNotes'}) )); },
-  openTransactions(){ const rows=S.transactions.map(t=>`<tr><td>${t.date||''}</td><td>${t.type}</td><td>${t.category||''}</td><td>${t.item||''}</td><td>${UI.clientName(t.clientId)||''}</td><td>${t.vendor||''}</td><td>${t.payment||''}</td><td>${Number(t.amount||0).toFixed(2)}</td><td>${t.notes||''}</td></tr>`).join(''); this.modal('Transactions',(c)=>c(), el('div',{}, el('div',{class:'row'}, el('button',{class:'btn secondary', onclick:()=>Data.exportCSV()},'Export CSV')), el('table',{style:'width:100%;border-collapse:collapse;margin-top:.5rem;'}, el('thead',{}, el('tr',{html:'<th>Date</th><th>Type</th><th>Category</th><th>Item</th><th>Client</th><th>Vendor</th><th>Payment</th><th>Amount</th><th>Notes</th>'})), el('tbody',{html:rows})) )); },
-  openExpenses(){ const rows=S.transactions.filter(t=>t.type==='Expense').map(t=>`<tr><td>${t.date||''}</td><td>${t.category||''}</td><td>${t.vendor||''}</td><td>${t.payment||''}</td><td>${Number(t.amount||0).toFixed(2)}</td><td>${t.notes||''}</td></tr>`).join(''); this.modal('Expenses',(c)=>c(), el('div',{}, el('div',{class:'row'}, el('button',{class:'btn',onclick:()=>UI.openExpenseForm()},'Add Expense')), el('table',{style:'width:100%;border-collapse:collapse;margin-top:.5rem;'}, el('thead',{}, el('tr',{html:'<th>Date</th><th>Category</th><th>Vendor</th><th>Payment</th><th>Amount</th><th>Notes</th>'})), el('tbody',{html:rows})) )); },
+  openExpenseForm(initial={}){
+    const defaultDate=initial.date || today();
+    const dateInput=el('input',{type:'date',value:defaultDate});
+    const categorySelect=(()=>{
+      const sel=el('select',{});
+      const categories=(S.settings.categories||[]).filter(c=>c!=='Package'&&c!=='Add-on');
+      categories.forEach(cat=>sel.append(el('option',{value:cat,selected:cat===initial.category},cat)));
+      if(!sel.value && categories.length) sel.value=categories[0];
+      return sel;
+    })();
+    const vendorInput=el('input',{value:initial.vendor||'',placeholder:'Vendor or store'});
+    const paymentSelect=(()=>{
+      const sel=el('select',{});
+      (S.settings.paymentMethods||[]).forEach(method=>sel.append(el('option',{value:method,selected:method===initial.payment},method)));
+      if(!sel.value && sel.options.length) sel.value=sel.options[0].value;
+      return sel;
+    })();
+    const amountInput=el('input',{type:'number',min:'0',step:'0.01',value:initial.amount?Number(initial.amount).toFixed(2):''});
+    const notesInput=el('textarea',{placeholder:'Optional notes',value:initial.notes||''});
+    const ocrStatus=el('div',{class:'receipt-ocr-status'},'Use the buttons above to scan or upload a receipt.');
+    const previewImg=el('img',{});
+    const preview=el('div',{class:'receipt-preview hidden'}, previewImg, ocrStatus);
+    const cameraInput=el('input',{type:'file',accept:'image/*',capture:'environment',class:'hidden'});
+    const uploadInput=el('input',{type:'file',accept:'image/*',class:'hidden'});
+    const state={imageData:initial.receiptImage||'', busy:false};
+    const cameraBtn=el('button',{class:'btn fullwidth',type:'button'},'Scan with Camera');
+    const uploadBtn=el('button',{class:'btn secondary fullwidth',type:'button'},'Upload Receipt');
+    const updateButtons=()=>{
+      cameraBtn.textContent=state.imageData?'Rescan with Camera':'Scan with Camera';
+      uploadBtn.textContent=state.imageData?'Upload Different Photo':'Upload Receipt';
+      preview.classList.toggle('hidden',!state.imageData);
+      if(state.imageData) ocrStatus.textContent='Receipt attached. Double-check the details below.';
+    };
+    const fillFromParsed=(parsed)=>{
+      if(parsed.date && !dateInput.value) dateInput.value=parsed.date;
+      if(parsed.vendor && !vendorInput.value) vendorInput.value=parsed.vendor;
+      if(parsed.amount && !amountInput.value) amountInput.value=parsed.amount;
+      if(parsed.payment){
+        const match=(S.settings.paymentMethods||[]).find(method=>method.toLowerCase()===parsed.payment.toLowerCase());
+        if(match) paymentSelect.value=match;
+      }
+    };
+    const runOcr=(imageData)=>{
+      if(!imageData){
+        return;
+      }
+      if(!navigator.onLine && !window.Tesseract){
+        ocrStatus.textContent='Offline — receipt scanning needs an internet connection. Enter details manually.';
+        state.busy=false;
+        return;
+      }
+      state.busy=true;
+      ocrStatus.textContent='Scanning receipt…';
+      UI.loadOcr()
+        .then(Tesseract=>Tesseract.recognize(imageData,'eng',{
+          logger(msg){
+            if(msg?.status==='recognizing text'){
+              const pct=Math.round((msg.progress||0)*100);
+              ocrStatus.textContent=`Scanning receipt… ${pct}%`;
+            }
+          }
+        }))
+        .then(result=>{
+          state.busy=false;
+          const text=result?.data?.text||'';
+          if(text.trim()){
+            const parsed=UI.parseReceiptText(text);
+            fillFromParsed(parsed);
+            ocrStatus.textContent='Receipt scanned. Review and adjust the extracted fields.';
+          } else {
+            ocrStatus.textContent='No text detected. Enter details manually.';
+          }
+        })
+        .catch(err=>{
+          console.error(err);
+          state.busy=false;
+          ocrStatus.textContent='Could not read the receipt. Enter details manually.';
+        });
+    };
+    const handleFile=file=>{
+      if(!file) return;
+      const reader=new FileReader();
+      reader.onload=()=>{
+        state.imageData=reader.result;
+        previewImg.src=state.imageData;
+        updateButtons();
+        runOcr(state.imageData);
+      };
+      reader.onerror=()=>{
+        state.imageData='';
+        state.busy=false;
+        ocrStatus.textContent='Could not load the receipt image. Try again or enter details manually.';
+      };
+      reader.readAsDataURL(file);
+    };
+    cameraInput.addEventListener('change',e=>handleFile(e.target.files[0]));
+    uploadInput.addEventListener('change',e=>handleFile(e.target.files[0]));
+    cameraBtn.addEventListener('click',()=>{ if(state.busy) return; cameraInput.value=''; cameraInput.click(); });
+    uploadBtn.addEventListener('click',()=>{ if(state.busy) return; uploadInput.value=''; uploadInput.click(); });
+    if(state.imageData){
+      previewImg.src=state.imageData;
+      preview.classList.remove('hidden');
+      ocrStatus.textContent='Receipt attached. Review the details below.';
+    }
+    updateButtons();
+    const content=el('div',{class:'form-grid'},
+      el('div',{class:'stack-buttons'}, cameraBtn, uploadBtn),
+      preview,
+      el('div',{}, el('label',{},'Date'), dateInput),
+      el('div',{}, el('label',{},'Category'), categorySelect),
+      el('div',{}, el('label',{},'Vendor'), vendorInput),
+      el('div',{class:'mobile-field-row'},
+        el('div',{}, el('label',{},'Payment Method'), paymentSelect),
+        el('div',{}, el('label',{},'Amount'), amountInput)
+      ),
+      el('div',{}, el('label',{},'Notes'), notesInput),
+      cameraInput,
+      uploadInput
+    );
+    this.modal('Add Expense',(close)=>{
+      const date=dateInput.value||today();
+      const category=categorySelect.value;
+      const vendor=vendorInput.value.trim();
+      const payment=paymentSelect.value;
+      const amountValue=Number(amountInput.value||0);
+      if(!(amountValue>0)) return alert('Amount required');
+      const notes=notesInput.value.trim();
+      App.addExpenseRecord({date,category,vendor,payment,amount:amountValue,notes,receiptImage:state.imageData});
+      close();
+      UI.flash('Expense added.');
+    }, content, 'Save Expense');
+  },
+  openTransactions(){
+    const transactions=[...S.transactions].sort((a,b)=>String(b.date||'').localeCompare(a.date||''));
+    const list=el('div',{class:'list'});
+    if(!transactions.length){
+      list.append(el('div',{class:'tiny'},'No transactions yet.'));
+    } else {
+      transactions.forEach(tx=>list.append(this.buildTransactionCard(tx,{showType:true})));
+    }
+    const content=el('div',{class:'form-grid'},
+      el('div',{class:'stack-buttons'},
+        el('button',{class:'btn secondary fullwidth',onclick:()=>Data.exportCSV()},'Export CSV'),
+        el('button',{class:'btn secondary fullwidth',onclick:()=>Data.exportJSON()},'Export JSON')
+      ),
+      list
+    );
+    this.modal('Transactions',(close)=>close(), content,'Close',false,true);
+  },
+  openExpenses(){
+    const expenses=S.transactions.filter(t=>t.type==='Expense');
+    const list=el('div',{class:'list'});
+    if(!expenses.length){
+      list.append(el('div',{class:'tiny'},'No expenses recorded yet.'));
+    } else {
+      expenses.slice().sort((a,b)=>String(b.date||'').localeCompare(a.date||'')).forEach(exp=>{
+        list.append(this.buildTransactionCard(exp,{showType:false}));
+      });
+    }
+    const content=el('div',{class:'form-grid'},
+      el('div',{class:'stack-buttons'},
+        el('button',{class:'btn fullwidth',onclick:()=>UI.openExpenseForm()},'Add Expense'),
+        el('button',{class:'btn secondary fullwidth',onclick:()=>Data.exportCSV()},'Export CSV')
+      ),
+      list
+    );
+    this.modal('Expenses',(close)=>close(), content,'Close',false,true);
+  },
   openMileage(){ const rows=S.mileage.map((m,i)=>`<tr><td>${m.date}</td><td>${m.from}</td><td>${m.to}</td><td>${m.why}</td><td>${m.miles}</td><td><button class='pill' onclick='UI.delMileage(${i})'>Delete</button></td></tr>`).join(''); this.modal('Mileage',(c)=>c(), el('div',{}, el('div',{class:'row'}, el('div',{}, el('label',{},'Date'), el('input',{id:'miDate',type:'date',value:today()})), el('div',{}, el('label',{},'From'), el('input',{id:'miFrom'})), el('div',{}, el('label',{},'To'), el('input',{id:'miTo'})), el('div',{}, el('label',{},'Why'), el('input',{id:'miWhy'})), el('div',{}, el('label',{},'Miles'), el('input',{id:'miMiles',type:'number',min:'0',step:'0.1'})) ), el('div',{class:'row'}, el('button',{class:'btn', onclick:()=>UI.addMileage()},'Add Entry')), el('table',{style:'width:100%;border-collapse:collapse;margin-top:.5rem;'}, el('thead',{}, el('tr',{html:'<th>Date</th><th>From</th><th>To</th><th>Why</th><th>Miles</th><th></th>'})), el('tbody',{id:'miBody',html:rows})) )); },
   addMileage(){ const e={date:document.getElementById('miDate').value||today(),from:document.getElementById('miFrom').value||'',to:document.getElementById('miTo').value||'',why:document.getElementById('miWhy').value||'',miles:Number(document.getElementById('miMiles').value||0)}; S.mileage.push(e); Storage.save(S); const tr=`<tr><td>${e.date}</td><td>${e.from}</td><td>${e.to}</td><td>${e.why}</td><td>${e.miles}</td><td><button class='pill' onclick='UI.delMileage(${S.mileage.length-1})'>Delete</button></td></tr>`; document.getElementById('miBody').insertAdjacentHTML('beforeend', tr); UI.flash('Mileage added.'); },
   delMileage(i){ if(!confirm('Delete entry?')) return; S.mileage.splice(i,1); Storage.save(S); UI.openMileage(); },
@@ -973,17 +2958,30 @@ const UI = {
     const content=el('div',{});
     const pkgHeader=el('h4',{},'Packages');
     const pkgList=el('div',{id:'pkgEditor',class:'list',style:'gap:.75rem;'});
-    const createAddonOption=(name,checked=false)=>{
+    const createAddonOption=(name,checked=false,onChange=()=>{})=>{
       const option=el('label',{class:'pkg-addon-option','data-name':name,'data-selected':checked?'true':'false'});
       const cb=el('input',{type:'checkbox',value:name});
       cb.checked=checked;
-      cb.addEventListener('change',()=>option.setAttribute('data-selected',cb.checked?'true':'false'));
+      cb.addEventListener('change',()=>{
+        option.setAttribute('data-selected',cb.checked?'true':'false');
+        onChange(cb.checked);
+      });
       option.append(cb, name);
       return option;
     };
-    const createCard=(name,prices=[],meta={lock:false,includedAddons:[]})=>{
-      const card=el('div',{class:'menu-pkg-card'});
-      const header=el('div',{class:'row',style:'gap:.5rem;align-items:center;'});
+    const createCard=(name,prices=[],meta={lock:false,includedAddons:[],description:''})=>{
+      const card=el('div',{class:'menu-pkg-card','data-collapsed':'false'});
+      const header=el('div',{class:'pkg-header'});
+      const toggle=el('button',{class:'pkg-toggle',type:'button',title:'Collapse section','aria-expanded':'true'},'▾');
+      const toggleSection=()=>{
+        const currentlyCollapsed=card.getAttribute('data-collapsed')==='true';
+        const nextCollapsed=!currentlyCollapsed;
+        card.setAttribute('data-collapsed',nextCollapsed?'true':'false');
+        toggle.textContent=nextCollapsed?'▸':'▾';
+        toggle.setAttribute('aria-expanded',(!nextCollapsed).toString());
+      };
+      toggle.addEventListener('click',toggleSection);
+      header.append(toggle);
       const nameWrap=el('div',{style:'flex:1;'});
       const nameInput=el('input',{class:'pkg-name',value:name,placeholder:'Package name'});
       nameWrap.append(nameInput);
@@ -999,14 +2997,29 @@ const UI = {
       header.append(removeBtn);
       card.append(header);
 
+      const summary=el('div',{class:'pkg-summary',tabindex:'0'});
+      summary.addEventListener('click',toggleSection);
+      summary.addEventListener('keydown',(e)=>{
+        if(e.key==='Enter'||e.key===' '){
+          e.preventDefault();
+          toggleSection();
+        }
+      });
+      card.append(summary);
+
+      const body=el('div',{class:'pkg-body'});
+
       const priceGrid=el('div',{class:'grid',style:'gap:.5rem;'});
+      const priceInputs=[];
       S.menu.sizes.forEach((size,i)=>{
         const col=el('div',{});
         col.append(el('label',{},size));
-        col.append(el('input',{type:'number',class:'pkg-price','data-size-index':i,min:'0',step:'0.01',value:Number(prices[i]||0).toFixed(2)}));
+        const input=el('input',{type:'number',class:'pkg-price','data-size-index':i,min:'0',step:'0.01',value:Number(prices[i]||0).toFixed(2)});
+        priceInputs.push(input);
+        col.append(input);
         priceGrid.append(col);
       });
-      card.append(priceGrid);
+      body.append(priceGrid);
 
       const lockRow=el('div',{class:'row',style:'gap:.5rem;align-items:center;'});
       lockRow.append(el('label',{style:'flex:1;'},'Lock Retail Base?'));
@@ -1014,15 +3027,47 @@ const UI = {
       lockSelect.append(el('option',{value:'no',selected:!meta.lock},'No'));
       lockSelect.append(el('option',{value:'yes',selected:meta.lock},'Yes'));
       lockRow.append(lockSelect);
-      card.append(lockRow);
+      body.append(lockRow);
 
-      card.append(el('label',{},'Included Add-ons'));
+      const descLabel=el('label',{},'Description');
+      const descInput=el('textarea',{class:'pkg-desc',placeholder:'Short summary of what is included',value:meta.description||''});
+      body.append(descLabel,descInput);
+
+      const addonLabel=el('label',{},'Included Add-ons');
       const addonWrap=el('div',{class:'pkg-addon-options'});
+      body.append(addonLabel,addonWrap);
+
+      const updateSummary=()=>{
+        const sizePreview=S.menu.sizes[0]||'';
+        const previewInput=priceInputs[0];
+        const baseValue=Number(previewInput?.value||0);
+        const basePreview=previewInput?`${sizePreview?sizePreview+': ':''}${fmt(baseValue)}`:'';
+        const description=descInput.value.trim();
+        const includedCount=addonWrap.querySelectorAll('input[type=checkbox]:checked').length;
+        const parts=[];
+        if(basePreview) parts.push(`Base ${basePreview}`);
+        if(description) parts.push(description);
+        if(includedCount) parts.push(`${includedCount} included add-on${includedCount===1?'':'s'}`);
+        summary.textContent=parts.join(' • ')||'Add pricing, a description, or included add-ons.';
+      };
+
       Object.keys(S.menu.addons).forEach(addonName=>{
         const checked=!!meta.includedAddons?.includes(addonName);
-        addonWrap.append(createAddonOption(addonName,checked));
+        addonWrap.append(createAddonOption(addonName,checked,()=>updateSummary()));
       });
-      card.append(addonWrap);
+
+      descInput.addEventListener('input',updateSummary);
+      priceInputs.forEach(input=>input.addEventListener('input',updateSummary));
+
+      card.append(body);
+
+      updateSummary();
+
+      if(pkgList.children.length){
+        card.setAttribute('data-collapsed','true');
+        toggle.textContent='▸';
+        toggle.setAttribute('aria-expanded','false');
+      }
 
       return card;
     };
@@ -1031,7 +3076,7 @@ const UI = {
     if(existingPackages.length){
       existingPackages.forEach(([name,prices])=>pkgList.append(createCard(name,prices,pkgMeta(name))));
     } else {
-      pkgList.append(createCard('New Package',S.menu.sizes.map(()=>0),{lock:false,includedAddons:[]}));
+      pkgList.append(createCard('New Package',S.menu.sizes.map(()=>0),{lock:false,includedAddons:[],description:''}));
     }
 
     const addPackageBtn=el('button',{class:'btn secondary',type:'button'},'Add Package');
@@ -1043,7 +3088,7 @@ const UI = {
       while(currentNames.has(candidate)){
         candidate=`${base} ${idx++}`;
       }
-      pkgList.append(createCard(candidate,S.menu.sizes.map(()=>0),{lock:false,includedAddons:[]}));
+      pkgList.append(createCard(candidate,S.menu.sizes.map(()=>0),{lock:false,includedAddons:[],description:''}));
     });
 
     content.append(pkgHeader);
@@ -1089,7 +3134,8 @@ const UI = {
           packages[name]=prices;
           const lock=card.querySelector('.pkg-lock')?.value==='yes';
           const included=Array.from(card.querySelectorAll('.pkg-addon-option input[type=checkbox]')).filter(cb=>cb.checked).map(cb=>cb.value);
-          meta[name]={lock,includedAddons:included};
+          const description=(card.querySelector('.pkg-desc')?.value||'').trim();
+          meta[name]={lock,includedAddons:included, description};
         });
         if(!Object.keys(packages).length) throw new Error('At least one package is required.');
         S.menu.packages=packages;
@@ -1107,7 +3153,7 @@ const UI = {
     }, content, 'Save Changes', true, true);
   },
   delRow(tableId,name){ const tr=document.querySelector(`#${tableId} tr[data-name="${name}"]`); if(tr) tr.remove(); },
-  openCustomBuilder(row=null){ const size=(row?.querySelector('.vehicle-size')?.value)||document.querySelector('.vehicle-size')?.value||S.menu.sizes[0]; const basePref=row?.querySelector('.vehicle-base')?.value||'0'; const content=el('div',{}, el('label',{},'Package Name'), el('input',{id:'cbName', value:'Custom Package'}), el('div',{class:'row'}, el('div',{}, el('label',{}, 'Base Price for '+size), el('input',{id:'cbBase',type:'number',min:'0',step:'0.01',value:basePref})), el('div',{}, el('label',{}, 'Lock Retail Base'), el('select',{id:'cbLock'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')))), el('label',{},'Included Add-ons (optional)'), (()=>{ const box=el('div',{class:'list'}); for(const n of Object.keys(S.menu.addons)) box.append(el('label',{}, el('input',{type:'checkbox','data-name':n,style:'margin-right:.4rem;'}), n)); return box; })(), el('label',{},'Pick & Choose mode (no included items)'), el('select',{id:'cbPick'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')) ); UI.modal('Build Custom Package',(close)=>{ const name=content.querySelector('#cbName').value.trim()||'Custom Package'; const base=Number(content.querySelector('#cbBase').value||0); const lock=content.querySelector('#cbLock').value==='yes'; const pick=content.querySelector('#cbPick').value==='yes'; const inc=pick?[]:Array.from(content.querySelectorAll('input[type=checkbox][data-name]')).filter(x=>x.checked).map(x=>x.getAttribute('data-name')); const prices=S.menu.sizes.map(()=>0); const idx=S.menu.sizes.indexOf(size); if(idx>=0) prices[idx]=base; else if(prices.length) prices[0]=base; S.menu.packages[name]=prices; S.menu.packageMeta[name]={lock, includedAddons:inc}; Storage.save(S); UI.populateSizesAndPackages(); if(row){ const pkgSel=row.querySelector('.vehicle-package'); if(pkgSel){ pkgSel.value=name; UI.refreshVehicleRow(row,{setBase:true}); UI.updateTotals(); } } else { const firstRow=document.querySelector('.vehicle-row'); const pkgSel=firstRow?.querySelector('.vehicle-package'); if(pkgSel){ pkgSel.value=name; UI.refreshVehicleRow(firstRow,{setBase:true}); } UI.handlePackageChange(); } UI.flash('Custom package added.'); close(); }, content, 'Use Package', true, true); },
+  openCustomBuilder(row=null){ const size=(row?.querySelector('.vehicle-size')?.value)||document.querySelector('.vehicle-size')?.value||S.menu.sizes[0]; const basePref=row?.querySelector('.vehicle-base')?.value||'0'; const content=el('div',{}, el('label',{},'Package Name'), el('input',{id:'cbName', value:'Custom Package'}), el('div',{class:'row'}, el('div',{}, el('label',{}, 'Base Price for '+size), el('input',{id:'cbBase',type:'number',min:'0',step:'0.01',value:basePref})), el('div',{}, el('label',{}, 'Lock Retail Base'), el('select',{id:'cbLock'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')))), el('label',{},'Description'), el('textarea',{id:'cbDesc',placeholder:'What is highlighted in this package?'}), el('label',{},'Included Add-ons (optional)'), (()=>{ const box=el('div',{class:'list'}); for(const n of Object.keys(S.menu.addons)) box.append(el('label',{}, el('input',{type:'checkbox','data-name':n,style:'margin-right:.4rem;'}), n)); return box; })(), el('label',{},'Pick & Choose mode (no included items)'), el('select',{id:'cbPick'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')) ); UI.modal('Build Custom Package',(close)=>{ const name=content.querySelector('#cbName').value.trim()||'Custom Package'; const base=Number(content.querySelector('#cbBase').value||0); const lock=content.querySelector('#cbLock').value==='yes'; const description=content.querySelector('#cbDesc').value.trim(); const pick=content.querySelector('#cbPick').value==='yes'; const inc=pick?[]:Array.from(content.querySelectorAll('input[type=checkbox][data-name]')).filter(x=>x.checked).map(x=>x.getAttribute('data-name')); const prices=S.menu.sizes.map(()=>0); const idx=S.menu.sizes.indexOf(size); if(idx>=0) prices[idx]=base; else if(prices.length) prices[0]=base; S.menu.packages[name]=prices; S.menu.packageMeta[name]={lock, includedAddons:inc, description}; Storage.save(S); UI.populateSizesAndPackages(); if(row){ const pkgSel=row.querySelector('.vehicle-package'); if(pkgSel){ pkgSel.value=name; UI.refreshVehicleRow(row,{setBase:true}); UI.updateTotals(); } } else { const firstRow=document.querySelector('.vehicle-row'); const pkgSel=firstRow?.querySelector('.vehicle-package'); if(pkgSel){ pkgSel.value=name; UI.refreshVehicleRow(firstRow,{setBase:true}); } UI.handlePackageChange(); } UI.flash('Custom package added.'); close(); }, content, 'Use Package', true, true); },
   openImport(){ const file=el('input',{type:'file',accept:'.json'}); file.onchange=(e)=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const data=JSON.parse(r.result); if(!data.transactions) throw new Error('Invalid backup file: missing "transactions"'); S=data; if(!S.menu.packageMeta) S.menu.packageMeta={}; Storage.save(S); location.reload(); }catch(err){ alert('Import error: '+err.message); } }; r.readAsText(f); }; file.click(); },
   openSettings(){ const content=el('div',{}, el('h4',{},'Brand'), el('label',{},'Header Title'), el('input',{id:'stHeader', value:S.business.headerTitle||''}), el('label',{},'Business Name (on quotes)'), el('input',{id:'stBiz', value:S.business.name||''}), el('label',{},'Logo'), el('div',{class:'row'}, el('button',{class:'btn', onclick:()=>UI.pickLogo()},'Upload Logo'), el('button',{class:'btn secondary', onclick:()=>{ S.business.logoDataUrl=''; Storage.save(S); UI.initHeader(); UI.flash('Logo removed.'); }},'Remove Logo')), el('div',{class:'footnote'},'Replace install icons by swapping icon-192.png / icon-512.png in the bundle.') ); UI.modal('Settings',(close)=>{ S.business.headerTitle=content.querySelector('#stHeader').value.trim()||'POLISH CREW — Accounting'; S.business.name=content.querySelector('#stBiz').value.trim()||'Polish Crew'; Storage.save(S); UI.initHeader(); UI.flash('Settings saved.'); close(); }, content); },
   pickLogo(){ const f=el('input',{type:'file',accept:'image/*'}); f.onchange=(e)=>{ const file=e.target.files[0]; if(!file) return; const r=new FileReader(); r.onload=()=>{ S.business.logoDataUrl=r.result; Storage.save(S); UI.initHeader(); UI.flash('Logo updated.'); }; r.readAsDataURL(file); }; f.click(); },
@@ -1150,13 +3196,13 @@ UI.renderPrintSheet = function(job){
   const j = job;
   const c = S.clients.find(x => x.id === j.clientId);
   const hasVehicles = Array.isArray(j.vehicles) && j.vehicles.length;
-  const vehicles = hasVehicles ? j.vehicles.map(v=>({
-    size: v.size || '',
-    base: Number(v.base||0),
-    addons: (v.addons||[]).map(a=>({name:a.name, price:Number(a.price||0)})),
-    pkg: v.pkg || j.pkg || '',
-    label: v.label || ''
-  })) : [];
+    const vehicles = hasVehicles ? j.vehicles.map(v=>({
+      size: v.size || '',
+      base: Number(v.base||0),
+      addons: (v.addons||[]).map(a=>({name:a.name, price:Number(a.price||0), included:!!a.included})),
+      pkg: v.pkg || j.pkg || '',
+      label: v.label || ''
+    })) : [];
   const pkgLabel = UI.jobPackageLabel(j);
   const packageNames = hasVehicles ? vehicles.map(v=>v.pkg).filter(Boolean) : [j.pkg].filter(Boolean);
   const uniquePackages = [...new Set(packageNames)];
@@ -1166,8 +3212,11 @@ UI.renderPrintSheet = function(job){
     ? '<li>Varies by vehicle</li>'
     : (meta.includedAddons||[]).map(n=>`<li>${n}</li>`).join('');
   const legacyAddons = (!hasVehicles ? (j.addons||[]) : []).map(a=>{
-    const price=Number(a.price||0);
     const count=Calc.vehicleCount(j);
+    if(a?.included){
+      return `<tr><td>${a.name}</td><td style="text-align:right">Included</td></tr>`;
+    }
+    const price=Number(a.price||0);
     const lineTotal=price*count;
     const priceLabel=count>1 ? `$${price.toFixed(2)} ea × ${count} = $${lineTotal.toFixed(2)}` : `$${price.toFixed(2)}`;
     const note=count>1?'<div style="color:#777;font-size:12px;">Per vehicle</div>':'';
@@ -1304,7 +3353,7 @@ UI.renderPrintSheet = function(job){
     window.addEventListener('load', function(){
       try { window.focus(); } catch(e){}
     });
-  </script>
+  <\/script>
 </body>
 </html>`;
 
