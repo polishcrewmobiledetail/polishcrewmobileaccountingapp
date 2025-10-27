@@ -2255,6 +2255,7 @@ const UI = {
       const script=document.createElement('script');
       script.src='https://cdn.jsdelivr.net/npm/tesseract.js@4.0.3/dist/tesseract.min.js';
       script.async=true;
+      script.crossOrigin='anonymous';
       script.onload=()=>resolve(window.Tesseract);
       script.onerror=()=>reject(new Error('Failed to load OCR engine'));
       document.head.append(script);
@@ -2825,11 +2826,14 @@ const UI = {
         if(match) paymentSelect.value=match;
       }
     };
-    const runOcr=(file)=>{
+    const runOcr=async(file)=>{
+      if(state.busy) return;
       state.busy=true;
       ocrStatus.textContent='Scanning receipt…';
-      UI.loadOcr().then(Tesseract=>Tesseract.recognize(file,'eng')).then(result=>{
-        state.busy=false;
+      try{
+        const Tesseract=await UI.loadOcr();
+        const source=state.imageData || file;
+        const result=await Tesseract.recognize(source,'eng');
         const text=result?.data?.text||'';
         if(text.trim()){
           const parsed=UI.parseReceiptText(text);
@@ -2838,11 +2842,12 @@ const UI = {
         } else {
           ocrStatus.textContent='No text detected. Enter details manually.';
         }
-      }).catch(err=>{
+      } catch(err){
         console.error(err);
-        state.busy=false;
         ocrStatus.textContent='Could not read the receipt. Enter details manually.';
-      });
+      } finally {
+        state.busy=false;
+      }
     };
     const handleFile=file=>{
       if(!file) return;
