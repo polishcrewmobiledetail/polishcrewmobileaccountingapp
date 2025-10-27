@@ -19,6 +19,7 @@
   .tab.active{background:radial-gradient(120% 120% at 50% 0%,#0f1a12,#0a0d0b);border-color:#1f2a1f;color:var(--text);box-shadow:0 0 0 1px #112c19 inset,0 0 12px #0a1}
   .wrap{padding:1rem;max-width:1100px;margin:0 auto}
   .grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));}
+  .grid.single-column{grid-template-columns:minmax(0,1fr);}  
   .card{background:linear-gradient(180deg,#0f1013,#0b0c0f);border:1px solid #1a1e21;border-radius:16px;padding:1rem;box-shadow:inset 0 1px 0 #1b221d;}
   .card h3{margin:.25rem 0 .75rem;font-family:Oswald,'Bebas Neue',Impact,sans-serif;letter-spacing:.4px}
   .muted{color:var(--muted);font-size:.9rem}
@@ -34,6 +35,30 @@
   .list-item{padding:.5rem .6rem;border:1px solid #171a1d;background:#0a0c0f;border-radius:10px}
   .tiny{font-size:.8rem;color:#aab5b5}
   .hidden{display:none}
+  .stack-buttons{display:flex;flex-direction:column;gap:.5rem;align-items:stretch}
+  .stack-buttons .fullwidth{width:100%}
+  .stack-buttons .btn,.stack-buttons .pill{width:100%}
+  @media(min-width:720px){
+    .stack-buttons{flex-direction:row;}
+    .stack-buttons .btn,.stack-buttons .pill{width:auto;flex:1}
+  }
+  .receipt-scan{display:flex;flex-direction:column;gap:.75rem;}
+  .receipt-preview{border:1px dashed #1f2428;border-radius:12px;padding:.75rem;background:#080a0d;display:flex;flex-direction:column;gap:.6rem;}
+  .receipt-preview.hidden{display:none;}
+  .receipt-preview img{width:100%;max-height:220px;object-fit:contain;border-radius:10px;background:#000;}
+  .receipt-ocr-status{font-size:.8rem;color:var(--muted);}
+  .form-grid{display:flex;flex-direction:column;gap:.75rem;}
+  .mobile-field-row{display:flex;flex-direction:column;gap:.5rem;}
+  @media(min-width:720px){
+    .mobile-field-row{flex-direction:row;}
+    .mobile-field-row>div{flex:1;}
+  }
+  .transaction-card{display:flex;flex-direction:column;gap:.5rem;}
+  .transaction-card h4{margin:0;font-size:1rem;}
+  .transaction-meta{display:flex;flex-wrap:wrap;gap:.35rem;font-size:.75rem;color:var(--muted);}
+  .transaction-meta span{background:#101215;border-radius:999px;padding:.2rem .6rem;}
+  .transaction-amount{font-weight:800;}
+  .transaction-notes{font-size:.85rem;color:#c7d0d0;}
   .vehicle-addon-row[data-included="true"]{opacity:.6;}
   .vehicle-addon-row[data-included="true"] input{pointer-events:none;opacity:.7;}
   .vehicle-package-info{border-radius:12px;border:1px solid #15191c;background:#090b0d;padding:.65rem;margin-top:.5rem;display:flex;flex-direction:column;gap:.35rem;}
@@ -101,6 +126,7 @@
 
   <div class="tabs">
     <div class="tab active" data-tab="Dashboard">Dashboard</div>
+    <div class="tab" data-tab="Quotes">Quotes</div>
     <div class="tab" data-tab="Jobs">Jobs</div>
     <div class="tab" data-tab="QuoteBuilder">Quote Builder</div>
     <div class="tab" data-tab="Clients">Clients</div>
@@ -120,7 +146,7 @@
         <div class="card">
           <h3>Quick Actions</h3>
           <div class="row">
-            <button class="btn" onclick="UI.switchTab('QuoteBuilder')">Start a Quote</button>
+            <button class="btn" onclick="UI.startQuoteFlow()">Start a Quote</button>
             <button class="btn" onclick="UI.openExpenseForm()">Add Expense</button>
             <button class="btn" onclick="UI.switchTab('Clients')">Add Client</button>
             <button class="btn secondary" onclick="Data.exportCSV()">Export CSV</button>
@@ -129,6 +155,20 @@
         <div class="card">
           <h3>Recent Activity</h3>
           <div id="recentList" class="list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="Quotes" class="tabpage hidden">
+      <div class="grid single-column">
+        <div class="card">
+          <h3>Pending Quotes</h3>
+          <div class="muted tiny">Quotes stay here until you convert them into jobs or collect payment.</div>
+          <div class="stack-buttons" style="margin:.75rem 0 .5rem;">
+            <button class="btn fullwidth" onclick="UI.startQuoteFlow()">New Quote</button>
+            <button class="btn secondary fullwidth" onclick="UI.printQuotesSummary()">Print All Quotes</button>
+          </div>
+          <div id="quotesList" class="list"></div>
         </div>
       </div>
     </section>
@@ -146,7 +186,7 @@
               <button class="pill" data-filter="unpaid" onclick="UI.setJobFilter('unpaid')">Unpaid</button>
             </div>
             <div class="spacer"></div>
-            <button class="btn" onclick="UI.switchTab('QuoteBuilder')">Create Quote</button>
+            <button class="btn" onclick="UI.startQuoteFlow()">Create Quote</button>
           </div>
           <div id="jobsList" class="list" style="margin-top:.75rem;"></div>
         </div>
@@ -204,11 +244,11 @@
             <div class="row"><button class="btn" onclick="App.addQuickClient()">Save Client</button><button class="btn secondary" onclick="UI.hideQuickClient()">Cancel</button></div>
           </div>
 
-          <div class="card" style="margin-top:.6rem;">
-            <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:.4rem;gap:.5rem;flex-wrap:wrap;">
-              <h3 style="margin:.25rem 0;">Vehicles</h3>
-              <div class="row" style="gap:.5rem;flex-wrap:wrap;justify-content:flex-end;">
-                <button class="btn secondary" onclick="UI.openCustomBuilder()">Edit Packages</button>
+            <div class="card" style="margin-top:.6rem;">
+              <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:.4rem;gap:.5rem;flex-wrap:wrap;">
+                <h3 style="margin:.25rem 0;">Vehicles</h3>
+                <div class="row" style="gap:.5rem;flex-wrap:wrap;justify-content:flex-end;">
+                  <button class="btn secondary" onclick="UI.openCustomBuilder()">Edit Packages</button>
                 <button class="btn secondary" onclick="UI.addVehicle()">Add Vehicle</button>
               </div>
             </div>
@@ -251,16 +291,12 @@
             <div class="card"><div class="muted">Total</div><div id="jobTotal" style="font-size:1.4rem;font-weight:800">$0.00</div></div>
           </div>
 
-          <div class="row">
-            <button id="jobSaveBtn" class="btn" onclick="App.saveJob()">Schedule Job</button>
-            <button class="btn secondary" onclick="UI.printQuote()">Print / Save Quote</button>
-            <button id="jobEditCancel" class="btn secondary hidden" type="button" onclick="UI.cancelJobEdit()">Cancel Edit</button>
+          <div class="stack-buttons">
+            <button id="quoteSaveBtn" class="btn fullwidth" onclick="App.saveJob({asQuote:true})">Save Quote</button>
+            <button id="jobSaveBtn" class="btn fullwidth" onclick="App.saveJob({asQuote:false})">Schedule Job</button>
+            <button class="btn secondary fullwidth" onclick="UI.printQuote()">Print / Save Quote</button>
+            <button id="jobEditCancel" class="btn secondary fullwidth hidden" type="button" onclick="UI.cancelJobEdit()">Cancel Edit</button>
           </div>
-        </div>
-
-        <div class="card">
-          <h3>Jobs</h3>
-          <div id="jobsList" class="list"></div>
         </div>
       </div>
     </section>
@@ -1125,7 +1161,8 @@ const App = {
     Storage.save(S);
     UI.populateClients(job.clientId);
   },
-  saveJob(){
+  saveJob(options={}){
+    const asQuote=!!(options && options.asQuote);
     const clientId=document.getElementById('jobClient').value;
     if(!clientId) return alert('Client is required');
     const vehicles=UI.collectVehicles();
@@ -1145,6 +1182,7 @@ const App = {
     if(UI.editingJobId){
       const job=S.jobs.find(x=>x.id===UI.editingJobId);
       if(job){
+        const previousStatus=job.status;
         job.clientId=clientId;
         job.pkg=primaryPkg;
         job.vehicles=vehicles.map(v=>({
@@ -1182,7 +1220,29 @@ const App = {
         UI.refreshJobsList();
         UI.renderJobPanel(job.id,true);
         UI.resetJobForm();
-        UI.flash('Job updated.');
+        let converted=false;
+        if(asQuote){
+          if(!['Paid','Complete'].includes(job.status)){
+            job.status='Quoted';
+            Storage.save(S);
+            UI.refreshJobsList();
+          }
+          UI.flash('Quote updated.');
+          UI.switchTab('Quotes');
+        } else {
+          if(previousStatus==='Quoted'){
+            job.status='Booked';
+            Storage.save(S);
+            UI.refreshJobsList();
+            converted=true;
+          }
+          if(converted){
+            UI.flash('Quote converted to job.');
+            UI.switchTab('Jobs');
+          } else {
+            UI.flash('Job updated.');
+          }
+        }
         return;
       }
       UI.editingJobId=null;
@@ -1200,7 +1260,7 @@ const App = {
       discValue,
       discScope,
       notes,
-      status:'Booked',
+      status:asQuote?'Quoted':'Booked',
       payments:[],
       schedule,
       extraCharges:[]
@@ -1216,7 +1276,13 @@ const App = {
     this.syncClientVehicles(job);
     UI.refreshJobsList();
     UI.resetJobForm();
-    UI.flash('Job scheduled.');
+    if(asQuote){
+      UI.flash('Quote saved.');
+      UI.switchTab('Quotes');
+    } else {
+      UI.flash('Job scheduled.');
+      UI.switchTab('Jobs');
+    }
   },
   updateJobStatus(id,next){
     const job=S.jobs.find(x=>x.id===id);
@@ -1266,7 +1332,7 @@ const App = {
       const vehicleLabel=UI.jobVehicleSummary(j);
       const pkgLabel=UI.jobPackageLabel(j);
       const itemLabel=vehicleLabel?`${pkgLabel} — ${vehicleLabel}`:pkgLabel;
-      S.transactions.push({id:uid(), type:'Income', date:today(), category:'Package', item:itemLabel, clientId:j.clientId, vendor:'', payment:method, amount:Calc.total(j), notes:'Discount: '+(j.discType||'none')+' '+(j.discValue||0)});
+      S.transactions.push({id:uid(), jobId:j.id, type:'Income', date:today(), category:'Package', item:itemLabel, clientId:j.clientId, vendor:'', payment:method, amount:Calc.total(j), notes:'Discount: '+(j.discType||'none')+' '+(j.discValue||0)});
       this.updateJobStatus(j.id,'Paid');
       UI.flash('Paid in full. Income posted.');
     } else {
@@ -1280,12 +1346,32 @@ const App = {
   },
   deleteJob(id){
     if(!confirm('Delete this job?')) return;
+    const before=S.transactions.length;
     S.jobs=S.jobs.filter(x=>x.id!==id);
+    S.transactions=S.transactions.filter(t=>t.jobId!==id);
     Storage.save(S);
     if(UI.jobPanelJobId===id) UI.closeJobPanel();
     UI.refreshJobsList();
+    UI.refreshDashboard();
+    const removed=before!==S.transactions.length;
+    UI.flash(removed?'Job and related income removed.':'Job deleted.');
   },
-  addExpenseRecord(rec){ S.transactions.push(rec); Storage.save(S); UI.refreshDashboard(); }
+  deleteTransaction(id){
+    const idx=S.transactions.findIndex(t=>t.id===id);
+    if(idx<0) return false;
+    if(!confirm('Delete this record?')) return false;
+    S.transactions.splice(idx,1);
+    Storage.save(S);
+    UI.refreshDashboard();
+    UI.flash('Transaction deleted.');
+    return true;
+  },
+  addExpenseRecord(rec){
+    const record={id:rec.id||uid(), type:'Expense', date:rec.date, category:rec.category, item:rec.item||'', clientId:rec.clientId||null, vendor:rec.vendor||'', payment:rec.payment||'', amount:Number(rec.amount||0), notes:rec.notes||'', receiptImage:rec.receiptImage||null};
+    S.transactions.push(record);
+    Storage.save(S);
+    UI.refreshDashboard();
+  }
 };
 
 /*** UI ***/
@@ -1293,6 +1379,7 @@ const UI = {
   checklistTicker:null,
   checklistHost:null,
   checklistJobId:null,
+  ocrPromise:null,
   jobFilter:'all',
   jobPanelJobId:null,
   editingJobId:null,
@@ -1370,12 +1457,25 @@ const UI = {
   },
   updateJobFormEditingUI(job){
     const saveBtn=document.getElementById('jobSaveBtn');
+    const quoteBtn=document.getElementById('quoteSaveBtn');
     const cancelBtn=document.getElementById('jobEditCancel');
     if(job){
-      if(saveBtn) saveBtn.textContent='Update Job';
+      if(saveBtn) saveBtn.textContent=job.status==='Quoted'?'Book Job':'Update Job';
+      if(quoteBtn){
+        if(['Paid','Complete'].includes(job.status)){
+          quoteBtn.classList.add('hidden');
+        } else {
+          quoteBtn.classList.remove('hidden');
+          quoteBtn.textContent=job.status==='Quoted'?'Update Quote':'Save as Quote';
+        }
+      }
       if(cancelBtn) cancelBtn.classList.remove('hidden');
     } else {
       if(saveBtn) saveBtn.textContent='Schedule Job';
+      if(quoteBtn){
+        quoteBtn.classList.remove('hidden');
+        quoteBtn.textContent='Save Quote';
+      }
       if(cancelBtn) cancelBtn.classList.add('hidden');
     }
   },
@@ -1909,6 +2009,13 @@ const UI = {
     if(durationInput) durationInput.value='';
     this.editingJobId=null;
     this.updateJobFormEditingUI(null);
+    const quoteBtn=document.getElementById('quoteSaveBtn');
+    if(quoteBtn){
+      quoteBtn.textContent='Save Quote';
+      quoteBtn.classList.remove('hidden');
+    }
+    const jobBtn=document.getElementById('jobSaveBtn');
+    if(jobBtn) jobBtn.textContent='Schedule Job';
     this.updateTotals();
   },
   jobVehicleSummary(job){ const vehicles=Calc.vehicles(job); if(!vehicles.length) return ''; const counts={}; vehicles.forEach(v=>{ const key=v.size||'Vehicle'; counts[key]=(counts[key]||0)+1; }); return Object.entries(counts).map(([size,count])=>count>1?`${size} × ${count}`:size).join(', '); },
@@ -1918,6 +2025,98 @@ const UI = {
     if(names.length===1) return names[0];
     if(names.length>1) return 'Multiple Packages';
     return job.pkg || '';
+  },
+  buildJobCard(job,{context='jobs'}={}){
+    App.ensureJobStructure(job);
+    const client=S.clients.find(x=>x.id===job.clientId);
+    const scheduleDate=job.schedule?.date || job.date || '';
+    const dateLabel=scheduleDate ? new Date(scheduleDate+'T00:00:00').toLocaleDateString() : 'No date';
+    const timeLabel=job.schedule?.start ? `${job.schedule.start}${job.schedule.end?` – ${job.schedule.end}`:''}` : 'Any time';
+    const summary=this.jobPackageLabel(job);
+    const vehicleSummary=this.jobVehicleSummary(job);
+    const paid=(job.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0);
+    const total=Calc.total(job);
+    const due=Math.max(0,total-paid);
+    const timerMinutes=App.timerElapsedMinutes(job.timers?.overall||{elapsed:0});
+    const card=el('div',{class:'list-item job-card'});
+    const header=el('div',{class:'row',style:'justify-content:space-between;gap:.5rem;flex-wrap:wrap;align-items:center;'},
+      el('div',{style:'font-weight:800;'}, client?.name||'Unknown'),
+      el('div',{class:'pill'}, job.status)
+    );
+    const subtextParts=[summary];
+    if(vehicleSummary) subtextParts.push(vehicleSummary);
+    const subtitleText=subtextParts.filter(Boolean).join(' • ');
+    if(subtitleText){
+      header.append(el('div',{class:'tiny',style:'color:#96a4a4;margin-top:.15rem;'}, subtitleText));
+    }
+    const metaGrid=el('div',{class:'job-meta-grid',style:'margin-top:.6rem;'},
+      el('div',{}, el('div',{class:'tiny'},'Scheduled'), el('div',{style:'font-weight:700;'}, `${dateLabel}${timeLabel?` · ${timeLabel}`:''}`)),
+      el('div',{}, el('div',{class:'tiny'},'Total'), el('div',{style:'font-weight:700;'}, fmt(total))),
+      el('div',{}, el('div',{class:'tiny'},'Paid'), el('div',{style:'font-weight:700;'}, fmt(paid))),
+      el('div',{}, el('div',{class:'tiny'},'Due'), el('div',{style:'font-weight:700;color:'+(due>0?'#f5d7d7':'#9fb2ae')}, fmt(due))),
+      el('div',{}, el('div',{class:'tiny'},'Tracked Time'), el('div',{style:'font-weight:700;'}, timerMinutes?formatDurationMinutes(timerMinutes):'--'))
+    );
+    const actionsContainer=el('div',{class:'stack-buttons',style:'margin-top:.75rem;'});
+    const actions=[];
+    const openJob=()=>UI.openJob(job.id);
+    const editJob=()=>UI.editJob(job.id);
+    if(context==='jobs'){
+      actions.push(el('button',{class:'pill',onclick:openJob},'View Job'));
+      actions.push(el('button',{class:'pill',onclick:editJob},'Edit Job'));
+      if(job.status==='Quoted'){
+        actions.push(el('button',{class:'btn secondary',onclick:()=>{ App.updateJobStatus(job.id,'Booked'); UI.switchTab('Jobs'); }},'Convert to Job'));
+      }
+      if(job.status==='Booked') actions.push(el('button',{class:'pill',onclick:()=>App.updateJobStatus(job.id,'In Progress')},'Start Job'));
+      if(job.status==='In Progress') actions.push(el('button',{class:'pill',onclick:()=>App.updateJobStatus(job.id,'Complete')},'Mark Complete'));
+      if(job.status==='Complete') actions.push(el('button',{class:'pill',onclick:()=>App.updateJobStatus(job.id,'Paid')},'Mark Paid'));
+      if(due>0.01) actions.push(el('button',{class:'pill',onclick:()=>App.takePayment(job.id)},'Take Payment'));
+      actions.push(el('button',{class:'pill',onclick:()=>UI.openChecklist(job.id)},'Checklist'));
+      actions.push(el('button',{class:'pill',onclick:()=>UI.openPrintDetails(job.id)},'Print Summary'));
+      actions.push(el('button',{class:'pill',onclick:()=>App.deleteJob(job.id)},'Delete'));
+    } else {
+      actions.push(el('button',{class:'pill',onclick:editJob},'Edit Quote'));
+      actions.push(el('button',{class:'btn',onclick:()=>{ App.updateJobStatus(job.id,'Booked'); UI.switchTab('Jobs'); UI.flash('Quote converted to job.'); }},'Convert to Job'));
+      actions.push(el('button',{class:'pill',onclick:()=>UI.openPrintDetails(job.id)},'Print Quote'));
+      actions.push(el('button',{class:'pill',onclick:()=>App.deleteJob(job.id)},'Delete Quote'));
+    }
+    actions.forEach(btn=>actionsContainer.append(btn));
+    card.append(header, metaGrid, actionsContainer);
+    return card;
+  },
+  buildTransactionCard(tx,{showType=true}={}){
+    const card=el('div',{class:'list-item transaction-card'});
+    const titleParts=[];
+    if(showType && tx.type) titleParts.push(tx.type);
+    if(tx.category) titleParts.push(tx.category);
+    const title=titleParts.join(' • ') || 'Transaction';
+    const left=el('div',{});
+    left.append(el('h4',{}, title));
+    if(tx.item) left.append(el('div',{class:'tiny'}, tx.item));
+    if(tx.vendor) left.append(el('div',{class:'tiny'}, tx.vendor));
+    const amountValue=Number(tx.amount||0);
+    const amountLabel=fmt(amountValue);
+    const amountColor=tx.type==='Expense'?'#f5d7d7':'#9fe4b9';
+    const right=el('div',{style:'display:flex;flex-direction:column;align-items:flex-end;gap:.25rem;'});
+    if(tx.date) right.append(el('div',{class:'tiny'}, tx.date));
+    right.append(el('div',{class:'transaction-amount',style:`color:${amountColor};`}, amountLabel));
+    const header=el('div',{class:'row',style:'justify-content:space-between;align-items:flex-start;gap:.5rem;'}, left,right);
+    card.append(header);
+    const meta=el('div',{class:'transaction-meta'});
+    if(tx.payment) meta.append(el('span',{}, tx.payment));
+    if(tx.clientId){
+      const clientName=this.clientName(tx.clientId);
+      if(clientName) meta.append(el('span',{}, clientName));
+    }
+    if(tx.type==='Income' && tx.jobId) meta.append(el('span',{}, 'Linked to job'));
+    if(meta.childElementCount) card.append(meta);
+    if(tx.notes) card.append(el('div',{class:'transaction-notes'}, tx.notes));
+    const actions=el('div',{class:'stack-buttons'});
+    if(tx.receiptImage){
+      actions.append(el('button',{class:'btn secondary fullwidth',onclick:()=>this.showReceipt({image:tx.receiptImage,vendor:tx.vendor,date:tx.date,amount:amountLabel})},'View Receipt'));
+    }
+    actions.append(el('button',{class:'btn secondary fullwidth',onclick:()=>{ if(App.deleteTransaction(tx.id)) card.remove(); }},'Delete'));
+    card.append(actions);
+    return card;
   },
   setJobFilter(filter){
     this.jobFilter=filter;
@@ -1939,6 +2138,7 @@ const UI = {
       return dateA.localeCompare(dateB);
     });
     const filtered=jobs.filter(job=>{
+      if(job.status==='Quoted') return false;
       const scheduleDate=job.schedule?.date || job.date || '';
       const paid=(job.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0);
       const due=Math.max(0,Calc.total(job)-paid);
@@ -1955,54 +2155,12 @@ const UI = {
       list.append(el('div',{class:'tiny'},'No jobs match the current filter.'));
     }
     for(const job of filtered){
-      const client=S.clients.find(x=>x.id===job.clientId);
-      const scheduleDate=job.schedule?.date || job.date || '';
-      const dateLabel=scheduleDate ? new Date(scheduleDate+'T00:00:00').toLocaleDateString() : 'No date';
-      const timeLabel=job.schedule?.start ? `${job.schedule.start}${job.schedule.end?` – ${job.schedule.end}`:''}` : 'Any time';
-      const summary=this.jobPackageLabel(job);
-      const vehicleSummary=this.jobVehicleSummary(job);
-      const paid=(job.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0);
-      const total=Calc.total(job);
-      const due=Math.max(0,total-paid);
-      const timerMinutes=App.timerElapsedMinutes(job.timers?.overall||{elapsed:0});
-      const item=el('div',{class:'list-item job-card'});
-      const header=el('div',{class:'row',style:'justify-content:space-between;gap:.5rem;flex-wrap:wrap;align-items:center;'},
-        el('div',{style:'font-weight:800;'}, client?.name||'Unknown'),
-        el('div',{class:'pill'}, job.status)
-      );
-      const subtextParts=[summary];
-      if(vehicleSummary) subtextParts.push(vehicleSummary);
-      const subtitleText=subtextParts.filter(Boolean).join(' • ');
-      if(subtitleText){
-        header.append(el('div',{class:'tiny',style:'color:#96a4a4;margin-top:.15rem;'}, subtitleText));
-      }
-      const metaGrid=el('div',{class:'job-meta-grid',style:'margin-top:.6rem;'},
-        el('div',{}, el('div',{class:'tiny'},'Scheduled'), el('div',{style:'font-weight:700;'}, `${dateLabel}${timeLabel?` · ${timeLabel}`:''}`)),
-        el('div',{}, el('div',{class:'tiny'},'Total'), el('div',{style:'font-weight:700;'}, fmt(total))),
-        el('div',{}, el('div',{class:'tiny'},'Paid'), el('div',{style:'font-weight:700;'}, fmt(paid))),
-        el('div',{}, el('div',{class:'tiny'},'Due'), el('div',{style:'font-weight:700;color:'+(due>0?'#f5d7d7':'#9fb2ae')}, fmt(due))),
-        el('div',{}, el('div',{class:'tiny'},'Tracked Time'), el('div',{style:'font-weight:700;'}, timerMinutes?formatDurationMinutes(timerMinutes):'--'))
-      );
-      const actions=[];
-      actions.push(el('button',{class:'pill',onclick:()=>UI.openJob(job.id)},'View Job'));
-      actions.push(el('button',{class:'pill',onclick:()=>UI.editJob(job.id)},'Edit Job'));
-      if(job.status==='Quoted') actions.push(el('button',{class:'pill',onclick:()=>App.updateJobStatus(job.id,'Booked')},'Book Job'));
-      if(job.status==='Booked') actions.push(el('button',{class:'pill',onclick:()=>App.updateJobStatus(job.id,'In Progress')},'Start Job'));
-      if(job.status==='In Progress') actions.push(el('button',{class:'pill',onclick:()=>App.updateJobStatus(job.id,'Complete')},'Mark Complete'));
-      if(job.status==='Complete') actions.push(el('button',{class:'pill',onclick:()=>App.updateJobStatus(job.id,'Paid')},'Mark Paid'));
-      if(due>0.01) actions.push(el('button',{class:'pill',onclick:()=>App.takePayment(job.id)},'Take Payment'));
-      actions.push(el('button',{class:'pill',onclick:()=>UI.openChecklist(job.id)},'Checklist'));
-      actions.push(el('button',{class:'pill',onclick:()=>UI.openPrintDetails(job.id)},'Print Summary'));
-      actions.push(el('button',{class:'pill',onclick:()=>App.deleteJob(job.id)},'Delete'));
-      const actionsRow=el('div',{class:'row',style:'gap:.5rem;margin-top:.6rem;flex-wrap:wrap;'});
-      actionsRow.append(...actions);
-      item.append(header, metaGrid, actionsRow);
-      list.append(item);
+      list.append(this.buildJobCard(job,{context:'jobs'}));
     }
     const recent=document.getElementById('recentList');
     if(recent){
       recent.innerHTML='';
-      jobs.slice(0,5).forEach(job=>{
+      jobs.filter(job=>job.status!=='Quoted').slice(0,5).forEach(job=>{
         const client=S.clients.find(x=>x.id===job.clientId);
         const vehicleSummary=this.jobVehicleSummary(job);
         const pkgLabel=this.jobPackageLabel(job);
@@ -2012,6 +2170,185 @@ const UI = {
     }
     this.refreshJobPerformance();
     this.refreshJobPlanner();
+    this.refreshQuotesList();
+  },
+  refreshQuotesList(){
+    const list=document.getElementById('quotesList');
+    if(!list) return;
+    list.innerHTML='';
+    const quotes=S.jobs.filter(job=>job.status==='Quoted');
+    if(!quotes.length){
+      list.append(el('div',{class:'tiny'},'No pending quotes right now.'));
+      return;
+    }
+    quotes.sort((a,b)=>{
+      const createdA=a.createdAt||'';
+      const createdB=b.createdAt||'';
+      return createdB.localeCompare(createdA);
+    });
+    quotes.forEach(job=>{
+      list.append(this.buildJobCard(job,{context:'quotes'}));
+    });
+  },
+  startQuoteFlow(){
+    this.switchTab('QuoteBuilder');
+    this.resetJobForm();
+    this.flash('Ready to build a quote.');
+  },
+  printQuotesSummary(){
+    const quotes=S.jobs.filter(job=>job.status==='Quoted');
+    if(!quotes.length){
+      alert('No pending quotes to print.');
+      return;
+    }
+    const rows=quotes.map(job=>{
+      const client=S.clients.find(c=>c.id===job.clientId);
+      const scheduleDate=job.schedule?.date || job.date || '';
+      const dateLabel=scheduleDate?new Date(scheduleDate+'T00:00:00').toLocaleDateString():'--';
+      const summary=this.jobPackageLabel(job);
+      const vehicle=this.jobVehicleSummary(job);
+      const total=fmt(Calc.total(job));
+      return `<tr><td>${client?.name||'Unknown'}</td><td>${dateLabel}</td><td>${summary}${vehicle?`<div class="sub">${vehicle}</div>`:''}</td><td style="text-align:right">${total}</td></tr>`;
+    }).join('');
+    const popup=window.open('','_blank');
+    if(!popup || popup.closed){
+      alert('Please allow pop-ups to view the printable list.');
+      return;
+    }
+    const html=`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pending Quotes</title>
+  <style>
+    body{margin:0;font-family:Montserrat,Arial,sans-serif;background:#eef2f4;color:#102018;}
+    .toolbar{position:sticky;top:0;padding:12px 18px;background:#fff;display:flex;justify-content:flex-end;gap:8px;border-bottom:1px solid #d6dde0;}
+    .toolbar button{padding:8px 14px;border-radius:12px;border:none;font-weight:700;cursor:pointer;background:#0d1f15;color:#f2fbf6;}
+    .sheet{max-width:860px;margin:24px auto;background:#fff;padding:24px;border-radius:18px;box-shadow:0 24px 60px rgba(14,28,26,.15);}
+    table{width:100%;border-collapse:collapse;}
+    th,td{padding:10px 12px;text-align:left;border-bottom:1px solid #e2e8eb;}
+    th{font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:#5b6d66;}
+    td{font-size:14px;vertical-align:top;}
+    td .sub{color:#73827c;font-size:12px;margin-top:4px;}
+    @media print{body{background:#fff;} .toolbar{display:none;} .sheet{box-shadow:none;border-radius:0;margin:0;padding:0;}}
+  </style>
+</head>
+<body>
+  <div class="toolbar"><button onclick="window.print()">Print</button></div>
+  <div class="sheet">
+    <h2 style="margin:0 0 12px;font-size:24px;">Pending Quotes</h2>
+    <table>
+      <thead><tr><th>Client</th><th>Date</th><th>Summary</th><th style="text-align:right">Total</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>
+</body>
+</html>`;
+    popup.document.write(html);
+    popup.document.close();
+  },
+  loadOcr(){
+    if(window.Tesseract) return Promise.resolve(window.Tesseract);
+    if(this.ocrPromise) return this.ocrPromise;
+    this.ocrPromise=new Promise((resolve,reject)=>{
+      const script=document.createElement('script');
+      script.src='https://cdn.jsdelivr.net/npm/tesseract.js@4.0.3/dist/tesseract.min.js';
+      script.async=true;
+      script.onload=()=>resolve(window.Tesseract);
+      script.onerror=()=>reject(new Error('Failed to load OCR engine'));
+      document.head.append(script);
+    });
+    return this.ocrPromise;
+  },
+  detectPaymentMethod(text){
+    const methods=Array.isArray(S.settings.paymentMethods)?S.settings.paymentMethods:[];
+    const normalized=String(text||'').toLowerCase();
+    const dictionary={
+      cash:['cash'],
+      card:['visa','mastercard','amex','credit','debit','discover','card','mc'],
+      zelle:['zelle'],
+      venmo:['venmo'],
+      'cash app':['cashapp','cash app'],
+      cashapp:['cashapp','cash app'],
+      bank:['bank','ach','wire','transfer','checking']
+    };
+    for(const method of methods){
+      const key=method.toLowerCase();
+      const tokens=dictionary[key] || [key];
+      if(tokens.some(token=>normalized.includes(token))) return method;
+    }
+    return '';
+  },
+  parseReceiptText(raw){
+    const text=String(raw||'');
+    const clean=text.replace(/\r/g,'');
+    const lines=clean.split(/\n+/).map(line=>line.trim()).filter(Boolean);
+    let vendor='';
+    for(const line of lines){
+      if(!line) continue;
+      if(/total|amount|invoice|receipt|tax|change|item|qty|cashier|order|payment/i.test(line)) continue;
+      const cleaned=line.replace(/[^A-Za-z0-9 .&@\-]/g,' ').trim();
+      if(cleaned){ vendor=cleaned.slice(0,60); break; }
+    }
+    if(!vendor && lines.length) vendor=lines[0].slice(0,60);
+    const isoFromParts=(year,month,day)=>{
+      let y=Number(year);
+      let m=Number(month);
+      let d=Number(day);
+      if(y<100) y+=y>=70?1900:2000;
+      if(!(y>1900 && y<2100) || !(m>=1 && m<=12) || !(d>=1 && d<=31)) return '';
+      return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    };
+    let date='';
+    const isoMatch=clean.match(/(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);
+    if(isoMatch) date=isoFromParts(isoMatch[1],isoMatch[2],isoMatch[3]);
+    if(!date){
+      const usMatch=clean.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})/);
+      if(usMatch) date=isoFromParts(usMatch[3],usMatch[1],usMatch[2]);
+    }
+    if(!date){
+      const monthNames=['january','february','march','april','may','june','july','august','september','october','november','december'];
+      const monthMatch=clean.match(/(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:,)?\s*(\d{2,4})/i);
+      if(monthMatch){
+        const monthIndex=monthNames.findIndex(name=>name.startsWith(monthMatch[1].toLowerCase()));
+        if(monthIndex>=0) date=isoFromParts(monthMatch[3],monthIndex+1,monthMatch[2]);
+      }
+    }
+    let amountValue=0;
+    for(const line of lines){
+      if(/total|balance|amount due/i.test(line)){
+        const match=line.match(/(\d{1,3}(?:,\d{3})*\.\d{2})/);
+        if(match){
+          amountValue=parseFloat(match[1].replace(/,/g,''));
+          break;
+        }
+      }
+    }
+    if(!amountValue){
+      const matches=[...clean.matchAll(/(\d{1,3}(?:,\d{3})*\.\d{2})/g)];
+      for(const match of matches){
+        const candidate=parseFloat(match[1].replace(/,/g,''));
+        if(candidate>amountValue) amountValue=candidate;
+      }
+    }
+    const payment=this.detectPaymentMethod(clean);
+    return {
+      vendor,
+      date,
+      amount:amountValue?amountValue.toFixed(2):'',
+      payment
+    };
+  },
+  showReceipt({image,vendor,date,amount}={}){
+    if(!image) return;
+    const details=[];
+    if(vendor) details.push(vendor);
+    if(date) details.push(date);
+    if(amount) details.push(amount);
+    const body=el('div',{class:'receipt-preview',style:'max-height:none;'}, el('img',{src:image}));
+    if(details.length) body.append(el('div',{class:'receipt-ocr-status'}, details.join(' • ')));
+    this.modal('Receipt',(close)=>close(), body,'Close',false,true);
   },
   openJob(id){
     this.jobPanelJobId=id;
@@ -2285,9 +2622,10 @@ const UI = {
     host.innerHTML='';
     const todayStr=today();
     const active=S.jobs.filter(job=>['Booked','In Progress'].includes(job.status)).length;
-    const todays=S.jobs.filter(job=>(job.schedule?.date||job.date||'')===todayStr).length;
+    const todays=S.jobs.filter(job=>job.status!=='Quoted' && (job.schedule?.date||job.date||'')===todayStr).length;
     const completed=S.jobs.filter(job=>['Complete','Paid'].includes(job.status)).length;
     const unpaid=S.jobs.reduce((sum,job)=>{
+      if(job.status==='Quoted') return sum;
       const paid=(job.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0);
       return sum+Math.max(0,Calc.total(job)-paid);
     },0);
@@ -2445,9 +2783,151 @@ const UI = {
   },
   showQuickClient(){ document.getElementById('quickClient').classList.remove('hidden'); },
   hideQuickClient(){ document.getElementById('quickClient').classList.add('hidden'); },
-  openExpenseForm(){ const m=this.modal('Add Expense', (close)=>{ const date=m.querySelector('#exDate').value; const cat=m.querySelector('#exCat').value; const vendor=m.querySelector('#exVendor').value.trim(); const pay=m.querySelector('#exPay').value; const amt=Number(m.querySelector('#exAmt').value||0); const notes=m.querySelector('#exNotes').value.trim(); if(!amt)return alert('Amount required'); App.addExpenseRecord({id:uid(),type:'Expense',date,category:cat,item:'',clientId:null,vendor,payment:pay,amount:amt,notes}); close(); UI.flash('Expense added.'); }, el('div',{}, el('label',{},'Date'), el('input',{id:'exDate',type:'date',value:today()}), el('label',{},'Category'), (()=>{ const s=el('select',{id:'exCat'}); for(const c of S.settings.categories) if(c!=='Package'&&c!=='Add-on') s.append(el('option',{value:c},c)); return s; })(), el('label',{},'Vendor'), el('input',{id:'exVendor'}), el('div',{class:'row'}, el('div',{}, el('label',{},'Payment'), (()=>{ const s=el('select',{id:'exPay'}); for(const p of S.settings.paymentMethods) s.append(el('option',{value:p},p)); return s; })()), el('div',{}, el('label',{},'Amount'), el('input',{id:'exAmt',type:'number',min:'0',step:'0.01'}))), el('label',{},'Notes'), el('textarea',{id:'exNotes'}) )); },
-  openTransactions(){ const rows=S.transactions.map(t=>`<tr><td>${t.date||''}</td><td>${t.type}</td><td>${t.category||''}</td><td>${t.item||''}</td><td>${UI.clientName(t.clientId)||''}</td><td>${t.vendor||''}</td><td>${t.payment||''}</td><td>${Number(t.amount||0).toFixed(2)}</td><td>${t.notes||''}</td></tr>`).join(''); this.modal('Transactions',(c)=>c(), el('div',{}, el('div',{class:'row'}, el('button',{class:'btn secondary', onclick:()=>Data.exportCSV()},'Export CSV')), el('table',{style:'width:100%;border-collapse:collapse;margin-top:.5rem;'}, el('thead',{}, el('tr',{html:'<th>Date</th><th>Type</th><th>Category</th><th>Item</th><th>Client</th><th>Vendor</th><th>Payment</th><th>Amount</th><th>Notes</th>'})), el('tbody',{html:rows})) )); },
-  openExpenses(){ const rows=S.transactions.filter(t=>t.type==='Expense').map(t=>`<tr><td>${t.date||''}</td><td>${t.category||''}</td><td>${t.vendor||''}</td><td>${t.payment||''}</td><td>${Number(t.amount||0).toFixed(2)}</td><td>${t.notes||''}</td></tr>`).join(''); this.modal('Expenses',(c)=>c(), el('div',{}, el('div',{class:'row'}, el('button',{class:'btn',onclick:()=>UI.openExpenseForm()},'Add Expense')), el('table',{style:'width:100%;border-collapse:collapse;margin-top:.5rem;'}, el('thead',{}, el('tr',{html:'<th>Date</th><th>Category</th><th>Vendor</th><th>Payment</th><th>Amount</th><th>Notes</th>'})), el('tbody',{html:rows})) )); },
+  openExpenseForm(initial={}){
+    const defaultDate=initial.date || today();
+    const dateInput=el('input',{type:'date',value:defaultDate});
+    const categorySelect=(()=>{
+      const sel=el('select',{});
+      const categories=(S.settings.categories||[]).filter(c=>c!=='Package'&&c!=='Add-on');
+      categories.forEach(cat=>sel.append(el('option',{value:cat,selected:cat===initial.category},cat)));
+      if(!sel.value && categories.length) sel.value=categories[0];
+      return sel;
+    })();
+    const vendorInput=el('input',{value:initial.vendor||'',placeholder:'Vendor or store'});
+    const paymentSelect=(()=>{
+      const sel=el('select',{});
+      (S.settings.paymentMethods||[]).forEach(method=>sel.append(el('option',{value:method,selected:method===initial.payment},method)));
+      if(!sel.value && sel.options.length) sel.value=sel.options[0].value;
+      return sel;
+    })();
+    const amountInput=el('input',{type:'number',min:'0',step:'0.01',value:initial.amount?Number(initial.amount).toFixed(2):''});
+    const notesInput=el('textarea',{placeholder:'Optional notes',value:initial.notes||''});
+    const ocrStatus=el('div',{class:'receipt-ocr-status'},'Use the buttons above to scan or upload a receipt.');
+    const previewImg=el('img',{});
+    const preview=el('div',{class:'receipt-preview hidden'}, previewImg, ocrStatus);
+    const cameraInput=el('input',{type:'file',accept:'image/*',capture:'environment',class:'hidden'});
+    const uploadInput=el('input',{type:'file',accept:'image/*',class:'hidden'});
+    const state={imageData:initial.receiptImage||'', busy:false};
+    const cameraBtn=el('button',{class:'btn fullwidth',type:'button'},'Scan with Camera');
+    const uploadBtn=el('button',{class:'btn secondary fullwidth',type:'button'},'Upload Receipt');
+    const updateButtons=()=>{
+      cameraBtn.textContent=state.imageData?'Rescan with Camera':'Scan with Camera';
+      uploadBtn.textContent=state.imageData?'Upload Different Photo':'Upload Receipt';
+      preview.classList.toggle('hidden',!state.imageData);
+      if(state.imageData) ocrStatus.textContent='Receipt attached. Double-check the details below.';
+    };
+    const fillFromParsed=(parsed)=>{
+      if(parsed.date && !dateInput.value) dateInput.value=parsed.date;
+      if(parsed.vendor && !vendorInput.value) vendorInput.value=parsed.vendor;
+      if(parsed.amount && !amountInput.value) amountInput.value=parsed.amount;
+      if(parsed.payment){
+        const match=(S.settings.paymentMethods||[]).find(method=>method.toLowerCase()===parsed.payment.toLowerCase());
+        if(match) paymentSelect.value=match;
+      }
+    };
+    const runOcr=(file)=>{
+      state.busy=true;
+      ocrStatus.textContent='Scanning receipt…';
+      UI.loadOcr().then(Tesseract=>Tesseract.recognize(file,'eng')).then(result=>{
+        state.busy=false;
+        const text=result?.data?.text||'';
+        if(text.trim()){
+          const parsed=UI.parseReceiptText(text);
+          fillFromParsed(parsed);
+          ocrStatus.textContent='Receipt scanned. Review and adjust the extracted fields.';
+        } else {
+          ocrStatus.textContent='No text detected. Enter details manually.';
+        }
+      }).catch(err=>{
+        console.error(err);
+        state.busy=false;
+        ocrStatus.textContent='Could not read the receipt. Enter details manually.';
+      });
+    };
+    const handleFile=file=>{
+      if(!file) return;
+      const reader=new FileReader();
+      reader.onload=()=>{
+        state.imageData=reader.result;
+        previewImg.src=reader.result;
+        updateButtons();
+        runOcr(file);
+      };
+      reader.readAsDataURL(file);
+    };
+    cameraInput.addEventListener('change',e=>handleFile(e.target.files[0]));
+    uploadInput.addEventListener('change',e=>handleFile(e.target.files[0]));
+    cameraBtn.addEventListener('click',()=>{ if(state.busy) return; cameraInput.value=''; cameraInput.click(); });
+    uploadBtn.addEventListener('click',()=>{ if(state.busy) return; uploadInput.value=''; uploadInput.click(); });
+    if(state.imageData){
+      previewImg.src=state.imageData;
+      preview.classList.remove('hidden');
+      ocrStatus.textContent='Receipt attached. Review the details below.';
+    }
+    updateButtons();
+    const content=el('div',{class:'form-grid'},
+      el('div',{class:'stack-buttons'}, cameraBtn, uploadBtn),
+      preview,
+      el('div',{}, el('label',{},'Date'), dateInput),
+      el('div',{}, el('label',{},'Category'), categorySelect),
+      el('div',{}, el('label',{},'Vendor'), vendorInput),
+      el('div',{class:'mobile-field-row'},
+        el('div',{}, el('label',{},'Payment Method'), paymentSelect),
+        el('div',{}, el('label',{},'Amount'), amountInput)
+      ),
+      el('div',{}, el('label',{},'Notes'), notesInput),
+      cameraInput,
+      uploadInput
+    );
+    this.modal('Add Expense',(close)=>{
+      const date=dateInput.value||today();
+      const category=categorySelect.value;
+      const vendor=vendorInput.value.trim();
+      const payment=paymentSelect.value;
+      const amountValue=Number(amountInput.value||0);
+      if(!(amountValue>0)) return alert('Amount required');
+      const notes=notesInput.value.trim();
+      App.addExpenseRecord({date,category,vendor,payment,amount:amountValue,notes,receiptImage:state.imageData});
+      close();
+      UI.flash('Expense added.');
+    }, content, 'Save Expense');
+  },
+  openTransactions(){
+    const transactions=[...S.transactions].sort((a,b)=>String(b.date||'').localeCompare(a.date||''));
+    const list=el('div',{class:'list'});
+    if(!transactions.length){
+      list.append(el('div',{class:'tiny'},'No transactions yet.'));
+    } else {
+      transactions.forEach(tx=>list.append(this.buildTransactionCard(tx,{showType:true})));
+    }
+    const content=el('div',{class:'form-grid'},
+      el('div',{class:'stack-buttons'},
+        el('button',{class:'btn secondary fullwidth',onclick:()=>Data.exportCSV()},'Export CSV'),
+        el('button',{class:'btn secondary fullwidth',onclick:()=>Data.exportJSON()},'Export JSON')
+      ),
+      list
+    );
+    this.modal('Transactions',(close)=>close(), content,'Close',false,true);
+  },
+  openExpenses(){
+    const expenses=S.transactions.filter(t=>t.type==='Expense');
+    const list=el('div',{class:'list'});
+    if(!expenses.length){
+      list.append(el('div',{class:'tiny'},'No expenses recorded yet.'));
+    } else {
+      expenses.slice().sort((a,b)=>String(b.date||'').localeCompare(a.date||'')).forEach(exp=>{
+        list.append(this.buildTransactionCard(exp,{showType:false}));
+      });
+    }
+    const content=el('div',{class:'form-grid'},
+      el('div',{class:'stack-buttons'},
+        el('button',{class:'btn fullwidth',onclick:()=>UI.openExpenseForm()},'Add Expense'),
+        el('button',{class:'btn secondary fullwidth',onclick:()=>Data.exportCSV()},'Export CSV')
+      ),
+      list
+    );
+    this.modal('Expenses',(close)=>close(), content,'Close',false,true);
+  },
   openMileage(){ const rows=S.mileage.map((m,i)=>`<tr><td>${m.date}</td><td>${m.from}</td><td>${m.to}</td><td>${m.why}</td><td>${m.miles}</td><td><button class='pill' onclick='UI.delMileage(${i})'>Delete</button></td></tr>`).join(''); this.modal('Mileage',(c)=>c(), el('div',{}, el('div',{class:'row'}, el('div',{}, el('label',{},'Date'), el('input',{id:'miDate',type:'date',value:today()})), el('div',{}, el('label',{},'From'), el('input',{id:'miFrom'})), el('div',{}, el('label',{},'To'), el('input',{id:'miTo'})), el('div',{}, el('label',{},'Why'), el('input',{id:'miWhy'})), el('div',{}, el('label',{},'Miles'), el('input',{id:'miMiles',type:'number',min:'0',step:'0.1'})) ), el('div',{class:'row'}, el('button',{class:'btn', onclick:()=>UI.addMileage()},'Add Entry')), el('table',{style:'width:100%;border-collapse:collapse;margin-top:.5rem;'}, el('thead',{}, el('tr',{html:'<th>Date</th><th>From</th><th>To</th><th>Why</th><th>Miles</th><th></th>'})), el('tbody',{id:'miBody',html:rows})) )); },
   addMileage(){ const e={date:document.getElementById('miDate').value||today(),from:document.getElementById('miFrom').value||'',to:document.getElementById('miTo').value||'',why:document.getElementById('miWhy').value||'',miles:Number(document.getElementById('miMiles').value||0)}; S.mileage.push(e); Storage.save(S); const tr=`<tr><td>${e.date}</td><td>${e.from}</td><td>${e.to}</td><td>${e.why}</td><td>${e.miles}</td><td><button class='pill' onclick='UI.delMileage(${S.mileage.length-1})'>Delete</button></td></tr>`; document.getElementById('miBody').insertAdjacentHTML('beforeend', tr); UI.flash('Mileage added.'); },
   delMileage(i){ if(!confirm('Delete entry?')) return; S.mileage.splice(i,1); Storage.save(S); UI.openMileage(); },
