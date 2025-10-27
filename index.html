@@ -102,6 +102,7 @@
   <div class="tabs">
     <div class="tab active" data-tab="Dashboard">Dashboard</div>
     <div class="tab" data-tab="Jobs">Jobs</div>
+    <div class="tab" data-tab="Quotes">Quotes</div>
     <div class="tab" data-tab="QuoteBuilder">Quote Builder</div>
     <div class="tab" data-tab="Clients">Clients</div>
   </div>
@@ -253,14 +254,22 @@
 
           <div class="row">
             <button id="jobSaveBtn" class="btn" onclick="App.saveJob()">Schedule Job</button>
+            <button id="jobQuoteBtn" class="btn secondary" onclick="App.saveQuote()">Save Quote</button>
             <button class="btn secondary" onclick="UI.printQuote()">Print / Save Quote</button>
             <button id="jobEditCancel" class="btn secondary hidden" type="button" onclick="UI.cancelJobEdit()">Cancel Edit</button>
           </div>
         </div>
+      </div>
+    </section>
 
+    <section id="Quotes" class="tabpage hidden">
+      <div class="grid">
         <div class="card">
-          <h3>Jobs</h3>
-          <div id="jobsList" class="list"></div>
+          <h3>Saved Quotes</h3>
+          <div class="row" style="gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem;">
+            <button class="btn" onclick="UI.switchTab('QuoteBuilder')">Create Quote</button>
+          </div>
+          <div id="quotesList" class="list"></div>
         </div>
       </div>
     </section>
@@ -1125,12 +1134,21 @@ const App = {
     Storage.save(S);
     UI.populateClients(job.clientId);
   },
-  saveJob(){
+  collectJobFormData(){
     const clientId=document.getElementById('jobClient').value;
-    if(!clientId) return alert('Client is required');
+    if(!clientId){
+      alert('Client is required');
+      return null;
+    }
     const vehicles=UI.collectVehicles();
-    if(!vehicles.length) return alert('Add at least one vehicle');
-    if(vehicles.some(v=>!v.pkg)) return alert('Select a package for each vehicle');
+    if(!vehicles.length){
+      alert('Add at least one vehicle');
+      return null;
+    }
+    if(vehicles.some(v=>!v.pkg)){
+      alert('Select a package for each vehicle');
+      return null;
+    }
     const discType=document.getElementById('jobDiscType').value;
     const discValue=Number(document.getElementById('jobDiscValue').value||0);
     const discScopeValue=document.getElementById('jobDiscScope').value;
@@ -1142,6 +1160,12 @@ const App = {
     const scheduleDuration=parseDurationInput(document.getElementById('jobDuration').value);
     const primaryPkg=vehicles[0]?.pkg||'';
     const schedule={date:scheduleDate,start:scheduleStart,end:scheduleEnd,durationMinutes:scheduleDuration};
+    return {clientId,vehicles,discType,discValue,discScope,notes,schedule,scheduleDate,primaryPkg};
+  },
+  saveJob(){
+    const data=this.collectJobFormData();
+    if(!data) return;
+    const {clientId,vehicles,discType,discValue,discScope,notes,schedule,scheduleDate,primaryPkg}=data;
     if(UI.editingJobId){
       const job=S.jobs.find(x=>x.id===UI.editingJobId);
       if(job){
@@ -1159,6 +1183,7 @@ const App = {
         job.date=scheduleDate;
         job.size=vehicles[0]?.size||'';
         job.vehicleCount=vehicles.length;
+        if(job.status==='Quoted') job.status='Booked';
         if(Array.isArray(job.extraCharges)){
           job.extraCharges=job.extraCharges.map(extra=>{
             if(!extra) return extra;
@@ -1180,6 +1205,7 @@ const App = {
         Storage.save(S);
         this.syncClientVehicles(job);
         UI.refreshJobsList();
+        UI.refreshQuotesList();
         UI.renderJobPanel(job.id,true);
         UI.resetJobForm();
         UI.flash('Job updated.');
@@ -1215,8 +1241,79 @@ const App = {
     Storage.save(S);
     this.syncClientVehicles(job);
     UI.refreshJobsList();
+    UI.refreshQuotesList();
     UI.resetJobForm();
     UI.flash('Job scheduled.');
+  },
+  saveQuote(){
+    const data=this.collectJobFormData();
+    if(!data) return;
+    const {clientId,vehicles,discType,discValue,discScope,notes,schedule,scheduleDate,primaryPkg}=data;
+    if(UI.editingJobId){
+      const job=S.jobs.find(x=>x.id===UI.editingJobId);
+      if(job){
+        job.clientId=clientId;
+        job.pkg=primaryPkg;
+        job.vehicles=vehicles.map(v=>({
+          ...v,
+          addons:Array.isArray(v.addons)?v.addons.map(a=>({...a})):[]
+        }));
+        job.discType=discType;
+        job.discValue=discValue;
+        job.discScope=discScope;
+        job.notes=notes;
+        job.schedule=schedule;
+        job.date=scheduleDate;
+        job.size=vehicles[0]?.size||'';
+        job.vehicleCount=vehicles.length;
+        job.status='Quoted';
+        job.services=this.createServicesFromVehicles(job);
+        this.normalizeServices(job);
+        this.ensureChecklist(job);
+        Storage.save(S);
+        UI.refreshJobsList();
+        UI.refreshQuotesList();
+        UI.renderJobPanel(job.id,true);
+        UI.resetJobForm();
+        UI.flash('Quote updated.');
+        return;
+      }
+      UI.editingJobId=null;
+      UI.updateJobFormEditingUI(null);
+      UI.flash('Could not find the original quote. A new one will be saved instead.');
+    }
+    const job={
+      id:uid(),
+      date:scheduleDate,
+      createdAt:new Date().toISOString(),
+      clientId,
+      pkg:primaryPkg,
+      vehicles:vehicles.map(v=>({
+        ...v,
+        addons:Array.isArray(v.addons)?v.addons.map(a=>({...a})):[]
+      })),
+      discType,
+      discValue,
+      discScope,
+      notes,
+      status:'Quoted',
+      payments:[],
+      schedule,
+      extraCharges:[]
+    };
+    job.size=vehicles[0]?.size||'';
+    job.vehicleCount=vehicles.length;
+    job.services=this.createServicesFromVehicles(job);
+    job.timers=this.createTimers();
+    job.checklist=this.createChecklist(job);
+    this.ensureChecklist(job);
+    S.jobs.unshift(job);
+    Storage.save(S);
+    UI.refreshJobsList();
+    UI.refreshQuotesList();
+    UI.resetJobForm();
+    UI.switchTab('Quotes');
+    UI.flash('Quote saved.');
   },
   updateJobStatus(id,next){
     const job=S.jobs.find(x=>x.id===id);
@@ -1249,6 +1346,7 @@ const App = {
       UI.populateClients(job.clientId);
     }
     UI.refreshJobsList();
+    UI.refreshQuotesList();
     UI.renderJobPanel(id);
     UI.flash('Status: '+next);
   },
@@ -1273,6 +1371,7 @@ const App = {
       Storage.save(S);
       UI.populateClients(j.clientId);
       UI.refreshJobsList();
+      UI.refreshQuotesList();
       UI.renderJobPanel(id);
       UI.flash('Partial payment recorded.');
     }
@@ -1284,6 +1383,7 @@ const App = {
     Storage.save(S);
     if(UI.jobPanelJobId===id) UI.closeJobPanel();
     UI.refreshJobsList();
+    UI.refreshQuotesList();
   },
   addExpenseRecord(rec){ S.transactions.push(rec); Storage.save(S); UI.refreshDashboard(); }
 };
@@ -1296,6 +1396,7 @@ const UI = {
   jobFilter:'all',
   jobPanelJobId:null,
   editingJobId:null,
+  editingJobStatus:null,
   initHeader(){ const logo=document.getElementById('headerLogo'); logo.src=S.business.logoDataUrl||'icon-192.png'; document.getElementById('headerTitle').textContent=S.business.headerTitle||'POLISH CREW — Accounting'; document.getElementById('openDrawer').onclick=()=>UI.toggleDrawer(true); },
   switchTab(name){ document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.getAttribute('data-tab')===name)); document.querySelectorAll('.tabpage').forEach(p=>p.classList.add('hidden')); document.getElementById(name).classList.remove('hidden'); },
   initTabs(){ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>UI.switchTab(t.getAttribute('data-tab')))); },
@@ -1371,11 +1472,20 @@ const UI = {
   updateJobFormEditingUI(job){
     const saveBtn=document.getElementById('jobSaveBtn');
     const cancelBtn=document.getElementById('jobEditCancel');
+    const quoteBtn=document.getElementById('jobQuoteBtn');
     if(job){
-      if(saveBtn) saveBtn.textContent='Update Job';
+      this.editingJobStatus=job.status||null;
+      if(job.status==='Quoted'){
+        if(saveBtn) saveBtn.textContent='Schedule Quote';
+        if(quoteBtn) quoteBtn.textContent='Update Quote';
+      } else {
+        if(saveBtn) saveBtn.textContent='Update Job';
+        if(quoteBtn) quoteBtn.textContent='Save as Quote';
+      }
       if(cancelBtn) cancelBtn.classList.remove('hidden');
     } else {
       if(saveBtn) saveBtn.textContent='Schedule Job';
+      if(quoteBtn) quoteBtn.textContent='Save Quote';
       if(cancelBtn) cancelBtn.classList.add('hidden');
     }
   },
@@ -1385,6 +1495,7 @@ const UI = {
     App.ensureJobStructure(job);
     this.switchTab('QuoteBuilder');
     this.editingJobId=jobId;
+    this.editingJobStatus=job.status||null;
     this.populateClients(job.clientId);
     const clientSel=document.getElementById('jobClient');
     if(clientSel) clientSel.value=job.clientId||'';
@@ -1908,6 +2019,7 @@ const UI = {
     const durationInput=document.getElementById('jobDuration');
     if(durationInput) durationInput.value='';
     this.editingJobId=null;
+    this.editingJobStatus=null;
     this.updateJobFormEditingUI(null);
     this.updateTotals();
   },
@@ -1939,6 +2051,7 @@ const UI = {
       return dateA.localeCompare(dateB);
     });
     const filtered=jobs.filter(job=>{
+      if((job.status||'')==='Quoted') return false;
       const scheduleDate=job.schedule?.date || job.date || '';
       const paid=(job.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0);
       const due=Math.max(0,Calc.total(job)-paid);
@@ -1999,10 +2112,11 @@ const UI = {
       item.append(header, metaGrid, actionsRow);
       list.append(item);
     }
+    this.refreshQuotesList();
     const recent=document.getElementById('recentList');
     if(recent){
       recent.innerHTML='';
-      jobs.slice(0,5).forEach(job=>{
+      jobs.filter(job=>(job.status||'')!=='Quoted').slice(0,5).forEach(job=>{
         const client=S.clients.find(x=>x.id===job.clientId);
         const vehicleSummary=this.jobVehicleSummary(job);
         const pkgLabel=this.jobPackageLabel(job);
@@ -2012,6 +2126,56 @@ const UI = {
     }
     this.refreshJobPerformance();
     this.refreshJobPlanner();
+  },
+  refreshQuotesList(){
+    const host=document.getElementById('quotesList');
+    if(!host) return;
+    const quotes=S.jobs.filter(job=>(job.status||'')==='Quoted');
+    quotes.forEach(job=>App.ensureJobStructure(job));
+    quotes.sort((a,b)=>{
+      const keyA=(a?.createdAt||a?.schedule?.date||a?.date||'');
+      const keyB=(b?.createdAt||b?.schedule?.date||b?.date||'');
+      return keyB.localeCompare(keyA);
+    });
+    host.innerHTML='';
+    if(!quotes.length){
+      host.append(el('div',{class:'tiny'},'No saved quotes yet.'));
+      return;
+    }
+    for(const job of quotes){
+      const client=S.clients.find(c=>c.id===job.clientId);
+      const scheduleDate=job.schedule?.date || job.date || '';
+      const dateLabel=scheduleDate ? new Date(scheduleDate+'T00:00:00').toLocaleDateString() : 'No date';
+      const timeLabel=job.schedule?.start ? `${job.schedule.start}${job.schedule.end?` – ${job.schedule.end}`:''}` : 'Any time';
+      const total=Calc.total(job);
+      const summary=this.jobPackageLabel(job);
+      const vehicles=this.jobVehicleSummary(job);
+      const card=el('div',{class:'list-item job-card'});
+      const header=el('div',{class:'row',style:'justify-content:space-between;gap:.5rem;flex-wrap:wrap;align-items:center;'},
+        el('div',{style:'font-weight:800;'}, client?.name||'Unknown'),
+        el('div',{class:'pill'},'Quoted')
+      );
+      const subtitleParts=[summary];
+      if(vehicles) subtitleParts.push(vehicles);
+      const subtitle=subtitleParts.filter(Boolean).join(' • ');
+      if(subtitle){
+        header.append(el('div',{class:'tiny',style:'color:#96a4a4;margin-top:.15rem;'}, subtitle));
+      }
+      const meta=el('div',{class:'job-meta-grid',style:'margin-top:.6rem;'},
+        el('div',{}, el('div',{class:'tiny'},'Quoted On'), el('div',{style:'font-weight:700;'}, job.createdAt?new Date(job.createdAt).toLocaleDateString():dateLabel)),
+        el('div',{}, el('div',{class:'tiny'},'Proposed Date'), el('div',{style:'font-weight:700;'}, `${dateLabel}${timeLabel?` · ${timeLabel}`:''}`)),
+        el('div',{}, el('div',{class:'tiny'},'Quote Total'), el('div',{style:'font-weight:700;'}, fmt(total)))
+      );
+      const actions=el('div',{class:'row',style:'gap:.5rem;margin-top:.6rem;flex-wrap:wrap;'});
+      actions.append(
+        el('button',{class:'pill',onclick:()=>UI.openJob(job.id)},'View Details'),
+        el('button',{class:'pill',onclick:()=>UI.editJob(job.id)},'Edit Quote'),
+        el('button',{class:'pill',onclick:()=>App.updateJobStatus(job.id,'Booked')},'Convert to Job'),
+        el('button',{class:'pill',onclick:()=>UI.openPrintDetails(job.id)},'Print Quote')
+      );
+      card.append(header, meta, actions);
+      host.append(card);
+    }
   },
   openJob(id){
     this.jobPanelJobId=id;
@@ -2254,7 +2418,7 @@ const UI = {
     if(!input || !list) return;
     if(!input.value) input.value=today();
     const target=input.value;
-    const jobs=S.jobs.filter(job=>(job.schedule?.date||job.date||'')===target);
+    const jobs=S.jobs.filter(job=>(job.schedule?.date||job.date||'')===target && (job.status||'')!=='Quoted');
     jobs.forEach(job=>App.ensureJobStructure(job));
     jobs.sort((a,b)=>(a.schedule?.start||'').localeCompare(b.schedule?.start||''));
     list.innerHTML='';
@@ -2284,14 +2448,15 @@ const UI = {
     if(!host) return;
     host.innerHTML='';
     const todayStr=today();
-    const active=S.jobs.filter(job=>['Booked','In Progress'].includes(job.status)).length;
-    const todays=S.jobs.filter(job=>(job.schedule?.date||job.date||'')===todayStr).length;
-    const completed=S.jobs.filter(job=>['Complete','Paid'].includes(job.status)).length;
-    const unpaid=S.jobs.reduce((sum,job)=>{
+    const relevant=S.jobs.filter(job=>(job.status||'')!=='Quoted');
+    const active=relevant.filter(job=>['Booked','In Progress'].includes(job.status)).length;
+    const todays=relevant.filter(job=>(job.schedule?.date||job.date||'')===todayStr).length;
+    const completed=relevant.filter(job=>['Complete','Paid'].includes(job.status)).length;
+    const unpaid=relevant.reduce((sum,job)=>{
       const paid=(job.payments||[]).reduce((t,p)=>t+Number(p.amount||0),0);
       return sum+Math.max(0,Calc.total(job)-paid);
     },0);
-    const minutesTracked=S.jobs.reduce((sum,job)=>{
+    const minutesTracked=relevant.reduce((sum,job)=>{
       if(job.totalMinutes) return sum+Number(job.totalMinutes||0);
       return sum+App.timerElapsedMinutes(job.timers?.overall||{elapsed:0});
     },0);
@@ -2445,9 +2610,151 @@ const UI = {
   },
   showQuickClient(){ document.getElementById('quickClient').classList.remove('hidden'); },
   hideQuickClient(){ document.getElementById('quickClient').classList.add('hidden'); },
-  openExpenseForm(){ const m=this.modal('Add Expense', (close)=>{ const date=m.querySelector('#exDate').value; const cat=m.querySelector('#exCat').value; const vendor=m.querySelector('#exVendor').value.trim(); const pay=m.querySelector('#exPay').value; const amt=Number(m.querySelector('#exAmt').value||0); const notes=m.querySelector('#exNotes').value.trim(); if(!amt)return alert('Amount required'); App.addExpenseRecord({id:uid(),type:'Expense',date,category:cat,item:'',clientId:null,vendor,payment:pay,amount:amt,notes}); close(); UI.flash('Expense added.'); }, el('div',{}, el('label',{},'Date'), el('input',{id:'exDate',type:'date',value:today()}), el('label',{},'Category'), (()=>{ const s=el('select',{id:'exCat'}); for(const c of S.settings.categories) if(c!=='Package'&&c!=='Add-on') s.append(el('option',{value:c},c)); return s; })(), el('label',{},'Vendor'), el('input',{id:'exVendor'}), el('div',{class:'row'}, el('div',{}, el('label',{},'Payment'), (()=>{ const s=el('select',{id:'exPay'}); for(const p of S.settings.paymentMethods) s.append(el('option',{value:p},p)); return s; })()), el('div',{}, el('label',{},'Amount'), el('input',{id:'exAmt',type:'number',min:'0',step:'0.01'}))), el('label',{},'Notes'), el('textarea',{id:'exNotes'}) )); },
+  openExpenseForm(){
+    let receiptImage='';
+    const preview=el('div',{style:'border:1px dashed #1a1e21;border-radius:12px;min-height:160px;display:flex;align-items:center;justify-content:center;background:#080a0c;margin-bottom:.5rem;overflow:hidden;'},
+      el('div',{class:'tiny',style:'color:#7d8787;text-align:center;padding:.5rem;'},'No receipt captured yet. Scan or upload a photo to attach it to this expense.')
+    );
+    const removeBtn=el('button',{class:'btn secondary',type:'button',disabled:true},'Remove');
+    const updatePreview=()=>{
+      preview.innerHTML='';
+      if(receiptImage){
+        preview.append(el('img',{src:receiptImage,style:'max-width:100%;height:auto;border-radius:10px;'}));
+        removeBtn.disabled=false;
+      } else {
+        preview.append(el('div',{class:'tiny',style:'color:#7d8787;text-align:center;padding:.5rem;'},'No receipt captured yet. Scan or upload a photo to attach it to this expense.'));
+        removeBtn.disabled=true;
+      }
+    };
+    const uploadInput=el('input',{type:'file',accept:'image/*',style:'display:none;'});
+    uploadInput.addEventListener('change',e=>{
+      const file=e.target.files?.[0];
+      if(!file) return;
+      const reader=new FileReader();
+      reader.onload=()=>{
+        receiptImage=reader.result||'';
+        updatePreview();
+      };
+      reader.readAsDataURL(file);
+    });
+    const scanBtn=el('button',{class:'btn',type:'button',onclick:()=>UI.openReceiptScanner(data=>{ receiptImage=data; updatePreview(); })},'Scan Receipt');
+    const uploadBtn=el('button',{class:'btn secondary',type:'button',onclick:()=>uploadInput.click()},'Upload Photo');
+    removeBtn.addEventListener('click',()=>{ receiptImage=''; uploadInput.value=''; updatePreview(); });
+    const receiptActions=el('div',{class:'row',style:'gap:.5rem;flex-wrap:wrap;'}, scanBtn, uploadBtn, removeBtn);
+    const content=el('div',{},
+      el('label',{},'Date'),
+      el('input',{id:'exDate',type:'date',value:today()}),
+      el('label',{},'Category'),
+      (()=>{ const s=el('select',{id:'exCat'}); for(const c of S.settings.categories) if(c!=='Package'&&c!=='Add-on') s.append(el('option',{value:c},c)); return s; })(),
+      el('label',{},'Vendor'),
+      el('input',{id:'exVendor'}),
+      el('div',{class:'row'},
+        el('div',{},
+          el('label',{},'Payment'),
+          (()=>{ const s=el('select',{id:'exPay'}); for(const p of S.settings.paymentMethods) s.append(el('option',{value:p},p)); return s; })()
+        ),
+        el('div',{},
+          el('label',{},'Amount'),
+          el('input',{id:'exAmt',type:'number',min:'0',step:'0.01'})
+        )
+      ),
+      el('label',{},'Notes'),
+      el('textarea',{id:'exNotes'}),
+      el('label',{},'Receipt'),
+      preview,
+      receiptActions,
+      uploadInput
+    );
+    this.modal('Add Expense',(close)=>{
+      const date=content.querySelector('#exDate').value;
+      const cat=content.querySelector('#exCat').value;
+      const vendor=content.querySelector('#exVendor').value.trim();
+      const pay=content.querySelector('#exPay').value;
+      const amt=Number(content.querySelector('#exAmt').value||0);
+      const notes=content.querySelector('#exNotes').value.trim();
+      if(!amt) return alert('Amount required');
+      App.addExpenseRecord({id:uid(),type:'Expense',date,category:cat,item:'',clientId:null,vendor,payment:pay,amount:amt,notes,receiptImage});
+      close();
+      UI.flash('Expense added.');
+    }, content);
+  },
   openTransactions(){ const rows=S.transactions.map(t=>`<tr><td>${t.date||''}</td><td>${t.type}</td><td>${t.category||''}</td><td>${t.item||''}</td><td>${UI.clientName(t.clientId)||''}</td><td>${t.vendor||''}</td><td>${t.payment||''}</td><td>${Number(t.amount||0).toFixed(2)}</td><td>${t.notes||''}</td></tr>`).join(''); this.modal('Transactions',(c)=>c(), el('div',{}, el('div',{class:'row'}, el('button',{class:'btn secondary', onclick:()=>Data.exportCSV()},'Export CSV')), el('table',{style:'width:100%;border-collapse:collapse;margin-top:.5rem;'}, el('thead',{}, el('tr',{html:'<th>Date</th><th>Type</th><th>Category</th><th>Item</th><th>Client</th><th>Vendor</th><th>Payment</th><th>Amount</th><th>Notes</th>'})), el('tbody',{html:rows})) )); },
-  openExpenses(){ const rows=S.transactions.filter(t=>t.type==='Expense').map(t=>`<tr><td>${t.date||''}</td><td>${t.category||''}</td><td>${t.vendor||''}</td><td>${t.payment||''}</td><td>${Number(t.amount||0).toFixed(2)}</td><td>${t.notes||''}</td></tr>`).join(''); this.modal('Expenses',(c)=>c(), el('div',{}, el('div',{class:'row'}, el('button',{class:'btn',onclick:()=>UI.openExpenseForm()},'Add Expense')), el('table',{style:'width:100%;border-collapse:collapse;margin-top:.5rem;'}, el('thead',{}, el('tr',{html:'<th>Date</th><th>Category</th><th>Vendor</th><th>Payment</th><th>Amount</th><th>Notes</th>'})), el('tbody',{html:rows})) )); },
+  openExpenses(){
+    const rows=S.transactions.filter(t=>t.type==='Expense').map(t=>{
+      const receiptCell=t.receiptImage?`<button class="pill" onclick="UI.viewReceipt('${t.id}')">View</button>`:'--';
+      return `<tr><td>${t.date||''}</td><td>${t.category||''}</td><td>${t.vendor||''}</td><td>${t.payment||''}</td><td>${Number(t.amount||0).toFixed(2)}</td><td>${receiptCell}</td><td>${t.notes||''}</td></tr>`;
+    }).join('');
+    this.modal('Expenses',(c)=>c(), el('div',{},
+      el('div',{class:'row'}, el('button',{class:'btn',onclick:()=>UI.openExpenseForm()},'Add Expense')),
+      el('table',{style:'width:100%;border-collapse:collapse;margin-top:.5rem;'},
+        el('thead',{}, el('tr',{html:'<th>Date</th><th>Category</th><th>Vendor</th><th>Payment</th><th>Amount</th><th>Receipt</th><th>Notes</th>'})),
+        el('tbody',{html:rows})
+      )
+    ));
+  },
+  openReceiptScanner(onCapture){
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      alert('Camera access is not supported on this device.');
+      return;
+    }
+    const host=document.getElementById('modalHost');
+    host.innerHTML='';
+    let stream=null;
+    const close=()=>{
+      if(stream){
+        stream.getTracks().forEach(track=>track.stop());
+      }
+      host.innerHTML='';
+    };
+    const video=el('video',{autoplay:true,playsinline:true,style:'width:100%;border-radius:12px;background:#000;'});
+    const status=el('div',{class:'tiny',style:'margin-top:.5rem;text-align:center;color:#8ea59a;'},'Initializing camera…');
+    const captureBtn=el('button',{class:'btn',type:'button'},'Use Photo');
+    const cancelBtn=el('button',{class:'btn secondary',type:'button'},'Cancel');
+    const controls=el('div',{class:'row',style:'gap:.5rem;margin-top:.75rem;justify-content:flex-end;'}, cancelBtn, captureBtn);
+    const card=el('div',{class:'card',style:'width:min(96vw,480px);max-height:90vh;overflow:auto;display:flex;flex-direction:column;padding:1rem;'},
+      el('h3',{},'Scan Receipt'),
+      video,
+      status,
+      controls
+    );
+    const overlay=el('div',{style:'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40;display:flex;align-items:center;justify-content:center;'},card);
+    cancelBtn.addEventListener('click',close);
+    captureBtn.addEventListener('click',()=>{
+      if(!video.videoWidth || !video.videoHeight){
+        status.textContent='Camera is still warming up. Please wait a moment.';
+        return;
+      }
+      const canvas=document.createElement('canvas');
+      canvas.width=video.videoWidth;
+      canvas.height=video.videoHeight;
+      const ctx=canvas.getContext('2d');
+      ctx.drawImage(video,0,0,canvas.width,canvas.height);
+      const dataUrl=canvas.toDataURL('image/jpeg',0.9);
+      onCapture(dataUrl);
+      close();
+      UI.flash('Receipt captured.');
+    });
+    host.append(overlay);
+    navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(mediaStream=>{
+      stream=mediaStream;
+      video.srcObject=mediaStream;
+      status.textContent='Align the receipt and tap Use Photo.';
+    }).catch(err=>{
+      status.textContent=`Unable to access camera: ${err.message}`;
+    });
+  },
+  viewReceipt(id){
+    const record=S.transactions.find(t=>t.id===id);
+    if(!record || !record.receiptImage){
+      alert('Receipt not found for this expense.');
+      return;
+    }
+    const content=el('div',{},
+      el('img',{src:record.receiptImage,style:'max-width:100%;border-radius:12px;display:block;margin:0 auto;'}),
+      el('div',{class:'tiny',style:'margin-top:.5rem;text-align:center;color:#8ea59a;'},`${record.vendor||'Unknown vendor'} · ${fmt(Number(record.amount||0))}`)
+    );
+    this.modal('Receipt',close=>close(),content,'Close',false,true);
+  },
   openMileage(){ const rows=S.mileage.map((m,i)=>`<tr><td>${m.date}</td><td>${m.from}</td><td>${m.to}</td><td>${m.why}</td><td>${m.miles}</td><td><button class='pill' onclick='UI.delMileage(${i})'>Delete</button></td></tr>`).join(''); this.modal('Mileage',(c)=>c(), el('div',{}, el('div',{class:'row'}, el('div',{}, el('label',{},'Date'), el('input',{id:'miDate',type:'date',value:today()})), el('div',{}, el('label',{},'From'), el('input',{id:'miFrom'})), el('div',{}, el('label',{},'To'), el('input',{id:'miTo'})), el('div',{}, el('label',{},'Why'), el('input',{id:'miWhy'})), el('div',{}, el('label',{},'Miles'), el('input',{id:'miMiles',type:'number',min:'0',step:'0.1'})) ), el('div',{class:'row'}, el('button',{class:'btn', onclick:()=>UI.addMileage()},'Add Entry')), el('table',{style:'width:100%;border-collapse:collapse;margin-top:.5rem;'}, el('thead',{}, el('tr',{html:'<th>Date</th><th>From</th><th>To</th><th>Why</th><th>Miles</th><th></th>'})), el('tbody',{id:'miBody',html:rows})) )); },
   addMileage(){ const e={date:document.getElementById('miDate').value||today(),from:document.getElementById('miFrom').value||'',to:document.getElementById('miTo').value||'',why:document.getElementById('miWhy').value||'',miles:Number(document.getElementById('miMiles').value||0)}; S.mileage.push(e); Storage.save(S); const tr=`<tr><td>${e.date}</td><td>${e.from}</td><td>${e.to}</td><td>${e.why}</td><td>${e.miles}</td><td><button class='pill' onclick='UI.delMileage(${S.mileage.length-1})'>Delete</button></td></tr>`; document.getElementById('miBody').insertAdjacentHTML('beforeend', tr); UI.flash('Mileage added.'); },
   delMileage(i){ if(!confirm('Delete entry?')) return; S.mileage.splice(i,1); Storage.save(S); UI.openMileage(); },
