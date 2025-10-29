@@ -1369,8 +1369,16 @@ const App = {
   addExpenseRecord(rec){
     const record={id:rec.id||uid(), type:'Expense', date:rec.date, category:rec.category, item:rec.item||'', clientId:rec.clientId||null, vendor:rec.vendor||'', payment:rec.payment||'', amount:Number(rec.amount||0), notes:rec.notes||'', receiptImage:rec.receiptImage||null};
     S.transactions.push(record);
-    Storage.save(S);
+    try {
+      Storage.save(S);
+    } catch(err){
+      console.error('Failed to save expense record', err);
+      S.transactions.pop();
+      alert('Could not save the expense. Storage might be full from receipt images. Please export or delete older receipts and try again.');
+      return false;
+    }
     UI.refreshDashboard();
+    return true;
   }
 };
 
@@ -2262,6 +2270,51 @@ const UI = {
     });
     return this.ocrPromise;
   },
+  async prepareReceiptImage(file){
+    const readFile=()=>new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>resolve(reader.result);
+      reader.onerror=()=>reject(new Error('Failed to read receipt image'));
+      reader.readAsDataURL(file);
+    });
+    const dataUrl=await readFile();
+    const image=await new Promise((resolve,reject)=>{
+      const img=new Image();
+      img.onload=()=>resolve(img);
+      img.onerror=()=>reject(new Error('Receipt image could not be loaded'));
+      img.src=dataUrl;
+    });
+    const maxDimension=1280;
+    const longestSide=Math.max(image.width||1,image.height||1);
+    const scale=longestSide>maxDimension?maxDimension/longestSide:1;
+    const targetWidth=Math.max(1,Math.round((image.width||1)*scale));
+    const targetHeight=Math.max(1,Math.round((image.height||1)*scale));
+    const canvas=document.createElement('canvas');
+    canvas.width=targetWidth;
+    canvas.height=targetHeight;
+    const ctx=canvas.getContext('2d');
+    if(!ctx){
+      return dataUrl;
+    }
+    ctx.drawImage(image,0,0,targetWidth,targetHeight);
+    const toDataUrl=()=>canvas.toDataURL('image/jpeg',0.85);
+    return await new Promise((resolve,reject)=>{
+      if(canvas.toBlob){
+        canvas.toBlob(blob=>{
+          if(blob){
+            const reader=new FileReader();
+            reader.onload=()=>resolve(reader.result);
+            reader.onerror=()=>reject(new Error('Failed to process receipt image'));
+            reader.readAsDataURL(blob);
+          } else {
+            resolve(toDataUrl());
+          }
+        },'image/jpeg',0.85);
+      } else {
+        resolve(toDataUrl());
+      }
+    });
+  },
   detectPaymentMethod(text){
     const methods=Array.isArray(S.settings.paymentMethods)?S.settings.paymentMethods:[];
     const normalized=String(text||'').toLowerCase();
@@ -2815,8 +2868,10 @@ const UI = {
     const updateButtons=()=>{
       cameraBtn.textContent=state.imageData?'Rescan with Camera':'Scan with Camera';
       uploadBtn.textContent=state.imageData?'Upload Different Photo':'Upload Receipt';
+      cameraBtn.disabled=state.busy;
+      uploadBtn.disabled=state.busy;
       preview.classList.toggle('hidden',!state.imageData);
-      if(state.imageData) ocrStatus.textContent='Receipt attached. Double-check the details below.';
+      if(state.imageData && !state.busy) ocrStatus.textContent='Receipt attached. Double-check the details below.';
     };
     const fillFromParsed=(parsed)=>{
       if(parsed.date && !dateInput.value) dateInput.value=parsed.date;
@@ -2827,14 +2882,14 @@ const UI = {
         if(match) paymentSelect.value=match;
       }
     };
-    const runOcr=async(file)=>{
-      if(state.busy) return;
+    const runOcr=async()=>{
+      if(state.busy || !state.imageData) return;
       state.busy=true;
+      updateButtons();
       ocrStatus.textContent='Scanning receipt…';
       try{
         const Tesseract=await UI.loadOcr();
-        const source=state.imageData || file;
-        const result=await Tesseract.recognize(source,'eng');
+        const result=await Tesseract.recognize(state.imageData,'eng');
         const text=result?.data?.text||'';
         if(text.trim()){
           const parsed=UI.parseReceiptText(text);
@@ -2848,18 +2903,31 @@ const UI = {
         ocrStatus.textContent='Could not read the receipt. Enter details manually.';
       } finally {
         state.busy=false;
+        updateButtons();
       }
     };
-    const handleFile=file=>{
-      if(!file) return;
-      const reader=new FileReader();
-      reader.onload=()=>{
-        state.imageData=reader.result;
-        previewImg.src=reader.result;
+    const handleFile=async file=>{
+      if(!file || state.busy) return;
+      state.busy=true;
+      updateButtons();
+      ocrStatus.textContent='Processing receipt…';
+      try{
+        const processed=await UI.prepareReceiptImage(file);
+        state.imageData=processed;
+        previewImg.src=processed;
+      } catch(err){
+        console.error(err);
+        state.imageData='';
+        previewImg.removeAttribute('src');
+        preview.classList.add('hidden');
+        ocrStatus.textContent='Could not process the receipt image. Try another photo.';
+      } finally {
+        state.busy=false;
         updateButtons();
-        runOcr(file);
-      };
-      reader.readAsDataURL(file);
+      }
+      if(state.imageData){
+        await runOcr();
+      }
     };
     cameraInput.addEventListener('change',e=>handleFile(e.target.files[0]));
     uploadInput.addEventListener('change',e=>handleFile(e.target.files[0]));
@@ -2871,6 +2939,19 @@ const UI = {
       ocrStatus.textContent='Receipt attached. Review the details below.';
     }
     updateButtons();
+    const resetForm=()=>{
+      state.imageData='';
+      previewImg.removeAttribute('src');
+      preview.classList.add('hidden');
+      ocrStatus.textContent='Use the buttons above to scan or upload a receipt.';
+      cameraInput.value='';
+      uploadInput.value='';
+      vendorInput.value='';
+      amountInput.value='';
+      notesInput.value='';
+      updateButtons();
+      setTimeout(()=>vendorInput.focus(),0);
+    };
     const content=el('div',{class:'form-grid'},
       el('div',{class:'stack-buttons'}, cameraBtn, uploadBtn),
       preview,
@@ -2885,18 +2966,30 @@ const UI = {
       cameraInput,
       uploadInput
     );
-    this.modal('Add Expense',(close)=>{
+    const saveExpense=(close,{addAnother=false}={})=>{
+      if(state.busy){
+        alert('Please wait for the receipt scan to finish.');
+        return;
+      }
       const date=dateInput.value||today();
-      const category=categorySelect.value;
+      const category=categorySelect.value||'Other';
       const vendor=vendorInput.value.trim();
-      const payment=paymentSelect.value;
+      const payment=paymentSelect.value||'';
       const amountValue=Number(amountInput.value||0);
       if(!(amountValue>0)) return alert('Amount required');
       const notes=notesInput.value.trim();
-      App.addExpenseRecord({date,category,vendor,payment,amount:amountValue,notes,receiptImage:state.imageData});
-      close();
+      const saved=App.addExpenseRecord({date,category,vendor,payment,amount:amountValue,notes,receiptImage:state.imageData});
+      if(!saved) return;
       UI.flash('Expense added.');
-    }, content, 'Save Expense');
+      if(addAnother){
+        resetForm();
+        return;
+      }
+      close();
+    };
+    this.modal('Add Expense',(close)=>saveExpense(close,{addAnother:false}), content, 'Save Expense', true, false, [
+      {label:'Save & Add Another', className:'btn secondary', onClick:(close)=>saveExpense(close,{addAnother:true})}
+    ]);
   },
   openTransactions(){
     const transactions=[...S.transactions].sort((a,b)=>String(b.date||'').localeCompare(a.date||''));
@@ -3170,7 +3263,7 @@ const UI = {
     UI.renderPrintSheet(tempJob);
   },
   toggleDrawer(open){ document.getElementById('drawer').classList.toggle('open', !!open); },
-  modal(title,onPrimary,contentNode,primaryText='Save',showCancel=true,wide=false){ const host=document.getElementById('modalHost'); host.innerHTML=''; const overlay=el('div',{style:'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:30;display:flex;align-items:center;justify-content:center;'}); const card=el('div',{class:'card',style:`width:${wide?'min(96vw,980px)':'min(96vw,640px)'};max-height:90vh;overflow:auto;`}); card.append(el('h3',{},title)); card.append(contentNode); const actions=el('div',{class:'row',style:'margin-top:.5rem;justify-content:flex-end;'}); if(showCancel) actions.append(el('button',{class:'btn secondary',onclick:()=>host.innerHTML=''},'Cancel')); actions.append(el('button',{class:'btn',onclick:()=>onPrimary(()=>host.innerHTML='')},primaryText)); card.append(actions); overlay.append(card); host.append(overlay); return card; },
+  modal(title,onPrimary,contentNode,primaryText='Save',showCancel=true,wide=false,extraButtons=[]){ const host=document.getElementById('modalHost'); host.innerHTML=''; const overlay=el('div',{style:'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:30;display:flex;align-items:center;justify-content:center;'}); const card=el('div',{class:'card',style:`width:${wide?'min(96vw,980px)':'min(96vw,640px)'};max-height:90vh;overflow:auto;`}); card.append(el('h3',{},title)); card.append(contentNode); const actions=el('div',{class:'row',style:'margin-top:.5rem;justify-content:flex-end;'}); const close=()=>{ host.innerHTML=''; }; if(showCancel) actions.append(el('button',{class:'btn secondary',onclick:close},'Cancel')); if(Array.isArray(extraButtons)){ extraButtons.forEach(cfg=>{ if(!cfg||!cfg.label) return; const className=cfg.className||'btn secondary'; actions.append(el('button',{class:className,onclick:()=>cfg.onClick?.(close)},cfg.label)); }); } actions.append(el('button',{class:'btn',onclick:()=>onPrimary(close)},primaryText)); card.append(actions); overlay.append(card); host.append(overlay); return card; },
   flash(msg){ const n=el('div',{style:'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#06100a;border:1px solid #163c27;color:#dff8e7;padding:.6rem 1rem;border-radius:999px;z-index:50;'}, msg); document.body.append(n); setTimeout(()=>n.remove(),1600); },
   bootError(text){ const w=el('div',{class:'card',style:'margin:1rem;border-color:#3a1515;background:#1b0c0c;'}, el('h3',{},'Boot Error'), el('div',{}, text||'Unknown error')); document.body.prepend(w); }
 };
