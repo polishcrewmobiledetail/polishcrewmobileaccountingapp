@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Book Polish Crew Mobile Detailing</title>
+<link rel="manifest" href="../manifest.json">
+<meta name="theme-color" content="#000000">
+<script id="pc-config" type="application/json">{"supabaseUrl":"","supabaseAnonKey":"","stripePriceId":"","stripeFunction":"create-stripe-checkout","notificationsFunction":"send-booking-confirmation","depositAmount":50}</script>
+<script type="module" src="../js/supabase-bridge.js"></script>
+<style>
+  :root{--bg:#060708;--card:#0d0f11;--text:#f5f7f7;--accent:#00A651;--muted:#899;}
+  *{box-sizing:border-box;font-family:Montserrat,system-ui,sans-serif;color:var(--text);}
+  body{margin:0;background:var(--bg);min-height:100vh;display:flex;justify-content:center;}
+  main{width:100%;max-width:420px;padding:1.25rem;display:flex;flex-direction:column;gap:1rem;}
+  header{display:flex;flex-direction:column;align-items:flex-start;gap:.4rem;}
+  header .logo{width:48px;height:48px;border-radius:14px;border:2px solid var(--accent);background:#000 url('../icon-192.png') center/cover no-repeat;}
+  header h1{margin:0;font-family:Oswald,'Bebas Neue',sans-serif;font-size:1.75rem;letter-spacing:.8px;}
+  header p{margin:0;font-size:.9rem;color:#a9b5b5;}
+  form{display:flex;flex-direction:column;gap:.85rem;}
+  .card{background:linear-gradient(180deg,#111317,#0b0c0f);border:1px solid #161a1f;border-radius:18px;padding:1rem;display:flex;flex-direction:column;gap:.85rem;box-shadow:0 8px 24px rgba(0,0,0,.35);}
+  .step{display:none;flex-direction:column;gap:.75rem;}
+  .step.active{display:flex;}
+  label{font-size:.85rem;color:#cdd6d6;display:block;margin-bottom:.25rem;}
+  input,select,textarea{width:100%;background:#090a0d;border:1px solid #191d22;border-radius:12px;padding:.65rem;color:var(--text);font-size:1rem;}
+  textarea{min-height:96px;resize:vertical;}
+  .actions{display:flex;gap:.5rem;margin-top:.5rem;}
+  .actions button{flex:1;padding:.75rem;border-radius:12px;border:none;font-weight:700;cursor:pointer;}
+  .btn-primary{background:linear-gradient(180deg,#0c2215,#08140d);color:#e6f6eb;border:1px solid #1b3c26;}
+  .btn-secondary{background:#0c0d11;color:#d9e1e1;border:1px solid #1b1f24;}
+  .services{display:flex;flex-direction:column;gap:.5rem;}
+  .service-option{display:flex;align-items:center;gap:.6rem;background:#0b0d10;border:1px solid #161a1f;border-radius:12px;padding:.55rem;}
+  .service-option input{width:18px;height:18px;}
+  .summary{display:flex;flex-direction:column;gap:.35rem;font-size:.95rem;}
+  .summary h3{margin:.25rem 0;font-family:Oswald,'Bebas Neue',sans-serif;letter-spacing:.6px;}
+  .summary-row{display:flex;justify-content:space-between;font-size:.85rem;color:#c7d2d2;}
+  .badge{display:inline-flex;padding:.2rem .6rem;border-radius:999px;border:1px solid rgba(255,255,255,.08);background:#101315;font-size:.7rem;letter-spacing:.4px;}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#101317;border:1px solid #1b1f24;padding:.75rem 1rem;border-radius:12px;color:#eff6f0;font-size:.9rem;opacity:0;transition:opacity .25s ease,transform .25s ease;pointer-events:none;}
+  .toast.show{opacity:1;transform:translate(-50%,-6px);}
+  .loading{opacity:.6;pointer-events:none;}
+  .deposit-toggle{display:flex;align-items:center;gap:.55rem;}
+  .deposit-toggle input{width:20px;height:20px;}
+  small{color:#95a1a1;font-size:.8rem;}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="logo"></div>
+    <h1>Request a Detail</h1>
+    <p>Polish Crew mobile technicians come to you. Book in under a minute.</p>
+  </header>
+  <form id="bookingForm" novalidate>
+    <div class="card step active" data-step="1">
+      <div>
+        <div class="badge">Contact</div>
+        <h2 style="margin:.3rem 0 0;font-family:Oswald,'Bebas Neue',sans-serif;letter-spacing:.6px;">How can we reach you?</h2>
+      </div>
+      <div>
+        <label for="name">Name *</label>
+        <input id="name" name="name" required autocomplete="name" placeholder="Alex Driver">
+      </div>
+      <div>
+        <label for="phone">Mobile *</label>
+        <input id="phone" name="phone" required autocomplete="tel" inputmode="tel" placeholder="555-555-1212">
+      </div>
+      <div>
+        <label for="email">Email *</label>
+        <input id="email" name="email" required autocomplete="email" inputmode="email" placeholder="you@example.com">
+      </div>
+      <div class="actions">
+        <button class="btn-primary" data-next type="button">Next</button>
+      </div>
+    </div>
+    <div class="card step" data-step="2">
+      <div class="badge">Vehicle</div>
+      <label for="vehicleType">Vehicle *</label>
+      <input id="vehicleType" name="vehicleType" required placeholder="2022 Tesla Model Y">
+      <label for="vehicleSize">Size</label>
+      <select id="vehicleSize" name="vehicleSize">
+        <option value="Sedan">Sedan</option>
+        <option value="Coupe">Coupe</option>
+        <option value="Crossover" selected>Crossover</option>
+        <option value="SUV/Truck">SUV / Truck</option>
+        <option value="XL/Lifted">XL / Lifted</option>
+      </select>
+      <div class="actions">
+        <button class="btn-secondary" data-prev type="button">Back</button>
+        <button class="btn-primary" data-next type="button">Next</button>
+      </div>
+    </div>
+    <div class="card step" data-step="3">
+      <div class="badge">Service</div>
+      <div class="services" id="serviceOptions"></div>
+      <label for="notes">Anything we should know?</label>
+      <textarea id="notes" name="notes" placeholder="Tell us about stains, pet hair, access instructions, etc."></textarea>
+      <div class="actions">
+        <button class="btn-secondary" data-prev type="button">Back</button>
+        <button class="btn-primary" data-next type="button">Next</button>
+      </div>
+    </div>
+    <div class="card step" data-step="4">
+      <div class="badge">Schedule</div>
+      <label for="date">Preferred Date *</label>
+      <input id="date" name="date" required type="date">
+      <label for="time">Preferred Time</label>
+      <input id="time" name="time" type="time">
+      <div class="actions">
+        <button class="btn-secondary" data-prev type="button">Back</button>
+        <button class="btn-primary" data-next type="button">Next</button>
+      </div>
+    </div>
+    <div class="card step" data-step="5">
+      <div class="badge">Confirm</div>
+      <div class="summary" id="summary"></div>
+      <label class="deposit-toggle"><input type="checkbox" id="depositToggle"> Collect $<span id="depositAmount">50</span> deposit now</label>
+      <small>Deposits secure your slot and apply toward the final detail total.</small>
+      <div class="actions">
+        <button class="btn-secondary" data-prev type="button">Back</button>
+        <button class="btn-primary" type="submit">Submit Request</button>
+      </div>
+    </div>
+  </form>
+</main>
+<div id="toast" class="toast">Saved!</div>
+<script type="module">
+const steps=[...document.querySelectorAll('[data-step]')];
+let currentStep=1;
+const bridge=window.SupabaseBridge;
+const services=[
+  {id:'inout',name:'In & Out Combo Detail'},
+  {id:'maintenance',name:'Maintenance Detail'},
+  {id:'full',name:'Full Reset Detail'},
+  {id:'ceramic',name:'Ceramic / Protection Upgrade'},
+  {id:'fleet',name:'Fleet or Multi-Vehicle'},
+  {id:'other',name:'Other / Custom Request'}
+];
+const serviceHost=document.getElementById('serviceOptions');
+services.forEach(service=>{
+  const row=document.createElement('label');
+  row.className='service-option';
+  const checkbox=document.createElement('input');
+  checkbox.type='checkbox';
+  checkbox.value=service.name;
+  checkbox.dataset.serviceId=service.id;
+  const text=document.createElement('span');
+  text.textContent=service.name;
+  row.append(checkbox,text);
+  serviceHost.append(row);
+});
+const summary=document.getElementById('summary');
+const depositLabel=document.getElementById('depositAmount');
+if(bridge?.config?.depositAmount){
+  depositLabel.textContent=Number(bridge.config.depositAmount).toFixed(0);
+}
+function go(step){
+  currentStep=Math.min(Math.max(step,1),steps.length);
+  steps.forEach(panel=>panel.classList.toggle('active',Number(panel.dataset.step)===currentStep));
+  if(currentStep===5){
+    renderSummary();
+  }
+}
+function renderSummary(){
+  const data=collect();
+  summary.innerHTML='';
+  const rows=[
+    ['Name', data.customer.name],
+    ['Phone', data.customer.phone],
+    ['Email', data.customer.email],
+    ['Vehicle', `${data.vehicle.type} · ${data.vehicle.size}`],
+    ['Services', data.services.length?data.services.join(', '):'Let us recommend'],
+    ['Preferred', `${data.appointment.date||'Any day'} ${data.appointment.time||''}`]
+  ];
+  rows.forEach(([label,value])=>{
+    const row=document.createElement('div');
+    row.className='summary-row';
+    const left=document.createElement('span');
+    left.textContent=label;
+    const right=document.createElement('span');
+    right.textContent=value||'—';
+    row.append(left,right);
+    summary.append(row);
+  });
+  if(data.notes){
+    const notes=document.createElement('div');
+    notes.textContent=`Notes: ${data.notes}`;
+    summary.append(notes);
+  }
+}
+function collect(){
+  const serviceSelection=[...serviceHost.querySelectorAll('input[type=checkbox]:checked')].map(el=>el.value);
+  return {
+    customer:{
+      name:document.getElementById('name').value.trim(),
+      phone:document.getElementById('phone').value.trim(),
+      email:document.getElementById('email').value.trim()
+    },
+    vehicle:{
+      type:document.getElementById('vehicleType').value.trim(),
+      size:document.getElementById('vehicleSize').value
+    },
+    services:serviceSelection,
+    notes:document.getElementById('notes').value.trim(),
+    appointment:{
+      date:document.getElementById('date').value,
+      time:document.getElementById('time').value
+    },
+    deposit:document.getElementById('depositToggle').checked
+  };
+}
+function validate(step){
+  if(step===1){
+    const name=document.getElementById('name').value.trim();
+    const phone=document.getElementById('phone').value.trim();
+    const email=document.getElementById('email').value.trim();
+    if(!name||!phone||!email){ toast('Add your contact info.'); return false; }
+  }
+  if(step===2){
+    if(!document.getElementById('vehicleType').value.trim()){ toast('Describe your vehicle.'); return false; }
+  }
+  if(step===4){
+    if(!document.getElementById('date').value){ toast('Choose your preferred date.'); return false; }
+  }
+  return true;
+}
+function toast(message){
+  const node=document.getElementById('toast');
+  node.textContent=message;
+  node.classList.add('show');
+  setTimeout(()=>node.classList.remove('show'),2600);
+}
+steps.forEach(panel=>{
+  panel.querySelectorAll('[data-next]').forEach(btn=>btn.addEventListener('click',()=>{
+    if(!validate(currentStep)) return;
+    go(currentStep+1);
+  }));
+  panel.querySelectorAll('[data-prev]').forEach(btn=>btn.addEventListener('click',()=>go(currentStep-1)));
+});
+
+document.getElementById('bookingForm').addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(!validate(currentStep)) return;
+  const data=collect();
+  const form=event.currentTarget;
+  form.classList.add('loading');
+  try{
+    const customerPayload={
+      id:crypto.randomUUID?.()||undefined,
+      name:data.customer.name,
+      phone:data.customer.phone,
+      email:data.customer.email,
+      notes:data.notes
+    };
+    const appointmentPayload={
+      date:data.appointment.date,
+      time:data.appointment.time,
+      services:JSON.stringify(data.services),
+      notes:data.notes,
+      status:'New'
+    };
+    const booking=await bridge.createBooking({customer:customerPayload,appointment:appointmentPayload,charge:data.deposit?{deposit:true,amount:bridge?.config?.depositAmount||50}:null});
+    if(data.deposit && bridge?.config?.stripePriceId){
+      const session=await bridge.createStripeCheckout({
+        priceId:bridge.config.stripePriceId,
+        success_url:window.location.origin+window.location.pathname+'?success=1',
+        cancel_url:window.location.href,
+        metadata:{ appointment_id:booking?.appointment?.id||'', customer_email:data.customer.email }
+      });
+      if(session?.url){
+        window.location.href=session.url;
+        return;
+      }
+    }
+    toast('Request received! We will confirm shortly.');
+    form.reset();
+    go(1);
+  } catch(err){
+    console.error(err);
+    toast('Could not submit right now. Saved for follow-up.');
+  } finally {
+    form.classList.remove('loading');
+  }
+});
+
+go(1);
+const params=new URLSearchParams(window.location.search);
+if(params.get('success')){
+  toast('Deposit confirmed! We will follow up shortly.');
+  if(window.history.replaceState){
+    window.history.replaceState({},document.title,window.location.pathname);
+  }
+}
+</script>
+</body>
+</html>

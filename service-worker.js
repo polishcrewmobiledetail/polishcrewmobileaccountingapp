@@ -1,10 +1,10 @@
-const CACHE_VERSION = "pcwa-v2.2.0";
+const CACHE_VERSION = "pcwa-v3.0.0";
 const CACHE_NAME = CACHE_VERSION;
 
 self.addEventListener('install', e=>{
   e.waitUntil((async()=>{
     const cache = await caches.open(CACHE_NAME);
-    await cache.addAll(['./','./index.html','./manifest.json','./icon-192.png','./icon-512.png']);
+    await cache.addAll(['./','./index.html','./manifest.json','./icon-192.png','./icon-512.png','./js/supabase-bridge.js','./book/index.html']);
     self.skipWaiting();
   })());
 });

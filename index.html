@@ -6,6 +6,8 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#000000">
 <title>POLISH CREW — Accounting</title>
+<script id="pc-config" type="application/json">{"supabaseUrl":"","supabaseAnonKey":"","stripePriceId":"","stripeFunction":"create-stripe-checkout","notificationsFunction":"send-booking-confirmation"}</script>
+<script type="module" src="js/supabase-bridge.js"></script>
 <style>
   :root { --bg:#0b0b0c; --card:#101114; --text:#f5f7f7; --muted:#a7b0b0; --green:#00A651; }
   html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Montserrat,system-ui,Segoe UI,Roboto,Arial,sans-serif;}
@@ -114,6 +116,18 @@
   .job-timer-controls{display:flex;gap:.35rem;flex-wrap:wrap}
   .job-timer-controls .pill{cursor:pointer}
   .job-filter-active{background:linear-gradient(180deg,#102b1c,#0b1a12);color:#f2fbf7;border-color:#1f3a29;box-shadow:0 0 0 1px #173a26 inset}
+  .sync-status{position:sticky;top:6.5rem;z-index:8;margin:0 0 1rem;padding:.6rem .75rem;border-radius:12px;border:1px solid #1a1e21;background:#070808;font-size:.8rem;color:#a7b0b0;display:flex;align-items:center;gap:.5rem}
+  .sync-status[data-state="connected"]{border-color:#163221;background:linear-gradient(180deg,#09140d,#060d08);color:#bfe8ce}
+  .sync-status[data-state="error"]{border-color:#3a1818;background:linear-gradient(180deg,#150808,#0d0505);color:#f4c5c5}
+  .crm-board{display:grid;gap:.75rem;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));align-items:flex-start}
+  .crm-column{display:flex;flex-direction:column;gap:.5rem;background:linear-gradient(180deg,#0d0f12,#08090c);border:1px solid #14171a;border-radius:14px;padding:.6rem}
+  .crm-column-header{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:.9rem;text-transform:uppercase;letter-spacing:.6px}
+  .crm-column-badge{background:#101c14;border:1px solid #1d3224;border-radius:999px;padding:.15rem .55rem;font-size:.7rem;font-weight:700;color:#a8d7b6}
+  .crm-column-body{display:flex;flex-direction:column;gap:.5rem}
+  .crm-empty{font-size:.8rem;color:#6f7a7a;text-align:center;padding:.75rem 0;border:1px dashed #1a1e21;border-radius:12px;background:#060708}
+  .crm-action{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.5rem}
+  .crm-action .pill,.crm-action .btn{flex:1;min-width:120px}
+  .job-card.crm{border:1px solid #1a1e21;background:#0a0c0f}
 </style>
 </head>
 <body>
@@ -128,6 +142,7 @@
     <div class="tab active" data-tab="Dashboard">Dashboard</div>
     <div class="tab" data-tab="Quotes">Quotes</div>
     <div class="tab" data-tab="Jobs">Jobs</div>
+    <div class="tab" data-tab="CRM">CRM</div>
     <div class="tab" data-tab="QuoteBuilder">Quote Builder</div>
     <div class="tab" data-tab="Clients">Clients</div>
   </div>
@@ -204,6 +219,26 @@
       </div>
     </section>
 
+    <section id="CRM" class="tabpage hidden">
+      <div class="sync-status" id="syncStatus" data-state="idle">Supabase sync idle. Configure keys in pc-config.</div>
+      <div class="grid">
+        <div class="card" style="grid-column:1 / -1;">
+          <h3>Pipeline</h3>
+          <div class="tiny" style="margin-bottom:.6rem;">Drag-and-drop is coming soon. Tap a record to update stage and view details.</div>
+          <div id="crmBoard" class="crm-board"></div>
+        </div>
+        <div class="card">
+          <h3>Upcoming Appointments</h3>
+          <div id="crmAppointments" class="list" style="gap:.5rem;"></div>
+        </div>
+        <div class="card">
+          <h3>Payments</h3>
+          <div class="tiny">Deposits and balances captured via Stripe are mirrored here.</div>
+          <div id="crmPayments" class="list" style="gap:.5rem;margin-top:.5rem;"></div>
+        </div>
+      </div>
+    </section>
+
     <section id="QuoteBuilder" class="tabpage hidden">
       <div class="grid">
         <div class="card">
@@ -234,6 +269,7 @@
 
           <div id="quickClient" class="card hidden" style="margin:.5rem 0;">
             <div class="row"><div><label>Name *</label><input id="qcName"></div><div><label>Phone</label><input id="qcPhone"></div></div>
+            <label>Email</label><input id="qcEmail" type="email" placeholder="client@domain.com">
             <div class="row"><div>
               <label>Default Discount</label>
               <div class="row">
@@ -306,6 +342,7 @@
         <div class="card">
           <h3>Add Client</h3>
           <div class="row"><div><label>Name *</label><input id="cName"></div><div><label>Phone</label><input id="cPhone"></div></div>
+          <label>Email</label><input id="cEmail" type="email" placeholder="client@domain.com">
           <label>Notes</label><input id="cNotes">
           <div class="row">
             <div>
@@ -348,7 +385,7 @@
       <div class="list">
         <div class="list-item" onclick="UI.openSettings()">Settings ›</div>
       </div>
-      <div class="footnote">Build cache: <b>pcwa-v2.2.0</b></div>
+      <div class="footnote">Build cache: <b>pcwa-v3.0.0</b></div>
     </div>
   </div>
 
@@ -366,6 +403,7 @@
   <div id="modalHost"></div>
 
 <script>
+const SupabaseSync = window.SupabaseBridge || null;
 const DEFAULT_SIZES = ["Coupe","Sedan","Crossover","SUV/Truck","XL/Lifted"];
 const DEFAULT_MENU = {
   sizes: DEFAULT_SIZES,
@@ -728,10 +766,12 @@ const App = {
     UI.refreshJobsList();
     UI.refreshDashboard();
     if('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js');
+    this.initializeSupabase();
   },
   normalizeClients(){
     S.clients = Array.isArray(S.clients) ? S.clients : [];
     for(const c of S.clients){
+      if(typeof c.email!=='string') c.email='';
       if(!c.discount) c.discount={type:'none', value:0};
       if(!Array.isArray(c.vehicles)) c.vehicles=[];
       for(const v of c.vehicles){
@@ -750,6 +790,8 @@ const App = {
   },
   ensureJobStructure(job){
     if(!job) return;
+    if(!job.remote || typeof job.remote!=='object') job.remote={};
+    if(job.remoteTotal==null) job.remoteTotal=0;
     if(!Array.isArray(job.vehicles)) job.vehicles=[];
     if(!Array.isArray(job.payments)) job.payments=[];
     if(!job.schedule || typeof job.schedule!=='object'){
@@ -1125,8 +1167,8 @@ const App = {
     }
     Storage.save(S);
   },
-  addClient(){ const name=document.getElementById('cName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(), name, phone:document.getElementById('cPhone').value.trim(), notes:document.getElementById('cNotes').value.trim(), discount:{type:document.getElementById('cDiscType').value, value:Number(document.getElementById('cDiscValue').value||0)}, vehicles:[]}; S.clients.push(c); Storage.save(S); UI.populateClients(); UI.flash('Client added.'); document.getElementById('cName').value='';document.getElementById('cPhone').value='';document.getElementById('cNotes').value='';document.getElementById('cDiscType').value='none';document.getElementById('cDiscValue').value='0'; },
-  addQuickClient(){ const name=document.getElementById('qcName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(), name, phone:document.getElementById('qcPhone').value.trim(), notes:document.getElementById('qcNotes').value.trim(), discount:{type:document.getElementById('qcDiscType').value, value:Number(document.getElementById('qcDiscValue').value||0)}, vehicles:[]}; S.clients.push(c); Storage.save(S); UI.populateClients(c.id); UI.hideQuickClient(); UI.flash('Client added.'); UI.onClientChange(); },
+  addClient(){ const name=document.getElementById('cName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(), name, phone:document.getElementById('cPhone').value.trim(), email:document.getElementById('cEmail').value.trim(), notes:document.getElementById('cNotes').value.trim(), discount:{type:document.getElementById('cDiscType').value, value:Number(document.getElementById('cDiscValue').value||0)}, vehicles:[]}; S.clients.push(c); Storage.save(S); SupabaseSync?.scheduleUpsert?.('customers',{id:c.id,name:c.name,phone:c.phone,email:c.email,notes:c.notes}); UI.populateClients(); UI.flash('Client added.'); document.getElementById('cName').value='';document.getElementById('cPhone').value='';document.getElementById('cEmail').value='';document.getElementById('cNotes').value='';document.getElementById('cDiscType').value='none';document.getElementById('cDiscValue').value='0'; },
+  addQuickClient(){ const name=document.getElementById('qcName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(), name, phone:document.getElementById('qcPhone').value.trim(), email:document.getElementById('qcEmail').value.trim(), notes:document.getElementById('qcNotes').value.trim(), discount:{type:document.getElementById('qcDiscType').value, value:Number(document.getElementById('qcDiscValue').value||0)}, vehicles:[]}; S.clients.push(c); Storage.save(S); SupabaseSync?.scheduleUpsert?.('customers',{id:c.id,name:c.name,phone:c.phone,email:c.email,notes:c.notes}); UI.populateClients(c.id); UI.hideQuickClient(); UI.flash('Client added.'); UI.onClientChange(); },
   syncClientVehicles(job,{updateLastService=false}={}){
     const client=S.clients.find(x=>x.id===job.clientId);
     if(!client) return;
@@ -1160,6 +1202,136 @@ const App = {
     }
     Storage.save(S);
     UI.populateClients(job.clientId);
+  },
+  serializeVehicles(job){
+    const vehicles=Array.isArray(job.vehicles)?job.vehicles:[];
+    return vehicles.map((vehicle,idx)=>({
+      id:vehicle.id||vehicle.clientVehicleId||`vehicle-${idx}`,
+      label:vehicle.label||'',
+      pkg:vehicle.pkg||job.pkg||'',
+      size:vehicle.size||job.size||'',
+      base:Number(vehicle.base!=null?vehicle.base:Calc.base(vehicle.pkg||job.pkg||'', vehicle.size||job.size||''))||0,
+      addons:Array.isArray(vehicle.addons)?vehicle.addons.map(addon=>({
+        name:addon.name||'',
+        price:Number(addon.price||0)||0,
+        included:!!addon.included
+      })) : []
+    }));
+  },
+  serializeAddons(job){
+    const list=[];
+    this.serializeVehicles(job).forEach(vehicle=>{
+      vehicle.addons.forEach(addon=>{
+        list.push({
+          name:addon.name||'',
+          price:addon.price||0,
+          included:addon.included||false,
+          vehicle_id:vehicle.id,
+          vehicle_label:vehicle.label||''
+        });
+      });
+    });
+    return list;
+  },
+  isoFromDateTime(date,time){
+    if(!date) return null;
+    let safe=time||'08:00';
+    if(safe.length===4 && !safe.includes(':')) safe=`${safe.slice(0,2)}:${safe.slice(2)}`;
+    if(!safe.includes(':')) safe=`${safe.slice(0,2)}:${safe.slice(2,4)}`;
+    if(safe.length===5) safe=`${safe}:00`;
+    return `${date}T${safe}`;
+  },
+  pushJobToSupabase(job){
+    if(!SupabaseSync) return;
+    this.ensureJobStructure(job);
+    const ref=job.remote || (job.remote={});
+    const vehicles=this.serializeVehicles(job);
+    const addons=this.serializeAddons(job);
+    const total=Calc.total(job);
+    const customerId=job.clientId||null;
+    if(!customerId) return;
+    const quoteId=ref.quoteId || job.id;
+    const quotePayload={
+      id:quoteId,
+      customer_id:customerId,
+      pkg:job.pkg||'',
+      size:job.size||'',
+      addons:JSON.stringify(addons),
+      vehicles:JSON.stringify(vehicles),
+      total,
+      status:job.status==='Quoted'?'Quoted':'Won',
+      notes:job.notes||'',
+      created_at:job.createdAt||new Date().toISOString()
+    };
+    ref.quoteId=quoteId;
+    SupabaseSync.scheduleUpsert('quotes', quotePayload);
+    if(job.status && job.status!=='Quoted'){
+      const jobId=ref.jobId || job.id;
+      const startIso=this.isoFromDateTime(job.schedule?.date, job.schedule?.start);
+      const endIso=this.isoFromDateTime(job.schedule?.date, job.schedule?.end);
+      const jobPayload={
+        id:jobId,
+        quote_id:ref.quoteId||null,
+        customer_id:customerId,
+        status:job.status,
+        total,
+        notes:job.notes||'',
+        start_time:startIso,
+        end_time:endIso
+      };
+      ref.jobId=jobId;
+      SupabaseSync.scheduleUpsert('jobs', jobPayload);
+    }
+  },
+  pushTransactionToSupabase(tx){
+    if(!SupabaseSync) return;
+    if(!tx.remote || typeof tx.remote!=='object') tx.remote={};
+    const payload={
+      id:tx.remote.transactionId || tx.id,
+      job_id:tx.jobId||null,
+      customer_id:tx.clientId||null,
+      amount:Number(tx.amount||0),
+      method:tx.payment||'',
+      type:tx.remoteType||'deposit',
+      date:tx.date||today()
+    };
+    tx.remote.transactionId=payload.id;
+    SupabaseSync.scheduleUpsert('transactions', payload);
+  },
+  initializeSupabase(){
+    if(!SupabaseSync){
+      UI.updateSyncStatus('idle','Supabase sync unavailable. Provide configuration.');
+      return;
+    }
+    SupabaseSync.setLocalState(S);
+    UI.updateSyncStatus('syncing','Syncing with Supabase…');
+    SupabaseSync.on('sync:complete',()=>{
+      try {
+        Storage.save(S);
+      } catch(err){
+        console.warn('Failed to persist synced state', err);
+      }
+      UI.refreshJobsList();
+      UI.updateSyncStatus('connected','Connected to Supabase.');
+    });
+    SupabaseSync.on('booking:created',()=>{
+      UI.flash('New booking received.');
+      UI.refreshJobsList();
+    });
+    SupabaseSync.bootstrap(S).then(result=>{
+      if(result?.synced){
+        Storage.save(S);
+        UI.refreshJobsList();
+        UI.updateSyncStatus('connected','Connected to Supabase.');
+      } else if(result?.reason==='not-configured'){
+        UI.updateSyncStatus('idle','Supabase sync idle. Configure keys in pc-config.');
+      } else {
+        UI.updateSyncStatus('error',`Sync failed: ${result?.reason||'Unknown error'}`);
+      }
+    }).catch(err=>{
+      console.error('Supabase bootstrap error', err);
+      UI.updateSyncStatus('error','Supabase sync failed. Check console.');
+    });
   },
   saveJob(options={}){
     const asQuote=!!(options && options.asQuote);
@@ -1227,6 +1399,7 @@ const App = {
             Storage.save(S);
             UI.refreshJobsList();
           }
+          this.pushJobToSupabase(job);
           UI.flash('Quote updated.');
           UI.switchTab('Quotes');
         } else {
@@ -1236,6 +1409,7 @@ const App = {
             UI.refreshJobsList();
             converted=true;
           }
+          this.pushJobToSupabase(job);
           if(converted){
             UI.flash('Quote converted to job.');
             UI.switchTab('Jobs');
@@ -1276,6 +1450,7 @@ const App = {
     this.syncClientVehicles(job);
     UI.refreshJobsList();
     UI.resetJobForm();
+    this.pushJobToSupabase(job);
     if(asQuote){
       UI.flash('Quote saved.');
       UI.switchTab('Quotes');
@@ -1314,6 +1489,7 @@ const App = {
       Storage.save(S);
       UI.populateClients(job.clientId);
     }
+    this.pushJobToSupabase(job);
     UI.refreshJobsList();
     UI.renderJobPanel(id);
     UI.flash('Status: '+next);
@@ -1327,16 +1503,20 @@ const App = {
     if(amount<=0) return;
     const method=prompt('Method (Cash/Card/Zelle/Venmo/CashApp/Bank)','Cash')||'Cash';
     j.payments.push({date:today(),method,amount});
+    const vehicleLabel=UI.jobVehicleSummary(j);
+    const pkgLabel=UI.jobPackageLabel(j);
+    const itemLabel=vehicleLabel?`${pkgLabel} — ${vehicleLabel}`:pkgLabel;
+    const paymentType=(amount>=due-0.01)?'balance':'deposit';
+    const tx={id:uid(), jobId:j.id, type:'Income', date:today(), category:'Package', item:itemLabel, clientId:j.clientId, vendor:'', payment:method, amount, notes:paymentType==='deposit'?'Deposit collected via dashboard.':'Balance payment collected.', remoteType:paymentType};
+    S.transactions.push(tx);
+    Storage.save(S);
+    this.pushTransactionToSupabase(tx);
+    this.pushJobToSupabase(j);
     const paid2=j.payments.reduce((t,p)=>t+Number(p.amount||0),0);
     if(paid2+1e-6>=Calc.total(j)){
-      const vehicleLabel=UI.jobVehicleSummary(j);
-      const pkgLabel=UI.jobPackageLabel(j);
-      const itemLabel=vehicleLabel?`${pkgLabel} — ${vehicleLabel}`:pkgLabel;
-      S.transactions.push({id:uid(), jobId:j.id, type:'Income', date:today(), category:'Package', item:itemLabel, clientId:j.clientId, vendor:'', payment:method, amount:Calc.total(j), notes:'Discount: '+(j.discType||'none')+' '+(j.discValue||0)});
       this.updateJobStatus(j.id,'Paid');
       UI.flash('Paid in full. Income posted.');
     } else {
-      Storage.save(S);
       UI.populateClients(j.clientId);
       UI.refreshJobsList();
       UI.renderJobPanel(id);
@@ -1391,8 +1571,119 @@ const UI = {
   jobFilter:'all',
   jobPanelJobId:null,
   editingJobId:null,
+  crmStages:['New','Quoted','Booked','In Progress','Paid','Complete'],
+  crmColumns:[
+    {key:'New',label:'New'},
+    {key:'Quoted',label:'Quoted'},
+    {key:'Booked',label:'Booked'},
+    {key:'In Progress',label:'In Progress'},
+    {key:'Paid',label:'Paid'},
+    {key:'Complete',label:'Complete'}
+  ],
   initHeader(){ const logo=document.getElementById('headerLogo'); logo.src=S.business.logoDataUrl||'icon-192.png'; document.getElementById('headerTitle').textContent=S.business.headerTitle||'POLISH CREW — Accounting'; document.getElementById('openDrawer').onclick=()=>UI.toggleDrawer(true); },
-  switchTab(name){ document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.getAttribute('data-tab')===name)); document.querySelectorAll('.tabpage').forEach(p=>p.classList.add('hidden')); document.getElementById(name).classList.remove('hidden'); },
+  switchTab(name){
+    document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.getAttribute('data-tab')===name));
+    document.querySelectorAll('.tabpage').forEach(p=>p.classList.add('hidden'));
+    const page=document.getElementById(name);
+    if(page) page.classList.remove('hidden');
+    if(name==='CRM'){
+      this.renderCRMBoard();
+      this.renderCRMAppointments();
+      this.renderCRMPayments();
+    }
+  },
+  crmNextStatus(status){
+    const idx=this.crmStages.indexOf(status||'');
+    if(idx>=0 && idx<this.crmStages.length-1) return this.crmStages[idx+1];
+    return null;
+  },
+  updateSyncStatus(state='idle', message=''){
+    const node=document.getElementById('syncStatus');
+    if(!node) return;
+    node.setAttribute('data-state', state);
+    if(message) node.textContent=message;
+  },
+  renderCRMBoard(){
+    const host=document.getElementById('crmBoard');
+    if(!host) return;
+    host.innerHTML='';
+    const jobs=[...S.jobs];
+    jobs.forEach(job=>App.ensureJobStructure(job));
+    this.crmColumns.forEach(col=>{
+      const column=el('div',{class:'crm-column'});
+      const header=el('div',{class:'crm-column-header'});
+      const title=el('span',{},col.label);
+      const badge=el('span',{class:'crm-column-badge'},'0');
+      header.append(title,badge);
+      const body=el('div',{class:'crm-column-body'});
+      const columnJobs=jobs.filter(job=>{
+        if(col.key==='New') return job.status==='New' || job.status==='Lead';
+        return job.status===col.key;
+      });
+      columnJobs.sort((a,b)=>{
+        const dateA=(a.schedule?.date||'')+(a.schedule?.start||'');
+        const dateB=(b.schedule?.date||'')+(b.schedule?.start||'');
+        return dateA.localeCompare(dateB);
+      });
+      badge.textContent=columnJobs.length;
+      if(!columnJobs.length){
+        body.append(el('div',{class:'crm-empty'},'No records here yet.'));
+      } else {
+        columnJobs.forEach(job=>body.append(this.buildJobCard(job,{context:'crm'})));
+      }
+      column.append(header,body);
+      host.append(column);
+    });
+  },
+  renderCRMAppointments(){
+    const list=document.getElementById('crmAppointments');
+    if(!list) return;
+    list.innerHTML='';
+    const todayStr=today();
+    const upcoming=[...S.jobs]
+      .filter(job=>{
+        App.ensureJobStructure(job);
+        const date=job.schedule?.date || job.date || '';
+        if(!date) return false;
+        if(['Complete','Paid'].includes(job.status)) return false;
+        return date>=todayStr;
+      })
+      .sort((a,b)=>{
+        const dateA=(a.schedule?.date||'')+(a.schedule?.start||'');
+        const dateB=(b.schedule?.date||'')+(b.schedule?.start||'');
+        return dateA.localeCompare(dateB);
+      })
+      .slice(0,8);
+    if(!upcoming.length){
+      list.append(el('div',{class:'tiny'},'No upcoming appointments.'));
+      return;
+    }
+    upcoming.forEach(job=>{
+      const client=S.clients.find(c=>c.id===job.clientId);
+      const row=el('div',{class:'list-item'},
+        el('div',{style:'font-weight:700;'}, client?.name||'Unknown'),
+        el('div',{class:'tiny'}, `${job.schedule?.date||job.date||''} · ${job.schedule?.start||'Any time'} · ${job.status}`),
+        el('div',{class:'tiny'}, UI.jobPackageLabel(job))
+      );
+      list.append(row);
+    });
+  },
+  renderCRMPayments(){
+    const list=document.getElementById('crmPayments');
+    if(!list) return;
+    list.innerHTML='';
+    const payments=[...S.transactions]
+      .filter(tx=>tx.type==='Income')
+      .sort((a,b)=>String(b.date||'').localeCompare(a.date||''))
+      .slice(0,6);
+    if(!payments.length){
+      list.append(el('div',{class:'tiny'},'No payments captured yet.'));
+      return;
+    }
+    payments.forEach(tx=>{
+      list.append(this.buildTransactionCard(tx,{showType:false}));
+    });
+  },
   initTabs(){ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>UI.switchTab(t.getAttribute('data-tab')))); },
   packageOptionLabel(name,size){
     const price=Calc.base(name,size);
@@ -1432,8 +1723,9 @@ const UI = {
           const serviceText=service?`Last service: ${service.date||'Unknown date'}${pkgLabel}${addonsLabel}`:'No service recorded yet.';
           return el('div',{class:'tiny'},`${v.label||'Vehicle'}${v.size?` · ${v.size}`:''} · ${serviceText}`);
         }):[el('div',{class:'tiny'},'No vehicles saved yet.')];
+        const contactBits=[c.phone||'',c.email||''].filter(Boolean).join(' • ');
         const header=el('div',{class:'row',style:'justify-content:space-between;align-items:flex-start;gap:.5rem;'},
-          el('div',{html:`<b>${c.name}</b> <span class='tiny'>${c.phone||''}</span>`}),
+          el('div',{html:`<b>${c.name}</b>${contactBits?` <span class='tiny'>${contactBits}</span>`:''}`}),
           el('button',{class:'pill',onclick:()=>UI.openClientVehicles(c.id)},'Manage Vehicles')
         );
         const body=el('div',{}, ...vehicleRows, ...(c.notes?[el('div',{class:'tiny'},c.notes)]:[]));
@@ -1992,6 +2284,7 @@ const UI = {
     if(incomeEl) incomeEl.textContent=fmt(income);
     if(expenseEl) expenseEl.textContent=fmt(expense);
     if(netEl) netEl.textContent=fmt(net);
+    this.renderCRMPayments();
   },
   quickDisc(type,val){ document.getElementById('jobDiscType').value=type; document.getElementById('jobDiscValue').value=val; UI.updateTotals(); },
   resetJobForm(){
@@ -2046,7 +2339,7 @@ const UI = {
     const total=Calc.total(job);
     const due=Math.max(0,total-paid);
     const timerMinutes=App.timerElapsedMinutes(job.timers?.overall||{elapsed:0});
-    const card=el('div',{class:'list-item job-card'});
+    const card=el('div',{class:`list-item job-card${context==='crm'?' crm':''}`});
     const header=el('div',{class:'row',style:'justify-content:space-between;gap:.5rem;flex-wrap:wrap;align-items:center;'},
       el('div',{style:'font-weight:800;'}, client?.name||'Unknown'),
       el('div',{class:'pill'}, job.status)
@@ -2064,7 +2357,9 @@ const UI = {
       el('div',{}, el('div',{class:'tiny'},'Due'), el('div',{style:'font-weight:700;color:'+(due>0?'#f5d7d7':'#9fb2ae')}, fmt(due))),
       el('div',{}, el('div',{class:'tiny'},'Tracked Time'), el('div',{style:'font-weight:700;'}, timerMinutes?formatDurationMinutes(timerMinutes):'--'))
     );
-    const actionsContainer=el('div',{class:'stack-buttons',style:'margin-top:.75rem;'});
+    const actionsContainer=context==='crm'
+      ? el('div',{class:'crm-action',style:'margin-top:.75rem;'})
+      : el('div',{class:'stack-buttons',style:'margin-top:.75rem;'});
     const actions=[];
     const openJob=()=>UI.openJob(job.id);
     const editJob=()=>UI.editJob(job.id);
@@ -2081,14 +2376,29 @@ const UI = {
       actions.push(el('button',{class:'pill',onclick:()=>UI.openChecklist(job.id)},'Checklist'));
       actions.push(el('button',{class:'pill',onclick:()=>UI.openPrintDetails(job.id)},'Print Summary'));
       actions.push(el('button',{class:'pill',onclick:()=>App.deleteJob(job.id)},'Delete'));
-    } else {
+    } else if(context==='quotes'){
       actions.push(el('button',{class:'pill',onclick:editJob},'Edit Quote'));
       actions.push(el('button',{class:'btn',onclick:()=>{ App.updateJobStatus(job.id,'Booked'); UI.switchTab('Jobs'); UI.flash('Quote converted to job.'); }},'Convert to Job'));
       actions.push(el('button',{class:'pill',onclick:()=>UI.openPrintDetails(job.id)},'Print Quote'));
       actions.push(el('button',{class:'pill',onclick:()=>App.deleteJob(job.id)},'Delete Quote'));
+    } else {
+      actions.push(el('button',{class:'pill',onclick:openJob},'Open'));
+      const nextStage=this.crmNextStatus(job.status);
+      if(nextStage){
+        actions.push(el('button',{class:'pill',onclick:()=>App.updateJobStatus(job.id,nextStage)},`Move to ${nextStage}`));
+      }
+      if(due>0.01 && !['Paid','Complete'].includes(job.status)){
+        actions.push(el('button',{class:'pill',onclick:()=>App.takePayment(job.id)},'Collect Payment'));
+      }
+      actions.push(el('button',{class:'pill',onclick:editJob},'Edit'));
+      actions.push(el('button',{class:'pill',onclick:()=>UI.openChecklist(job.id)},'Checklist'));
     }
     actions.forEach(btn=>actionsContainer.append(btn));
-    card.append(header, metaGrid, actionsContainer);
+    card.append(header, metaGrid);
+    if(job.notes){
+      card.append(el('div',{class:'tiny',style:'color:#9fb2ae;'}, job.notes));
+    }
+    if(actions.length) card.append(actionsContainer);
     return card;
   },
   buildTransactionCard(tx,{showType=true}={}){
@@ -2179,6 +2489,9 @@ const UI = {
     this.refreshJobPerformance();
     this.refreshJobPlanner();
     this.refreshQuotesList();
+    this.renderCRMBoard();
+    this.renderCRMAppointments();
+    this.renderCRMPayments();
   },
   refreshQuotesList(){
     const list=document.getElementById('quotesList');
@@ -2837,7 +3150,13 @@ const UI = {
     return `${minutes}:${String(seconds).padStart(2,'0')}`;
   },
   showQuickClient(){ document.getElementById('quickClient').classList.remove('hidden'); },
-  hideQuickClient(){ document.getElementById('quickClient').classList.add('hidden'); },
+  hideQuickClient(){
+    document.getElementById('quickClient').classList.add('hidden');
+    const fields=['qcName','qcPhone','qcEmail','qcNotes'];
+    fields.forEach(id=>{ const input=document.getElementById(id); if(input) input.value=''; });
+    const discType=document.getElementById('qcDiscType'); if(discType) discType.value='none';
+    const discValue=document.getElementById('qcDiscValue'); if(discValue) discValue.value='0';
+  },
   openExpenseForm(initial={}){
     const defaultDate=initial.date || today();
     const dateInput=el('input',{type:'date',value:defaultDate});
