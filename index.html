@@ -128,6 +128,19 @@
   .crm-action{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.5rem}
   .crm-action .pill,.crm-action .btn{flex:1;min-width:120px}
   .job-card.crm{border:1px solid #1a1e21;background:#0a0c0f}
+  .subtabs{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.5rem;}
+  .subtab{padding:.35rem .6rem;border-radius:999px;border:1px solid #1a1e21;background:#0a0c0f;cursor:pointer;font-size:.85rem;font-weight:700;color:#cfd6d6;}
+  .subtab.active{background:linear-gradient(180deg,#102b1c,#0b1811);border-color:#1f3a29;color:#f2fbf7;}
+  .marketing-metric{display:flex;justify-content:space-between;align-items:center;padding:.5rem .6rem;border:1px solid #15191c;border-radius:10px;background:#090b0d;}
+  .policy-item{display:flex;align-items:center;gap:.55rem;padding:.45rem .6rem;border:1px solid #15191c;border-radius:10px;background:#0a0c0f;}
+  .policy-item input{width:18px;height:18px;}
+  .toc-link{display:block;padding:.45rem .5rem;border-radius:10px;border:1px solid #15191c;background:#080a0d;color:#cfd6d6;text-decoration:none;cursor:pointer;}
+  .toc-link.active{border-color:#1f3a29;background:#0d1a12;color:#f2fbf7;}
+  .checklist-row{display:flex;align-items:center;gap:.6rem;padding:.5rem .6rem;border:1px solid #15191c;border-radius:10px;background:#090b0d;}
+  .checklist-row[data-complete="true"]{border-color:#1f2a1f;background:#0d1310;}
+  .checklist-row label{flex:1;margin:0;color:#e0ece4;font-weight:600;}
+  .checklist-row .tiny{margin:0;color:#a3b5b0;}
+  .checklist-row button{flex:0 0 auto;}
 </style>
 </head>
 <body>
@@ -142,9 +155,11 @@
     <div class="tab active" data-tab="Dashboard">Dashboard</div>
     <div class="tab" data-tab="Quotes">Quotes</div>
     <div class="tab" data-tab="Jobs">Jobs</div>
-    <div class="tab" data-tab="CRM">CRM</div>
-    <div class="tab" data-tab="QuoteBuilder">Quote Builder</div>
     <div class="tab" data-tab="Clients">Clients</div>
+    <div class="tab" data-tab="Marketing">Marketing</div>
+    <div class="tab" data-tab="Playbook">Playbook</div>
+    <div class="tab" data-tab="Checklists">Checklists</div>
+    <div class="tab" data-tab="Settings">Settings</div>
   </div>
 
   <div class="wrap">
@@ -170,6 +185,14 @@
         <div class="card">
           <h3>Recent Activity</h3>
           <div id="recentList" class="list"></div>
+        </div>
+        <div class="card">
+          <h3>Follow-ups Due</h3>
+          <div id="followUpsList" class="list"></div>
+        </div>
+        <div class="card">
+          <h3>Marketing Progress</h3>
+          <div id="marketingProgress" class="list"></div>
         </div>
       </div>
     </section>
@@ -215,26 +238,6 @@
           <h3>Performance Snapshot</h3>
           <div id="jobPerformance" class="list" style="gap:.35rem;"></div>
           <div class="footnote" style="margin-top:.6rem;">Completed job durations help track crew efficiency and plan future ETAs.</div>
-        </div>
-      </div>
-    </section>
-
-    <section id="CRM" class="tabpage hidden">
-      <div class="sync-status" id="syncStatus" data-state="idle">Supabase sync idle. Configure keys in pc-config.</div>
-      <div class="grid">
-        <div class="card" style="grid-column:1 / -1;">
-          <h3>Pipeline</h3>
-          <div class="tiny" style="margin-bottom:.6rem;">Drag-and-drop is coming soon. Tap a record to update stage and view details.</div>
-          <div id="crmBoard" class="crm-board"></div>
-        </div>
-        <div class="card">
-          <h3>Upcoming Appointments</h3>
-          <div id="crmAppointments" class="list" style="gap:.5rem;"></div>
-        </div>
-        <div class="card">
-          <h3>Payments</h3>
-          <div class="tiny">Deposits and balances captured via Stripe are mirrored here.</div>
-          <div id="crmPayments" class="list" style="gap:.5rem;margin-top:.5rem;"></div>
         </div>
       </div>
     </section>
@@ -343,7 +346,14 @@
           <h3>Add Client</h3>
           <div class="row"><div><label>Name *</label><input id="cName"></div><div><label>Phone</label><input id="cPhone"></div></div>
           <label>Email</label><input id="cEmail" type="email" placeholder="client@domain.com">
+          <label>City</label><input id="cCity" placeholder="Client city">
           <label>Notes</label><input id="cNotes">
+          <label>Loyalty Tier</label>
+          <select id="cLoyalty">
+            <option value="new">New</option>
+            <option value="repeat">Repeat</option>
+            <option value="vip">VIP</option>
+          </select>
           <div class="row">
             <div>
               <label>Default Discount</label>
@@ -355,7 +365,127 @@
             <div class="row" style="align-items:flex-end;"><button class="btn" onclick="App.addClient()">Save Client</button></div>
           </div>
         </div>
-        <div class="card"><h3>Clients</h3><div id="clientsList" class="list"></div></div>
+        <div class="card">
+          <h3>Client Directory</h3>
+          <div id="clientsList" class="list"></div>
+        </div>
+        <div class="card" style="grid-column:1 / -1;">
+          <h3>Pipeline</h3>
+          <div class="tiny" style="margin-bottom:.6rem;">Tap a record to update stage and view details.</div>
+          <div id="crmBoard" class="crm-board"></div>
+        </div>
+        <div class="card">
+          <h3>Upcoming Appointments</h3>
+          <div id="crmAppointments" class="list" style="gap:.5rem;"></div>
+        </div>
+        <div class="card">
+          <h3>Payments</h3>
+          <div class="tiny">Deposits and balances captured via Stripe are mirrored here.</div>
+          <div id="crmPayments" class="list" style="gap:.5rem;margin-top:.5rem;"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="Marketing" class="tabpage hidden">
+      <div class="card">
+        <h3>Marketing & Campaigns</h3>
+        <div class="row" id="marketingTabs" style="gap:.4rem;flex-wrap:wrap;margin-bottom:.5rem;"></div>
+        <div id="marketingContent" class="list" style="gap:.75rem;"></div>
+      </div>
+    </section>
+
+    <section id="Playbook" class="tabpage hidden">
+      <div class="grid single-column">
+        <div class="card">
+          <h3>Operations & Marketing Playbook</h3>
+          <div class="tiny">Search, edit, and export the 2025 playbook. Use copy buttons to drop sections into scripts.</div>
+          <div class="row" style="gap:.5rem;margin:.5rem 0;flex-wrap:wrap;">
+            <input id="playbookSearch" placeholder="Search playbook" oninput="UI.filterPlaybook()">
+            <button class="btn" onclick="UI.exportPlaybook()">Export PDF</button>
+            <button class="btn secondary" onclick="UI.resetPlaybook()">Reset to Default</button>
+          </div>
+          <div class="row" style="align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+            <div style="flex:1;min-width:240px;">
+              <label>Table of Contents</label>
+              <div id="playbookToc" class="list" style="max-height:320px;overflow:auto;"></div>
+            </div>
+            <div style="flex:2;min-width:320px;display:flex;flex-direction:column;gap:.5rem;">
+              <label for="playbookEditor">Editable Markdown</label>
+              <textarea id="playbookEditor" style="min-height:280px;" oninput="UI.updatePlaybookPreview()"></textarea>
+              <label>Preview</label>
+              <div id="playbookPreview" style="border:1px solid #15191c;border-radius:12px;padding:.75rem;max-height:360px;overflow:auto;background:#080a0d;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="Checklists" class="tabpage hidden">
+      <div class="grid single-column">
+        <div class="card">
+          <h3>Daily Discipline</h3>
+          <div id="dailyChecklist" class="list" style="gap:.45rem;"></div>
+        </div>
+        <div class="card">
+          <h3>Weekly Rhythm</h3>
+          <div id="weeklyChecklist" class="list" style="gap:.45rem;"></div>
+        </div>
+        <div class="card">
+          <h3>Custom Checklist Builder</h3>
+          <div class="tiny">Add crew SOPs, marketing pushes, or seasonal reminders.</div>
+          <div class="row" style="gap:.5rem;margin:.5rem 0;flex-wrap:wrap;">
+            <input id="customChecklistName" placeholder="Task name">
+            <select id="customChecklistCadence">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+            </select>
+            <button class="btn" onclick="App.addCustomChecklistTask()">Add Task</button>
+          </div>
+          <div id="customChecklist" class="list" style="gap:.45rem;"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="Settings" class="tabpage hidden">
+      <div class="grid single-column">
+        <div class="card">
+          <h3>Brand Settings</h3>
+          <div class="row" style="gap:.5rem;flex-wrap:wrap;">
+            <div style="flex:1;min-width:200px;">
+              <label>Business Name</label>
+              <input id="settingsBusiness" placeholder="Polish Crew">
+            </div>
+            <div style="flex:1;min-width:200px;">
+              <label>Dashboard Title</label>
+              <input id="settingsHeader" placeholder="POLISH CREW — Accounting">
+            </div>
+          </div>
+          <div class="row" style="gap:.5rem;margin-top:.5rem;flex-wrap:wrap;">
+            <div style="flex:1;min-width:200px;">
+              <label>City</label>
+              <input id="settingsCity" placeholder="Service city">
+            </div>
+          </div>
+          <div class="row" style="gap:.5rem;margin-top:.5rem;flex-wrap:wrap;">
+            <button class="btn" onclick="UI.pickLogo()">Upload Logo</button>
+            <button class="btn secondary" onclick="UI.clearLogo()">Remove Logo</button>
+          </div>
+          <div class="tiny" style="margin-top:.5rem;">Swap icon-192.png / icon-512.png for updated install icons.</div>
+        </div>
+        <div class="card">
+          <h3>Brand Rules & Crew Policies</h3>
+          <div id="brandPolicies" class="list" style="gap:.4rem;"></div>
+        </div>
+        <div class="card">
+          <h3>Sync & Backups</h3>
+          <div class="tiny">Enable optional Supabase sync for cross-device updates.</div>
+          <label class="row" style="gap:.5rem;align-items:center;">
+            <input type="checkbox" id="syncToggle" onchange="App.toggleCloudSync(this.checked)">
+            <span>Supabase Sync</span>
+          </label>
+          <div id="syncStatus" class="sync-status" data-state="idle">Supabase sync idle. Configure keys in pc-config.</div>
+          <button class="btn secondary" onclick="App.requestBackup()">Request Manual Backup</button>
+        </div>
       </div>
     </section>
   </div>
@@ -383,9 +513,11 @@
       </div>
       <div class="tiny">App</div>
       <div class="list">
+        <div class="list-item" onclick="UI.openScripts()">Scripts & Templates ›</div>
         <div class="list-item" onclick="UI.openSettings()">Settings ›</div>
+        <div class="list-item" onclick="UI.openPolicies()">Brand Policies ›</div>
       </div>
-      <div class="footnote">Build cache: <b>pcwa-v3.0.0</b></div>
+      <div class="footnote">Build cache: <b>pcwa-v3.1.0</b></div>
     </div>
   </div>
 
@@ -404,7 +536,376 @@
 
 <script>
 const SupabaseSync = window.SupabaseBridge || null;
+const CACHE_VERSION = 'pcwa-v3.1.0';
 const DEFAULT_SIZES = ["Coupe","Sedan","Crossover","SUV/Truck","XL/Lifted"];
+const DEFAULT_POLICIES = [
+  {id:'policy-photos', label:'Before/After photo requirement', description:'Capture and upload every job for marketing and QA.', active:true},
+  {id:'policy-honesty', label:'Never overpromise', description:'Set expectations clearly. Explain limits with confidence.', active:true},
+  {id:'policy-weather', label:'Weather reschedule rule', description:'Safety first — lightning, high winds, or freezing temps allow reschedule.', active:true},
+  {id:'policy-shampoo', label:'Manual shampoo only', description:'No automated carpet extractors without inspection — protect interiors.', active:true},
+  {id:'policy-presentation', label:'Professional presentation', description:'Uniform, branded mats, and tidy van before arriving.', active:true},
+  {id:'policy-consistency', label:'Consistency over perfection', description:'Stick to the playbook. Document deviations in job notes.', active:true}
+];
+const DEFAULT_DAILY_CHECKLIST = [
+  {id:'daily-story', label:'Publish Story / Reel', note:'Post a behind-the-scenes clip or before/after.', cadence:'daily'},
+  {id:'daily-leads', label:'Add new leads to CRM', note:'Every inbound message logged the same day.', cadence:'daily'},
+  {id:'daily-groups', label:'Post in neighborhood groups', note:'Keep the Polish Crew name in rotation.', cadence:'daily'},
+  {id:'daily-dm', label:'DM 5 prospects or past clients', note:'Personal touch every day builds pipeline.', cadence:'daily'},
+  {id:'daily-photo', label:'Upload one photo to gallery', note:'Fuel future marketing assets.', cadence:'daily'}
+];
+const DEFAULT_WEEKLY_CHECKLIST = [
+  {id:'weekly-flyers', label:'Drop 10 flyers locally', note:'Rotate hot zip codes every week.', cadence:'weekly'},
+  {id:'weekly-reviews', label:'Request 3 reviews', note:'Use the script and send links same-day.', cadence:'weekly'},
+  {id:'weekly-content', label:'Publish 5 before/after posts', note:'Batch content Sundays if needed.', cadence:'weekly'},
+  {id:'weekly-crm', label:'Update CRM statuses', note:'Move quotes, log payments, close loops.', cadence:'weekly'}
+];
+const DEFAULT_SCRIPTS = {
+  inquiry:"Hey [Name]! Appreciate you reaching out. We’re the Polish Crew — mobile, insured, and obsessed with the details. What are we working on?",
+  qualification:"Awesome. What’s the year/make/model and when did you last have it detailed? Any pet hair, stains, or special requests?",
+  quote:"Based on what you shared, I recommend our [Package] for [Vehicle]. It lands at $[PackagePrice] and includes [Highlights].",
+  booking:"Let’s lock your spot. We have openings [TimeWindow]. I’ll send a quick confirmation with prep tips — sound good?",
+  arrival:"Polish Crew on site! We’re pulling up now. We’ll walk the vehicle with you to confirm priorities before we start.",
+  afterJob:"Your ride is looking dialed in. Quick walk-through? We’ll highlight care tips and next service timing.",
+  follow24:"24-hour check-in — how’s everything looking? If you spot anything at all, we’ll make it right.",
+  follow7:"Hope you’re loving the detail! Would you mind sharing a review? Here’s the link: [ReviewLink]. Appreciate you!",
+  follow30:"It’s been about a month — ready for a freshen up? Maintenance spots go quick; want me to hold one?",
+  review:"Mind dropping a 5-star review? It helps a ton and keeps the crew rolling. [ReviewLink]",
+  referral:"Know anyone who needs a reset? We send $20 credits for every referral that books. Just reply with a name!",
+  maintenance:"Stay on the maintenance plan and we’ll keep that showroom look locked in. Let’s schedule your next visit."
+};
+const DEFAULT_PLAYBOOK = `POLISH CREW — OPERATIONS & MARKETING PLAYBOOK (2025)
+
+We Bring the Shine
+
+Polish Crew exists to make every driveway, workplace, and fleet stall look and feel like a professional showroom. This Playbook is the single source of truth for how we operate, communicate, and scale in 2025. Every crew member must understand the systems inside—quotes, jobs, marketing, and financial accountability. Every process in this book is field-tested and aligned with the Polish Crew identity: dependable, premium, and relentlessly consistent.
+
+---
+
+SECTION 1 — BRAND STANDARD
+
+Mission: Deliver a professional detail with zero hassle for the client.
+Promise: We show up prepared, on time, and finish with a spotless exit.
+Tone: Confident, calm, and helpful. We do not oversell or pressure; we educate and recommend.
+Visual Identity: Black base, Polish Crew green accents (#00A651), sharp sans-serif typography, bold iconography.
+
+Non-Negotiables:
+• Never overpromise. If conditions change, communicate immediately.
+• Before/after photos on every job (minimum 3 angles).
+• Crew uniforms clean, tucked, and branded.
+• Weather reschedule rule: lightning or freezing temps trigger proactive outreach.
+• Safety first—cone off work zone, secure cords and hoses.
+
+Brand Voice Guide:
+• “We bring the shine to you.”
+• Focus on benefits: time savings, protection, pride of ownership.
+• Avoid jargon; explain detailing steps clearly.
+
+---
+
+SECTION 2 — SERVICE MENU & PACKAGES
+
+Vehicle Size Tiers: Coupe, Sedan, Crossover, SUV/Truck, XL/Lifted.
+Core Packages:
+1. Exterior Wash Only – Hand wash, foam bath, wheel faces, tire dressing, streak-free glass.
+2. Interior Clean Only – Vacuum, wipe, dust, crevices, glass, mat scrub.
+3. In & Out Combo – Full wash and interior reset with dressed tires.
+4. Quick In & Out – Express 60-minute refresh for repeat clients.
+5. Maintenance Detail – Deep interior + exterior decon for loyal clients.
+6. Full Detail – Full reset with decon, sealant, interior shampoo.
+7. Dog Hair / Stain Focus – Targeted remediation for problem areas.
+
+Add-On Catalog (pair with packages as needed):
+• Wheels & Tires Deep Clean
+• Exterior Brush Detail
+• Interior Brush Detail
+• Interior Protectant
+• Dog Hair Removal
+• Spot Stain Clean
+• Odor Neutralizer
+• Engine Bay Clean
+• Trim Restore
+• Spray Wax
+• Paste Wax
+• Spray Sealant
+• Spray Ceramic
+• Clay & Iron Decon
+
+Upgrade Logic:
+• If three or fewer add-ons, label job “Maintenance.”
+• If four or more add-ons or heavy soil flagged, suggest Full Detail upgrade.
+• Offer Ceramic/Sealant upsells whenever protection expires (6–12 month cadence).
+
+---
+
+SECTION 3 — SALES FLOW (LEAD ➝ BOOKING)
+
+Stage Map: Inquiry → Qualification → Quote → Booking → Job → Payment → Follow-Up.
+
+Workflow:
+1. Respond to new inquiries within 10 minutes using Inquiry Script.
+2. Collect Name, City, Vehicle, Pain Points, Timeline, Budget indicator.
+3. Use Qualification Script to recommend a base package and set expectations.
+4. Build quote in app: select package, size, add-ons, loyalty discount.
+5. Send quote message with CTA (“Ready to lock in Tuesday at 9am?”).
+6. Upon acceptance, convert to job, assign crew, set reminders.
+7. Collect deposit if required. Confirm address and access details.
+
+Response Standards:
+• SMS template for speed, DM template for social replies.
+• Include link to booking page if client prefers self-service.
+• Track every lead in CRM with status tags.
+
+---
+
+SECTION 4 — OPERATIONS & JOB EXECUTION
+
+Preparation Checklist:
+• Load foam cannon, soaps, interior kit, brushes, extractor.
+• Confirm water/power access plan.
+• Review client notes, preferences, and loyalty perks.
+
+On-Site Flow:
+1. Arrival Script at the door or via text if client remote.
+2. Walk vehicle, document pre-existing damage in app.
+3. Start Setup Timer when staging gear.
+4. Follow package checklist step by step (Setup → Base → Add-ons).
+5. Capture before photos before touching the vehicle.
+6. During Base Services, run timers for accountability.
+7. Log add-on steps and mark checklist tasks complete.
+8. Take after photos, confirm satisfaction with client.
+9. Collect payment: card reader, stored card, or invoice within 1 hour.
+
+Quality Standards:
+• Glass: streak-free, edges wiped.
+• Interior: vents brushed, mats dressed, crevices vacuumed.
+• Exterior: no soap residue, tires dressed evenly, jambs wiped.
+• Fragrance: neutral to light citrus.
+
+---
+
+SECTION 5 — CUSTOMER EXPERIENCE & LOYALTY
+
+Client Profile Data Points:
+• Name, Phone, Email, City.
+• Vehicle details and notes.
+• Preferred contact channel (SMS vs Email).
+• Loyalty Tier: New, Repeat, VIP.
+• Default discount (VIP gets automatic 10%).
+
+Follow-Up Cadence:
+• 24 hours: Send gratitude + review ask.
+• 7 days: Share maintenance tips, request referral.
+• 30 days: Offer maintenance rebook (loyalty pricing).
+• Birthday month: Send Birthday Offer script.
+
+Retention Moves:
+• Track lifetime spend and job history.
+• Flag clients with >3 jobs as VIP.
+• Send seasonal reminders (Spring refresh, Winter salt protection).
+• Reward referrals with $25 credit or add-on upgrade.
+
+---
+
+SECTION 6 — MARKETING ENGINE
+
+Guerrilla Plan (90-Day Sprint):
+Month 1: Presence
+• Daily: Post a story/reel, DM 5 prospects, add leads to CRM.
+• Weekly: Drop 10 flyers, collect 3 reviews, upload 5 before/after sets.
+Month 2: Authority
+• Partner with local businesses (gyms, coffee shops).
+• Share client testimonials and behind-the-scenes content.
+• Run referral contest with leaderboard.
+Month 3: Expansion
+• Launch neighborhood campaign (Nextdoor, Facebook groups).
+• Test paid boost for top-performing reel.
+• Host pop-up wash day with partner.
+
+Paid Ads Framework:
+• Campaign brief: objective, budget/day, geography, creative angle.
+• Track CPM, CPC, cost per booked job, ROI target 3×.
+• Weekly review: pause underperformers, scale winners.
+• Retarget website visitors with maintenance offer.
+
+Marketing Log:
+• Every activity logged same day: reels posted, flyers placed, review asks sent.
+• Daily summary auto-calculates streak. Keep momentum above 80% completion.
+
+---
+
+SECTION 7 — CONTENT & SCRIPTS
+
+Core Script Library (all housed in app):
+1. Inquiry Script — greet, qualify, set hook.
+2. Qualification Script — discover needs, present package.
+3. Quote Script — share pricing, outline value, CTA.
+4. Booking Script — confirm date, deposit, expectations.
+5. Arrival Script — friendly check-in, review work order.
+6. After Job Script — recap services, remind of next steps.
+7. Follow-Up Series — 24h, 7d, 30d messages.
+8. Review Ask — personalized thank-you + review link.
+9. Referral Script — request introduction and reward.
+10. Maintenance Reminder — seasonal prompts.
+11. Birthday Offer — celebratory discount or add-on.
+
+Template Guidelines:
+• Use [Name], [Vehicle], [Package], [City] placeholders.
+• Include specific results (“Your Model Y now has ceramic protection good for 12 months.”).
+• Close with clear CTA (“Reply YES to confirm,” “Tap link to schedule maintenance.”).
+
+---
+
+SECTION 8 — FINANCE & METRICS
+
+Trackers in App:
+• Income, Expenses, Net Profit (Month-to-Date, Quarter-to-Date).
+• Job profitability per package (base vs add-ons vs labor time).
+• Marketing ROI meter with green zone at 3×.
+
+Accounting Best Practices:
+• Log every transaction same day (income, expenses, mileage).
+• Capture receipt photos immediately.
+• Reconcile deposits vs completed jobs weekly.
+• Exclude deleted records from exports to maintain clean books.
+
+Key KPIs:
+• Average Ticket: target $185+.
+• Close Rate: aim for 70% of quoted leads.
+• Repeat Rate: 45% of monthly jobs from existing clients.
+• Review Velocity: minimum 10 new reviews per month.
+
+---
+
+SECTION 9 — SYSTEMS & TECHNOLOGY
+
+Offline-First Stack:
+• App caches locally; data accessible without signal.
+• Supabase sync optional—enable for live backups and multi-device coordination.
+• Cache version PCWA-v3.1.0 or newer for 2025 release.
+
+Data Hygiene:
+• Maintain accurate job dates/times for reminders.
+• Verify client records before merging duplicates.
+• Use Export > JSON for monthly archive.
+
+Security:
+• Limit Supabase keys to least privilege.
+• Update passwords quarterly.
+• Lost device? Trigger remote logout by toggling sync off/on.
+
+---
+
+SECTION 10 — TEAM & CULTURE
+
+Crew Expectations:
+• Show up 15 minutes early to HQ or first appointment.
+• Daily huddle covers jobs, upsell targets, marketing tasks.
+• Weekly recap meeting reviews numbers, wins, lessons.
+
+Training Cadence:
+• Onboarding: 2 ride-alongs, product knowledge test, script practice.
+• Monthly skill focus: extraction, ceramic application, paint correction basics.
+• Marketing lab once a month—shoot content, edit reels, plan campaigns.
+
+Recognition:
+• “Shine Champion” badge for top reviews.
+• “Closer of the Month” for highest conversion.
+• Quarterly bonus tied to revenue + review goals.
+
+Support Resources:
+• Playbook tab for SOPs and scripts.
+• Checklist tab for daily/weekly accountability.
+• Settings tab for brand policies and quick reference.
+
+---
+
+APPENDIX A — DAILY CHECKLIST
+
+1. Gear loaded and inspected.
+2. Battery packs charged.
+3. Towels counted (minimum 30 microfiber per crew).
+4. Chemicals restocked.
+5. CRM updated with previous day’s notes.
+6. Marketing tasks assigned.
+
+APPENDIX B — WEEKLY CHECKLIST
+
+1. Deep clean van and restock.
+2. Sharpen blades, wash mitts, applicators.
+3. Audit open quotes and send follow-ups.
+4. Review expenses, upload missing receipts.
+5. Publish long-form post (blog, LinkedIn, newsletter).
+
+APPENDIX C — EMERGENCY PROTOCOLS
+
+• Weather Delay: notify clients 2 hours in advance with reschedule options.
+• Equipment Failure: switch to backup kit, log maintenance request.
+• Injury: administer first aid, contact supervisor, document incident.
+• Vehicle Damage: pause work, inform client immediately, capture photos, notify insurance liaison.
+
+APPENDIX D — GLOSSARY
+
+• “Maintenance Detail” — recurring service for loyal clients, 90-minute target.
+• “Full Reset” — full detail with decon and protection upgrade.
+• “Protection Boost” — ceramic or sealant enhancement between full corrections.
+• “Marketing Momentum” — streak metric tracking how many daily marketing tasks completed.
+• “Supabase Sync” — optional cloud sync for multi-device operations.
+
+APPENDIX E — YEARLY GOALS
+
+Revenue: $480k gross.
+Average Ticket: $210.
+New Reviews: 120.
+Referral Share: 35% of new clients.
+Crew Growth: Add 2 mobile teams by Q4.
+
+Quarterly Themes:
+Q1 — Systemize: refine CRM, dial in scripts, clean data.
+Q2 — Scale: increase ad spend, partner with luxury communities.
+Q3 — Retain: loyalty promos, VIP appreciation events.
+Q4 — Optimize: analyze margins, plan 2026 service upgrades.
+
+---
+
+We Close Strong
+
+Every interaction should leave the client confident they chose the pros. Review this Playbook weekly. Update the app when you learn something new in the field. Share wins, learnings, and opportunities with the crew.
+
+POLISH CREW — Clean. Polish. Protect.`;
+const DEFAULT_MARKETING = {
+  guerrilla:[
+    {id:'month-1', label:'Month 1', tasks:[
+      {id:'m1-story', label:'Daily Story/Reel', target:30, completed:0},
+      {id:'m1-groups', label:'Post in 4 local groups weekly', target:16, completed:0},
+      {id:'m1-flyers', label:'Hand out 40 flyers', target:40, completed:0}
+    ]},
+    {id:'month-2', label:'Month 2', tasks:[
+      {id:'m2-reviews', label:'Gather 12 new reviews', target:12, completed:0},
+      {id:'m2-referrals', label:'Book 6 referral jobs', target:6, completed:0},
+      {id:'m2-alliances', label:'Meet 4 local partners', target:4, completed:0}
+    ]},
+    {id:'month-3', label:'Month 3', tasks:[
+      {id:'m3-campaigns', label:'Run 3 paid ad tests', target:3, completed:0},
+      {id:'m3-content', label:'Film 10 hero clips', target:10, completed:0},
+      {id:'m3-email', label:'Send 4 nurture emails', target:4, completed:0}
+    ]}
+  ],
+  campaigns:[],
+  log:[],
+  reviews:[],
+  leaderboard:[],
+  streak:{count:0,lastActivity:null}
+};
+const DEFAULT_MARKETING_LOG_TYPES = ['Reel','Flyers','Review','Post','DMs'];
+const DEFAULT_CHECKLISTS = {
+  daily: DEFAULT_DAILY_CHECKLIST.map(task=>({ ...task, completedOn:'' })),
+  weekly: DEFAULT_WEEKLY_CHECKLIST.map(task=>({ ...task, completedOn:'' })),
+  custom: [],
+  lastDailyReset: '',
+  lastWeeklyReset: ''
+};
+const DEFAULT_REMINDERS = [];
+const DEFAULT_APPOINTMENTS = [];
 const DEFAULT_MENU = {
   sizes: DEFAULT_SIZES,
   packages: {
@@ -467,10 +968,12 @@ const DEFAULT_MENU = {
 
 const DEFAULT_SETTINGS = {
   paymentMethods: ["Cash","Card","Zelle","Venmo","CashApp","Bank"],
-  categories: ["Package","Add-on","Supplies","Fuel","Tools/Equipment","Marketing","Labor/Subcontract","Fees","Other"]
+  categories: ["Package","Add-on","Supplies","Fuel","Tools/Equipment","Marketing","Labor/Subcontract","Fees","Other"],
+  syncEnabled: false,
+  lastBackupPrompt: ''
 };
 
-const DEFAULT_BIZ = { name:"Polish Crew", headerTitle:"POLISH CREW — Accounting", logoDataUrl:"" };
+const DEFAULT_BIZ = { name:"Polish Crew", headerTitle:"POLISH CREW — Accounting", logoDataUrl:"", city:"" };
 
 const CREW_CHECKLIST_SECTIONS = [
   {
@@ -525,7 +1028,22 @@ const CREW_CHECKLIST_SECTIONS = [
   }
 ];
 
-const AppState = { business: DEFAULT_BIZ, clients: [], menu: DEFAULT_MENU, jobs: [], transactions: [], mileage: [], settings: DEFAULT_SETTINGS };
+const AppState = {
+  business: DEFAULT_BIZ,
+  clients: [],
+  menu: DEFAULT_MENU,
+  jobs: [],
+  transactions: [],
+  mileage: [],
+  settings: DEFAULT_SETTINGS,
+  reminders: DEFAULT_REMINDERS,
+  appointments: DEFAULT_APPOINTMENTS,
+  marketing: DEFAULT_MARKETING,
+  scripts: DEFAULT_SCRIPTS,
+  playbook: DEFAULT_PLAYBOOK,
+  checklists: DEFAULT_CHECKLISTS,
+  policies: DEFAULT_POLICIES
+};
 
 function cloneData(obj){
   if(typeof structuredClone === 'function'){
@@ -535,10 +1053,21 @@ function cloneData(obj){
 }
 
 const Storage = {
-  key: "pc_accounting_v2",
+  key: "pc_accounting_v3",
+  legacyKeys: ["pc_accounting_v2"],
   load() {
     try {
-      const raw = localStorage.getItem(this.key);
+      let raw = localStorage.getItem(this.key);
+      if (!raw) {
+        for (const legacyKey of this.legacyKeys) {
+          const legacyRaw = localStorage.getItem(legacyKey);
+          if (legacyRaw) {
+            raw = legacyRaw;
+            try { localStorage.setItem(this.key, legacyRaw); } catch(err) { console.warn('Unable to migrate storage', err); }
+            break;
+          }
+        }
+      }
       if (!raw) return cloneData(AppState);
       const parsed = JSON.parse(raw);
       if (!parsed.settings) parsed.settings = cloneData(DEFAULT_SETTINGS);
@@ -549,13 +1078,25 @@ const Storage = {
       if (!parsed.jobs) parsed.jobs = [];
       if (!parsed.mileage) parsed.mileage = [];
       if (!parsed.menu.packageMeta) parsed.menu.packageMeta = {};
+      if (!parsed.reminders) parsed.reminders = cloneData(DEFAULT_REMINDERS);
+      if (!parsed.appointments) parsed.appointments = cloneData(DEFAULT_APPOINTMENTS);
+      if (!parsed.marketing) parsed.marketing = cloneData(DEFAULT_MARKETING);
+      if (!parsed.scripts) parsed.scripts = cloneData(DEFAULT_SCRIPTS);
+      if (typeof parsed.playbook !== 'string') parsed.playbook = DEFAULT_PLAYBOOK;
+      if (!parsed.checklists) parsed.checklists = cloneData(DEFAULT_CHECKLISTS);
+      if (!parsed.policies) parsed.policies = cloneData(DEFAULT_POLICIES);
       return parsed;
     } catch(e) {
       UI.bootError("Failed to load saved data: " + e.message);
       return cloneData(AppState);
     }
   },
-  save(state) { localStorage.setItem(this.key, JSON.stringify(state)); }
+  save(state) {
+    localStorage.setItem(this.key, JSON.stringify(state));
+    if (Array.isArray(this.legacyKeys)) {
+      this.legacyKeys.forEach(key=>{ if(key!==this.key) localStorage.removeItem(key); });
+    }
+  }
 };
 
 let S = Storage.load();
@@ -749,12 +1290,26 @@ const Calc = {
 /*** App ***/
 const App = {
   init(){
+    this.normalizeSettings();
     this.normalizeClients();
     this.normalizeJobs();
+    this.normalizePolicies();
+    this.normalizeScripts();
+    this.normalizeChecklists();
+    this.normalizeMarketing();
+    this.normalizeReminders();
+    this.normalizeAppointments();
+    this.normalizePlaybook();
     UI.initHeader();
     UI.initTabs();
     UI.populateClients();
     UI.populateSizesAndPackages();
+    UI.renderMarketingTabs();
+    UI.renderMarketingSection(S.marketing.activeTab||'guerrilla');
+    UI.renderChecklists();
+    UI.refreshBrandPolicies();
+    UI.loadPlaybook();
+    UI.populateSettingsTab();
     const clientSel=document.getElementById('jobClient');
     if(clientSel){
       clientSel.addEventListener('change',()=>UI.onClientChange());
@@ -765,13 +1320,20 @@ const App = {
     UI.resetJobForm();
     UI.refreshJobsList();
     UI.refreshDashboard();
+    this.checkAutoBackupPrompt();
     if('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js');
-    this.initializeSupabase();
+    if(S.settings.syncEnabled){
+      this.initializeSupabase();
+    } else {
+      UI.updateSyncStatus('idle','Supabase sync disabled.');
+    }
   },
   normalizeClients(){
     S.clients = Array.isArray(S.clients) ? S.clients : [];
     for(const c of S.clients){
       if(typeof c.email!=='string') c.email='';
+      if(typeof c.city!=='string') c.city='';
+      if(typeof c.loyalty!=='string') c.loyalty='new';
       if(!c.discount) c.discount={type:'none', value:0};
       if(!Array.isArray(c.vehicles)) c.vehicles=[];
       for(const v of c.vehicles){
@@ -785,6 +1347,332 @@ const App = {
     S.jobs = Array.isArray(S.jobs) ? S.jobs : [];
     for(const job of S.jobs){
       this.ensureJobStructure(job);
+    }
+    Storage.save(S);
+  },
+  normalizeSettings(){
+    if(!S.settings || typeof S.settings!=='object') S.settings=cloneData(DEFAULT_SETTINGS);
+    if(!Array.isArray(S.settings.paymentMethods)) S.settings=Object.assign(cloneData(DEFAULT_SETTINGS),S.settings||{});
+    if(!Array.isArray(S.settings.paymentMethods)) S.settings.paymentMethods=cloneData(DEFAULT_SETTINGS.paymentMethods);
+    if(!Array.isArray(S.settings.categories)) S.settings.categories=cloneData(DEFAULT_SETTINGS.categories);
+    if(typeof S.settings.syncEnabled!=='boolean') S.settings.syncEnabled=!!DEFAULT_SETTINGS.syncEnabled;
+    if(typeof S.settings.lastBackupPrompt!=='string') S.settings.lastBackupPrompt='';
+  },
+  normalizePolicies(){
+    if(!Array.isArray(S.policies)) S.policies=cloneData(DEFAULT_POLICIES);
+    const defaults=new Map(DEFAULT_POLICIES.map(p=>[p.id,p]));
+    S.policies=S.policies.map(policy=>({
+      id:policy.id||uid(),
+      label:policy.label||defaults.get(policy.id)?.label||'Policy',
+      description:policy.description||defaults.get(policy.id)?.description||'',
+      active:policy.active!==false
+    }));
+    for(const def of DEFAULT_POLICIES){
+      if(!S.policies.some(p=>p.id===def.id)) S.policies.push(cloneData(def));
+    }
+  },
+  normalizeScripts(){
+    if(!S.scripts || typeof S.scripts!=='object') S.scripts=cloneData(DEFAULT_SCRIPTS);
+    for(const [key,val] of Object.entries(DEFAULT_SCRIPTS)){
+      if(typeof S.scripts[key]!=='string') S.scripts[key]=val;
+    }
+  },
+  normalizePlaybook(){
+    if(typeof S.playbook!=='string' || !S.playbook.trim()){
+      S.playbook=DEFAULT_PLAYBOOK;
+    }
+  },
+  normalizeChecklists(){
+    if(!S.checklists || typeof S.checklists!=='object') S.checklists=cloneData(DEFAULT_CHECKLISTS);
+    if(!Array.isArray(S.checklists.daily)) S.checklists.daily=[];
+    if(!Array.isArray(S.checklists.weekly)) S.checklists.weekly=[];
+    if(!Array.isArray(S.checklists.custom)) S.checklists.custom=[];
+    if(typeof S.checklists.lastDailyReset!=='string') S.checklists.lastDailyReset='';
+    if(typeof S.checklists.lastWeeklyReset!=='string') S.checklists.lastWeeklyReset='';
+    const dailyDefaults=new Map(DEFAULT_CHECKLISTS.daily.map(item=>[item.id,item]));
+    const weeklyDefaults=new Map(DEFAULT_CHECKLISTS.weekly.map(item=>[item.id,item]));
+    S.checklists.daily=Array.from(dailyDefaults.values()).map(item=>{
+      const existing=S.checklists.daily.find(entry=>entry.id===item.id) || {};
+      return {id:item.id,label:item.label,note:item.note||'',cadence:'daily',completedOn:existing.completedOn||''};
+    });
+    S.checklists.weekly=Array.from(weeklyDefaults.values()).map(item=>{
+      const existing=S.checklists.weekly.find(entry=>entry.id===item.id) || {};
+      return {id:item.id,label:item.label,note:item.note||'',cadence:'weekly',completedOn:existing.completedOn||''};
+    });
+    S.checklists.custom=S.checklists.custom.map(item=>({
+      id:item.id||uid(),
+      label:item.label||'Custom Task',
+      note:item.note||'',
+      cadence:item.cadence==='weekly'?'weekly':'daily',
+      completedOn:item.completedOn||''
+    }));
+    this.resetChecklistCadence('daily');
+    this.resetChecklistCadence('weekly');
+  },
+  resetChecklistCadence(type){
+    const todayStr=today();
+    let changed=false;
+    if(type==='daily'){
+      if(S.checklists.lastDailyReset!==todayStr){
+        S.checklists.daily.forEach(item=>item.completedOn='');
+        S.checklists.custom.filter(item=>item.cadence==='daily').forEach(item=>item.completedOn='');
+        S.checklists.lastDailyReset=todayStr;
+        changed=true;
+      }
+    } else if(type==='weekly'){
+      const now=new Date();
+      const startOfWeek=new Date(now);
+      const day=now.getDay();
+      const diff=(day+6)%7;
+      startOfWeek.setDate(now.getDate()-diff);
+      const isoWeek=startOfWeek.toISOString().slice(0,10);
+      if(S.checklists.lastWeeklyReset!==isoWeek){
+        S.checklists.weekly.forEach(item=>item.completedOn='');
+        S.checklists.custom.filter(item=>item.cadence==='weekly').forEach(item=>item.completedOn='');
+        S.checklists.lastWeeklyReset=isoWeek;
+        changed=true;
+      }
+    }
+    if(changed) Storage.save(S);
+  },
+  normalizeMarketing(){
+    if(!S.marketing || typeof S.marketing!=='object') S.marketing=cloneData(DEFAULT_MARKETING);
+    if(!Array.isArray(S.marketing.campaigns)) S.marketing.campaigns=[];
+    if(!Array.isArray(S.marketing.log)) S.marketing.log=[];
+    if(!Array.isArray(S.marketing.reviews)) S.marketing.reviews=[];
+    if(!Array.isArray(S.marketing.leaderboard)) S.marketing.leaderboard=[];
+    if(!S.marketing.streak) S.marketing.streak={count:0,lastActivity:null};
+    if(!Array.isArray(S.marketing.guerrilla)) S.marketing.guerrilla=[];
+    const defaultMap=new Map(DEFAULT_MARKETING.guerrilla.map(section=>[section.id,section]));
+    S.marketing.guerrilla=Array.from(defaultMap.values()).map(section=>{
+      const existing=S.marketing.guerrilla.find(s=>s.id===section.id) || {};
+      const tasks=(existing.tasks||[]).map(task=>({id:task.id,label:task.label||'',target:Number(task.target||0)||0,completed:Number(task.completed||0)||0}));
+      return {
+        id:section.id,
+        label:section.label,
+        tasks:section.tasks.map(task=>{
+          const match=tasks.find(t=>t.id===task.id) || {};
+          return {id:task.id,label:task.label,target:Number(task.target||0)||0,completed:Number(match.completed||0)||0};
+        })
+      };
+    });
+    if(!['guerrilla','campaigns','log','reviews'].includes(S.marketing.activeTab)){
+      S.marketing.activeTab='guerrilla';
+    }
+  },
+  normalizeReminders(){
+    if(!Array.isArray(S.reminders)) S.reminders=[];
+    S.reminders=S.reminders.map(rem=>({
+      id:rem.id||uid(),
+      jobId:rem.jobId||null,
+      clientId:rem.clientId||null,
+      type:rem.type||'followup',
+      dueDate:rem.dueDate||today(),
+      label:rem.label||'Follow-up',
+      note:rem.note||'',
+      done:!!rem.done
+    }));
+  },
+  normalizeAppointments(){
+    if(!Array.isArray(S.appointments)) S.appointments=[];
+    S.appointments=S.appointments.map(appt=>({
+      id:appt.id||uid(),
+      jobId:appt.jobId||null,
+      clientId:appt.clientId||null,
+      date:appt.date||today(),
+      time:appt.time||'',
+      location:appt.location||'',
+      notes:appt.notes||'',
+      status:appt.status||'Booked',
+      reminders:Array.isArray(appt.reminders)?appt.reminders:[]
+    }));
+  },
+  checkAutoBackupPrompt(){
+    const last=S.settings.lastBackupPrompt;
+    const now=today();
+    if(!last){
+      S.settings.lastBackupPrompt=now;
+      Storage.save(S);
+      return;
+    }
+    const lastDate=new Date(last+'T00:00:00');
+    const currentDate=new Date(now+'T00:00:00');
+    const diffDays=Math.floor((currentDate-lastDate)/(1000*60*60*24));
+    if(diffDays>=30){
+      UI.flash('Time for a backup — export JSON to keep data safe.');
+      S.settings.lastBackupPrompt=now;
+      Storage.save(S);
+    }
+  },
+  toggleCloudSync(enabled){
+    S.settings.syncEnabled=!!enabled;
+    Storage.save(S);
+    UI.updateSyncToggle();
+    if(enabled){
+      this.initializeSupabase();
+    } else {
+      UI.updateSyncStatus('idle','Supabase sync disabled.');
+    }
+  },
+  requestBackup(){
+    Data.exportJSON();
+    S.settings.lastBackupPrompt=today();
+    Storage.save(S);
+    UI.flash('Backup exported.');
+  },
+  addCustomChecklistTask(){
+    const nameInput=document.getElementById('customChecklistName');
+    const cadenceSel=document.getElementById('customChecklistCadence');
+    if(!nameInput) return;
+    const label=nameInput.value.trim();
+    if(!label) return alert('Task name required');
+    const cadence=cadenceSel?.value==='weekly'?'weekly':'daily';
+    S.checklists.custom.push({id:uid(),label,note:'',cadence,completedOn:''});
+    Storage.save(S);
+    UI.renderChecklists();
+    nameInput.value='';
+  },
+  setChecklistComplete(taskId,complete){
+    const lists=[S.checklists.daily,S.checklists.weekly,S.checklists.custom];
+    const target=lists.flat().find(item=>item.id===taskId);
+    if(!target) return;
+    target.completedOn=complete?today():'';
+    Storage.save(S);
+    UI.renderChecklists();
+  },
+  removeCustomChecklistTask(taskId){
+    S.checklists.custom=S.checklists.custom.filter(task=>task.id!==taskId);
+    Storage.save(S);
+    UI.renderChecklists();
+  },
+  logMarketingAction(entry){
+    const payload={
+      id:uid(),
+      type:entry.type||DEFAULT_MARKETING_LOG_TYPES[0],
+      count:Number(entry.count||0)||0,
+      notes:entry.notes||'',
+      date:today()
+    };
+    S.marketing.log.unshift(payload);
+    if(S.marketing.log.length>120) S.marketing.log.length=120;
+    this.recordMarketingTouch();
+    Storage.save(S);
+    if(S.marketing.activeTab==='log') UI.renderMarketingSection('log');
+    UI.refreshDashboard();
+  },
+  updateGuerrillaTask(sectionId,taskId,value){
+    const section=S.marketing.guerrilla.find(s=>s.id===sectionId);
+    if(!section) return;
+    const task=section.tasks.find(t=>t.id===taskId);
+    if(!task) return;
+    task.completed=Math.max(0,Math.min(Number(task.target||0),Number(value||0)));
+    this.recordMarketingTouch();
+    Storage.save(S);
+    if(S.marketing.activeTab==='guerrilla') UI.renderMarketingSection('guerrilla');
+    UI.refreshDashboard();
+  },
+  addMarketingCampaign(campaign){
+    const payload={
+      id:uid(),
+      name:campaign.name||'Campaign',
+      channel:campaign.channel||'',
+      budgetPerDay:Number(campaign.budgetPerDay||0)||0,
+      start:campaign.start||today(),
+      end:campaign.end||'',
+      goals:campaign.goals||'',
+      notes:campaign.notes||'',
+      spend:Number(campaign.spend||0)||0,
+      newJobs:Number(campaign.newJobs||0)||0
+    };
+    S.marketing.campaigns.push(payload);
+    Storage.save(S);
+    if(S.marketing.activeTab==='campaigns') UI.renderMarketingSection('campaigns');
+  },
+  addReviewEntry(entry){
+    const payload={id:uid(), client:entry.client||'Client', note:entry.note||'', date:today()};
+    S.marketing.leaderboard.unshift(payload);
+    if(S.marketing.leaderboard.length>10) S.marketing.leaderboard.length=10;
+    this.recordMarketingTouch();
+    Storage.save(S);
+    if(S.marketing.activeTab==='reviews') UI.renderMarketingSection('reviews');
+  },
+  recordMarketingTouch(){
+    const todayStr=today();
+    if(S.marketing.streak.lastActivity===todayStr) return;
+    const last=S.marketing.streak.lastActivity;
+    S.marketing.streak.lastActivity=todayStr;
+    if(!last) {
+      S.marketing.streak.count=1;
+    } else {
+      const lastDate=new Date(last+'T00:00:00');
+      const currentDate=new Date(todayStr+'T00:00:00');
+      const diff=Math.floor((currentDate-lastDate)/(1000*60*60*24));
+      if(diff===1) S.marketing.streak.count+=1;
+      else if(diff>1) S.marketing.streak.count=1;
+    }
+  },
+  ensureReminder(job,type,dueDate,label,note=''){
+    if(!dueDate) return;
+    const existing=S.reminders.find(rem=>rem.jobId===job.id && rem.type===type);
+    if(existing){
+      const wasDone=existing.done;
+      const previous=existing.dueDate;
+      existing.dueDate=dueDate;
+      existing.label=label;
+      existing.note=note;
+      existing.clientId=job.clientId;
+      if(wasDone && previous!==dueDate){
+        existing.done=false;
+      }
+      return;
+    }
+    S.reminders.push({id:uid(),jobId:job.id,clientId:job.clientId,type,dueDate:dueDate,label,note,done:false});
+  },
+  completeReminder(id,done=true){
+    const reminder=S.reminders.find(r=>r.id===id);
+    if(!reminder) return;
+    reminder.done=!!done;
+    Storage.save(S);
+    UI.refreshDashboard();
+    UI.renderMarketingSection(S.marketing.activeTab||'guerrilla');
+  },
+  syncJobReminders(job){
+    if(!job) return;
+    if(!Array.isArray(S.reminders)) S.reminders=[];
+    if(job.schedule?.date){
+      const baseDate=new Date(`${job.schedule.date}T${job.schedule.start||'08:00'}`);
+      const pre=new Date(baseDate);
+      pre.setDate(pre.getDate()-1);
+      this.ensureReminder(job,'confirm',pre.toISOString().slice(0,10),'24h confirmation','Send confirmation text.');
+    }
+    if(['Complete','Paid'].includes(job.status)){
+      const completeDate=new Date((job.completedAt||job.schedule?.date||today())+'T00:00:00');
+      const review=new Date(completeDate);
+      review.setDate(review.getDate()+7);
+      const maintenance=new Date(completeDate);
+      maintenance.setDate(maintenance.getDate()+30);
+      this.ensureReminder(job,'review',review.toISOString().slice(0,10),'7 day review ask','Use the Review script.');
+      this.ensureReminder(job,'maintenance',maintenance.toISOString().slice(0,10),'30 day maintenance check','Suggest maintenance detail.');
+    }
+    S.reminders=S.reminders.filter(rem=>rem.jobId!==job.id || rem.dueDate);
+    Storage.save(S);
+    UI.refreshDashboard();
+  },
+  syncAppointmentsForJob(job){
+    if(!job) return;
+    if(!Array.isArray(S.appointments)) S.appointments=[];
+    const existing=S.appointments.find(appt=>appt.jobId===job.id);
+    if(job.schedule?.date){
+      const payload=existing || {id:uid(),jobId:job.id};
+      payload.clientId=job.clientId||null;
+      payload.date=job.schedule.date;
+      payload.time=job.schedule.start||'';
+      payload.location=job.location||'';
+      payload.notes=job.notes||'';
+      payload.status=job.status;
+      if(!existing) S.appointments.push(payload);
+    } else if(existing){
+      S.appointments=S.appointments.filter(appt=>appt.jobId!==job.id);
     }
     Storage.save(S);
   },
@@ -1167,8 +2055,8 @@ const App = {
     }
     Storage.save(S);
   },
-  addClient(){ const name=document.getElementById('cName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(), name, phone:document.getElementById('cPhone').value.trim(), email:document.getElementById('cEmail').value.trim(), notes:document.getElementById('cNotes').value.trim(), discount:{type:document.getElementById('cDiscType').value, value:Number(document.getElementById('cDiscValue').value||0)}, vehicles:[]}; S.clients.push(c); Storage.save(S); SupabaseSync?.scheduleUpsert?.('customers',{id:c.id,name:c.name,phone:c.phone,email:c.email,notes:c.notes}); UI.populateClients(); UI.flash('Client added.'); document.getElementById('cName').value='';document.getElementById('cPhone').value='';document.getElementById('cEmail').value='';document.getElementById('cNotes').value='';document.getElementById('cDiscType').value='none';document.getElementById('cDiscValue').value='0'; },
-  addQuickClient(){ const name=document.getElementById('qcName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(), name, phone:document.getElementById('qcPhone').value.trim(), email:document.getElementById('qcEmail').value.trim(), notes:document.getElementById('qcNotes').value.trim(), discount:{type:document.getElementById('qcDiscType').value, value:Number(document.getElementById('qcDiscValue').value||0)}, vehicles:[]}; S.clients.push(c); Storage.save(S); SupabaseSync?.scheduleUpsert?.('customers',{id:c.id,name:c.name,phone:c.phone,email:c.email,notes:c.notes}); UI.populateClients(c.id); UI.hideQuickClient(); UI.flash('Client added.'); UI.onClientChange(); },
+  addClient(){ const name=document.getElementById('cName').value.trim(); if(!name) return alert('Client name required'); const city=document.getElementById('cCity').value.trim(); const loyalty=document.getElementById('cLoyalty')?.value||'new'; const c={id:uid(), name, phone:document.getElementById('cPhone').value.trim(), email:document.getElementById('cEmail').value.trim(), city, loyalty, notes:document.getElementById('cNotes').value.trim(), discount:{type:document.getElementById('cDiscType').value, value:Number(document.getElementById('cDiscValue').value||0)}, vehicles:[]}; S.clients.push(c); Storage.save(S); SupabaseSync?.scheduleUpsert?.('customers',{id:c.id,name:c.name,phone:c.phone,email:c.email,notes:c.notes,city:c.city,loyalty:c.loyalty}); UI.populateClients(); UI.flash('Client added.'); document.getElementById('cName').value='';document.getElementById('cPhone').value='';document.getElementById('cEmail').value='';document.getElementById('cCity').value='';document.getElementById('cNotes').value='';document.getElementById('cDiscType').value='none';document.getElementById('cDiscValue').value='0'; document.getElementById('cLoyalty').value='new'; },
+  addQuickClient(){ const name=document.getElementById('qcName').value.trim(); if(!name) return alert('Client name required'); const c={id:uid(), name, phone:document.getElementById('qcPhone').value.trim(), email:document.getElementById('qcEmail').value.trim(), city:'', loyalty:'new', notes:document.getElementById('qcNotes').value.trim(), discount:{type:document.getElementById('qcDiscType').value, value:Number(document.getElementById('qcDiscValue').value||0)}, vehicles:[]}; S.clients.push(c); Storage.save(S); SupabaseSync?.scheduleUpsert?.('customers',{id:c.id,name:c.name,phone:c.phone,email:c.email,notes:c.notes,city:c.city,loyalty:c.loyalty}); UI.populateClients(c.id); UI.hideQuickClient(); UI.flash('Client added.'); UI.onClientChange(); },
   syncClientVehicles(job,{updateLastService=false}={}){
     const client=S.clients.find(x=>x.id===job.clientId);
     if(!client) return;
@@ -1389,6 +2277,8 @@ const App = {
         this.ensureChecklist(job);
         Storage.save(S);
         this.syncClientVehicles(job);
+        this.syncAppointmentsForJob(job);
+        this.syncJobReminders(job);
         UI.refreshJobsList();
         UI.renderJobPanel(job.id,true);
         UI.resetJobForm();
@@ -1448,6 +2338,8 @@ const App = {
     S.jobs.unshift(job);
     Storage.save(S);
     this.syncClientVehicles(job);
+    this.syncAppointmentsForJob(job);
+    this.syncJobReminders(job);
     UI.refreshJobsList();
     UI.resetJobForm();
     this.pushJobToSupabase(job);
@@ -1489,10 +2381,17 @@ const App = {
       Storage.save(S);
       UI.populateClients(job.clientId);
     }
+    this.syncAppointmentsForJob(job);
+    this.syncJobReminders(job);
     this.pushJobToSupabase(job);
     UI.refreshJobsList();
     UI.renderJobPanel(id);
     UI.flash('Status: '+next);
+    if(next==='Complete'){
+      UI.promptScript('follow24',job);
+    } else if(next==='Paid'){
+      UI.promptScript('review',job);
+    }
   },
   takePayment(id){
     const j=S.jobs.find(x=>x.id===id);
@@ -1529,6 +2428,8 @@ const App = {
     const before=S.transactions.length;
     S.jobs=S.jobs.filter(x=>x.id!==id);
     S.transactions=S.transactions.filter(t=>t.jobId!==id);
+    S.reminders=S.reminders.filter(rem=>rem.jobId!==id);
+    S.appointments=S.appointments.filter(appt=>appt.jobId!==id);
     Storage.save(S);
     if(UI.jobPanelJobId===id) UI.closeJobPanel();
     UI.refreshJobsList();
@@ -1586,10 +2487,22 @@ const UI = {
     document.querySelectorAll('.tabpage').forEach(p=>p.classList.add('hidden'));
     const page=document.getElementById(name);
     if(page) page.classList.remove('hidden');
-    if(name==='CRM'){
+    if(name==='Clients'){
       this.renderCRMBoard();
       this.renderCRMAppointments();
       this.renderCRMPayments();
+    } else if(name==='Marketing'){
+      this.renderMarketingTabs();
+      this.renderMarketingSection(S.marketing.activeTab||'guerrilla');
+    } else if(name==='Playbook'){
+      this.loadPlaybook();
+    } else if(name==='Checklists'){
+      this.renderChecklists();
+    } else if(name==='Settings'){
+      this.populateSettingsTab();
+      this.refreshBrandPolicies();
+    } else if(name==='Dashboard'){
+      this.refreshDashboard();
     }
   },
   crmNextStatus(status){
@@ -1684,6 +2597,423 @@ const UI = {
       list.append(this.buildTransactionCard(tx,{showType:false}));
     });
   },
+  renderMarketingTabs(){
+    const host=document.getElementById('marketingTabs');
+    if(!host) return;
+    const sections=[
+      {id:'guerrilla',label:'Guerrilla Tracker'},
+      {id:'campaigns',label:'Paid Campaigns'},
+      {id:'log',label:'Marketing Log'},
+      {id:'reviews',label:'Review & Referral Boost'}
+    ];
+    host.innerHTML='';
+    sections.forEach(section=>{
+      const btn=el('div',{class:`subtab${S.marketing.activeTab===section.id?' active':''}`},section.label);
+      btn.addEventListener('click',()=>{
+        S.marketing.activeTab=section.id;
+        Storage.save(S);
+        this.renderMarketingTabs();
+        this.renderMarketingSection(section.id);
+      });
+      host.append(btn);
+    });
+  },
+  renderMarketingSection(tab){
+    const host=document.getElementById('marketingContent');
+    if(!host) return;
+    if(!tab) tab=S.marketing.activeTab||'guerrilla';
+    S.marketing.activeTab=tab;
+    Storage.save(S);
+    host.innerHTML='';
+    if(tab==='guerrilla'){
+      this.renderMarketingGuerrilla(host);
+    } else if(tab==='campaigns'){
+      this.renderMarketingCampaigns(host);
+    } else if(tab==='log'){
+      this.renderMarketingLog(host);
+    } else {
+      this.renderMarketingReviews(host);
+    }
+  },
+  renderMarketingGuerrilla(host){
+    S.marketing.guerrilla.forEach(section=>{
+      const card=el('div',{class:'card'});
+      card.append(el('h4',{},section.label));
+      section.tasks.forEach(task=>{
+        const row=el('div',{class:'marketing-metric'});
+        row.append(el('div',{},`${task.label}`));
+        const input=el('input',{type:'number',min:'0',max:String(task.target||0),value:String(task.completed||0),style:'width:72px;background:#0b0c0f;border-radius:8px;padding:.35rem .4rem;color:#f5f7f7;border:1px solid #1a1e21'});
+        input.addEventListener('input',()=>{
+          const value=Math.max(0,Math.min(Number(task.target||0),Number(input.value||0)));
+          App.updateGuerrillaTask(section.id,task.id,value);
+        });
+        const progress=task.target?`${task.completed||0}/${task.target}`:`${task.completed||0}`;
+        row.append(el('div',{class:'tiny'},progress));
+        row.append(input);
+        card.append(row);
+      });
+      host.append(card);
+    });
+  },
+  renderMarketingCampaigns(host){
+    const list=el('div',{class:'list',style:'gap:.6rem;'});
+    const campaigns=S.marketing.campaigns.slice().sort((a,b)=>String(b.start||'').localeCompare(a.start||''));
+    if(!campaigns.length){
+      list.append(el('div',{class:'tiny'},'No paid campaigns yet. Track ROI once ads are live.'));
+    } else {
+      campaigns.forEach(c=>{
+        const spend=c.spend||0;
+        const jobs=c.newJobs||0;
+        const costPer=jobs?spend/Math.max(1,jobs):0;
+        const roiMet=jobs?((jobs*3)>=spend):false;
+        const card=el('div',{class:'list-item'},
+          el('div',{style:'font-weight:700;'},`${c.name||'Campaign'} ${c.channel?`· ${c.channel}`:''}`),
+          el('div',{class:'tiny'},`${c.start||'Start'} → ${c.end||'Ongoing'} · Budget/day ${fmt(c.budgetPerDay||0)}`),
+          el('div',{class:'tiny'},`Spend: ${fmt(spend)} · New jobs: ${jobs} · Cost/job: ${jobs?fmt(costPer):'--'} · ROI 3× ${roiMet?'✅':'⚠️'}`),
+          c.notes?el('div',{class:'tiny'},c.notes):null
+        );
+        list.append(card);
+      });
+    }
+    const form=el('div',{class:'card'});
+    form.append(el('h4',{},'Add Campaign'));
+    const name=el('input',{placeholder:'Campaign name'});
+    const channel=el('input',{placeholder:'Channel (Meta, Google, etc.)'});
+    const budget=el('input',{type:'number',min:'0',step:'1',placeholder:'Budget / day'});
+    const start=el('input',{type:'date'});
+    const end=el('input',{type:'date'});
+    const goals=el('textarea',{placeholder:'Goals'});
+    const spendInput=el('input',{type:'number',min:'0',step:'1',placeholder:'Spend to date'});
+    const jobsInput=el('input',{type:'number',min:'0',step:'1',placeholder:'New jobs'});
+    const notes=el('textarea',{placeholder:'Notes or results'});
+    form.append(el('label',{},'Name'), name,
+      el('label',{},'Channel'), channel,
+      el('label',{},'Budget per day'), budget,
+      el('label',{},'Start'), start,
+      el('label',{},'End'), end,
+      el('label',{},'Goals'), goals,
+      el('label',{},'Spend to date'), spendInput,
+      el('label',{},'New jobs'), jobsInput,
+      el('label',{},'Notes'), notes,
+      el('button',{class:'btn',type:'button',onclick:()=>{
+        App.addMarketingCampaign({
+          name:name.value.trim(),
+          channel:channel.value.trim(),
+          budgetPerDay:Number(budget.value||0),
+          start:start.value,
+          end:end.value,
+          goals:goals.value.trim(),
+          spend:Number(spendInput.value||0),
+          newJobs:Number(jobsInput.value||0),
+          notes:notes.value.trim()
+        });
+        name.value=''; channel.value=''; budget.value=''; start.value=''; end.value=''; goals.value=''; spendInput.value=''; jobsInput.value=''; notes.value='';
+      }},'Save Campaign'));
+    host.append(list,form);
+  },
+  renderMarketingLog(host){
+    const form=el('div',{class:'card'});
+    form.append(el('h4',{},'Quick Log'));
+    const typeSel=el('select',{});
+    DEFAULT_MARKETING_LOG_TYPES.forEach(type=>typeSel.append(el('option',{value:type},type)));
+    if(!typeSel.value && DEFAULT_MARKETING_LOG_TYPES.length) typeSel.value=DEFAULT_MARKETING_LOG_TYPES[0];
+    const countInput=el('input',{type:'number',min:'0',step:'1',placeholder:'Count'});
+    const notesInput=el('input',{placeholder:'Notes'});
+    const submit=el('button',{class:'btn',type:'button',onclick:()=>{
+      App.logMarketingAction({type:typeSel.value,count:Number(countInput.value||0),notes:notesInput.value.trim()});
+      countInput.value='';
+      notesInput.value='';
+    }},'Log Activity');
+    form.append(el('label',{},'Type'),typeSel,el('label',{},'Count'),countInput,el('label',{},'Notes'),notesInput,submit);
+    const list=el('div',{class:'list',style:'gap:.4rem;'});
+    if(!S.marketing.log.length){
+      list.append(el('div',{class:'tiny'},'No marketing actions logged yet. Start with a DM burst or flyer drop.'));
+    } else {
+      S.marketing.log.slice(0,40).forEach(entry=>{
+        list.append(el('div',{class:'list-item'},`${entry.date||today()} · ${entry.type} × ${entry.count||0}${entry.notes?` — ${entry.notes}`:''}`));
+      });
+    }
+    host.append(form,list);
+  },
+  renderMarketingReviews(host){
+    const wrap=el('div',{class:'list',style:'gap:.6rem;'});
+    const actions=el('div',{class:'card'},
+      el('h4',{},'Review & Referral Boost'),
+      el('div',{class:'stack-buttons'},
+        el('button',{class:'btn',onclick:()=>UI.promptScript('review')},'Send Review Ask'),
+        el('button',{class:'btn secondary',onclick:()=>UI.promptScript('referral')},'Send Referral Text')
+      )
+    );
+    wrap.append(actions);
+    const logForm=el('div',{class:'card'});
+    logForm.append(el('h4',{},'Log Review'));
+    const clientInput=el('input',{placeholder:'Client name'});
+    const noteInput=el('input',{placeholder:'Notes or platform'});
+    logForm.append(el('label',{},'Client'),clientInput,el('label',{},'Notes'),noteInput,el('button',{class:'btn',type:'button',onclick:()=>{
+      App.addReviewEntry({client:clientInput.value.trim(),note:noteInput.value.trim()});
+      clientInput.value='';
+      noteInput.value='';
+    }},'Save Review'));
+    wrap.append(logForm);
+    const leaderboard=el('div',{class:'card'});
+    leaderboard.append(el('h4',{},'Latest Reviews'));
+    if(!S.marketing.leaderboard.length){
+      leaderboard.append(el('div',{class:'tiny'},'No reviews logged yet. Add notes after each request.'));
+    } else {
+      S.marketing.leaderboard.slice(0,5).forEach(item=>{
+        leaderboard.append(el('div',{class:'list-item'},`${item.date||today()} · ${item.client||'Client'} — ${item.note||'Review received'}`));
+      });
+    }
+    wrap.append(leaderboard);
+    host.append(wrap);
+  },
+  renderFollowUps(){
+    const host=document.getElementById('followUpsList');
+    if(!host) return;
+    host.innerHTML='';
+    const reminders=S.reminders.filter(rem=>!rem.done).sort((a,b)=>String(a.dueDate||'').localeCompare(b.dueDate||''));
+    if(!reminders.length){
+      host.append(el('div',{class:'tiny'},'All clear. Follow-ups will appear here automatically.'));
+      return;
+    }
+    reminders.slice(0,8).forEach(rem=>{
+      const client=UI.clientName(rem.clientId);
+      const row=el('div',{class:'list-item'},
+        el('div',{style:'font-weight:700;'}, `${rem.dueDate||today()} · ${client||'Client'}`),
+        el('div',{class:'tiny'}, rem.label||rem.type),
+        rem.note?el('div',{class:'tiny'}, rem.note):null,
+        el('button',{class:'btn secondary',onclick:()=>App.completeReminder(rem.id,true)},'Done')
+      );
+      host.append(row);
+    });
+  },
+  renderMarketingProgress(){
+    const host=document.getElementById('marketingProgress');
+    if(!host) return;
+    host.innerHTML='';
+    const streak=S.marketing.streak||{count:0,lastActivity:null};
+    const last=streak.lastActivity?`Last action ${streak.lastActivity}`:'No activity logged yet';
+    host.append(el('div',{class:'marketing-metric'},
+      el('div',{},'Streak'),
+      el('div',{class:'tiny'}, `${streak.count||0} days`)
+    ));
+    host.append(el('div',{class:'tiny'}, last));
+    const lastActivity=streak.lastActivity?new Date(streak.lastActivity+'T00:00:00'):null;
+    const todayDate=new Date(today()+'T00:00:00');
+    if(!lastActivity || Math.floor((todayDate-lastActivity)/(1000*60*60*24))>=7){
+      host.append(el('div',{class:'crew-callout alert'},'No marketing logged in 7+ days. Run a Guerrilla blitz today.'));
+    }
+  },
+  renderChecklists(){
+    App.resetChecklistCadence('daily');
+    App.resetChecklistCadence('weekly');
+    const renderGroup=(containerId,tasks,{allowRemove=false}={})=>{
+      const host=document.getElementById(containerId);
+      if(!host) return;
+      host.innerHTML='';
+      if(!tasks.length){
+        host.append(el('div',{class:'tiny'},'No tasks yet.'));
+        return;
+      }
+      tasks.forEach(task=>{
+        const row=el('div',{class:'checklist-row','data-complete':task.completedOn?'true':'false'});
+        const checkbox=el('input',{type:'checkbox',checked:!!task.completedOn});
+        checkbox.addEventListener('change',()=>App.setChecklistComplete(task.id,checkbox.checked));
+        row.append(checkbox);
+        const label=el('label',{},task.label);
+        row.append(label);
+        if(task.note){
+          row.append(el('div',{class:'tiny'},task.note));
+        }
+        if(allowRemove){
+          row.append(el('button',{class:'btn secondary',onclick:()=>App.removeCustomChecklistTask(task.id)},'Remove'));
+        }
+        host.append(row);
+      });
+    };
+    renderGroup('dailyChecklist',S.checklists.daily||[]);
+    renderGroup('weeklyChecklist',S.checklists.weekly||[]);
+    renderGroup('customChecklist',S.checklists.custom||[],{allowRemove:true});
+  },
+  refreshBrandPolicies(){
+    const host=document.getElementById('brandPolicies');
+    if(!host) return;
+    host.innerHTML='';
+    S.policies.forEach(policy=>{
+      const row=el('div',{class:'policy-item'});
+      const checkbox=el('input',{type:'checkbox',checked:policy.active});
+      checkbox.addEventListener('change',()=>{
+        policy.active=checkbox.checked;
+        Storage.save(S);
+      });
+      row.append(checkbox, el('div',{},
+        el('div',{style:'font-weight:700;'},policy.label),
+        el('div',{class:'tiny'},policy.description)
+      ));
+      host.append(row);
+    });
+  },
+  loadPlaybook(){
+    const editor=document.getElementById('playbookEditor');
+    if(!editor) return;
+    editor.value=S.playbook||DEFAULT_PLAYBOOK;
+    this.updatePlaybookPreview();
+    this.renderPlaybookToc();
+  },
+  renderPlaybookToc(){
+    const tocHost=document.getElementById('playbookToc');
+    if(!tocHost) return;
+    tocHost.innerHTML='';
+    const sections=(S.playbook||'').split(/\n##\s+/).slice(1);
+    sections.forEach(section=>{
+      const title=section.split('\n')[0];
+      const btn=el('div',{class:'toc-link'},title);
+      btn.addEventListener('click',()=>{
+        const editor=document.getElementById('playbookEditor');
+        if(!editor) return;
+        const index=editor.value.indexOf(`## ${title}`);
+        if(index>=0){
+          editor.focus();
+          editor.setSelectionRange(index,index+title.length);
+        }
+      });
+      tocHost.append(btn);
+    });
+  },
+  updatePlaybookPreview(){
+    const editor=document.getElementById('playbookEditor');
+    const preview=document.getElementById('playbookPreview');
+    if(!editor || !preview) return;
+    S.playbook=editor.value;
+    Storage.save(S);
+    preview.innerHTML=this.simpleMarkdown(editor.value);
+    this.renderPlaybookToc();
+  },
+  simpleMarkdown(text){
+    const escaped=text.replace(/[&<>]/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[char]));
+    return escaped
+      .replace(/^###\s?(.*)$/gm,'<h4>$1</h4>')
+      .replace(/^##\s?(.*)$/gm,'<h3>$1</h3>')
+      .replace(/^#\s?(.*)$/gm,'<h2>$1</h2>')
+      .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\n\n/g,'</p><p>')
+      .replace(/\n/g,'<br>')
+      .replace(/^<p>/,'<p>') || '<p></p>';
+  },
+  filterPlaybook(){
+    const query=(document.getElementById('playbookSearch')?.value||'').trim().toLowerCase();
+    const preview=document.getElementById('playbookPreview');
+    if(!preview) return;
+    if(!query){
+      this.updatePlaybookPreview();
+      return;
+    }
+    const text=S.playbook||'';
+    const regex=new RegExp(`(${query.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&')})`,'gi');
+    const highlighted=this.simpleMarkdown(text).replace(regex,'<mark>$1</mark>');
+    preview.innerHTML=highlighted;
+  },
+  exportPlaybook(){
+    const popup=window.open('','_blank');
+    if(!popup || popup.closed){ alert('Allow pop-ups to export the playbook.'); return; }
+    const html=`<!doctype html><html><head><meta charset="utf-8"><title>Polish Crew Playbook</title><style>body{font-family:Montserrat,Arial,sans-serif;padding:24px;} h2,h3,h4{color:#0b1a12;} mark{background:#ffe08a;}</style></head><body><h1>Polish Crew — 2025 Playbook</h1>${this.simpleMarkdown(S.playbook||'')}</body></html>`;
+    popup.document.write(html);
+    popup.document.close();
+  },
+  resetPlaybook(){
+    if(!confirm('Reset playbook to default text?')) return;
+    S.playbook=DEFAULT_PLAYBOOK;
+    Storage.save(S);
+    this.loadPlaybook();
+    UI.flash('Playbook reset.');
+  },
+  populateSettingsTab(){
+    const biz=document.getElementById('settingsBusiness');
+    const header=document.getElementById('settingsHeader');
+    const city=document.getElementById('settingsCity');
+    if(biz){
+      biz.value=S.business.name||'';
+      biz.onchange=()=>{
+        S.business.name=biz.value.trim();
+        Storage.save(S);
+        UI.initHeader();
+        UI.flash('Brand name updated.');
+      };
+    }
+    if(header){
+      header.value=S.business.headerTitle||'';
+      header.onchange=()=>{
+        S.business.headerTitle=header.value.trim();
+        Storage.save(S);
+        UI.initHeader();
+        UI.flash('Header updated.');
+      };
+    }
+    if(city){
+      city.value=S.business.city||'';
+      city.onchange=()=>{
+        S.business.city=city.value.trim();
+        Storage.save(S);
+        UI.flash('City updated.');
+      };
+    }
+    this.updateSyncToggle();
+  },
+  updateSyncToggle(){
+    const toggle=document.getElementById('syncToggle');
+    if(toggle) toggle.checked=!!S.settings.syncEnabled;
+  },
+  openScripts(){
+    const list=el('div',{class:'list',style:'gap:.6rem;'});
+    Object.entries(S.scripts).forEach(([key,value])=>{
+      const label=key.replace(/([A-Z])/g,' $1').replace(/^./,c=>c.toUpperCase());
+      const item=el('div',{class:'card'},
+        el('h4',{},label),
+        el('div',{class:'tiny'},value),
+        el('div',{class:'stack-buttons'},
+          el('button',{class:'btn',onclick:()=>UI.copyText(value)},'Copy'),
+          el('button',{class:'btn secondary',onclick:()=>UI.promptScript(key)},'Open')
+        )
+      );
+      list.append(item);
+    });
+    this.modal('Scripts & Templates',close=>close(),list,'Close',false,true);
+  },
+  openPolicies(){
+    this.switchTab('Settings');
+    const container=document.getElementById('brandPolicies');
+    if(container) container.scrollIntoView({behavior:'smooth'});
+  },
+  promptScript(key,job=null){
+    const script=S.scripts[key] || DEFAULT_SCRIPTS[key] || '';
+    if(!script){
+      UI.flash('Script not found.');
+      return;
+    }
+    const text=script
+      .replace(/\[Name\]/g, job?UI.clientName(job.clientId):'Client')
+      .replace(/\[Vehicle\]/g, job?UI.jobVehicleSummary(job):'vehicle')
+      .replace(/\[Package\]/g, job?UI.jobPackageLabel(job):'package')
+      .replace(/\[City\]/g, S.business.city||'');
+    const content=el('div',{class:'form-grid'},
+      el('div',{class:'tiny'},'Copy and send via SMS, DM, or email.'),
+      el('textarea',{style:'min-height:160px;',value:text,readonly:true})
+    );
+    this.modal('Script',()=>{ UI.copyText(text); UI.flash('Copied to clipboard.'); },content,'Copy Script');
+  },
+  copyText(value){
+    if(navigator.clipboard){
+      navigator.clipboard.writeText(value).then(()=>UI.flash('Copied.')).catch(()=>{
+        const temp=document.createElement('textarea');
+        temp.value=value;
+        document.body.append(temp);
+        temp.select();
+        document.execCommand('copy');
+        temp.remove();
+        UI.flash('Copied.');
+      });
+    }
+  },
   initTabs(){ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>UI.switchTab(t.getAttribute('data-tab')))); },
   packageOptionLabel(name,size){
     const price=Calc.base(name,size);
@@ -1714,23 +3044,47 @@ const UI = {
     const list=document.getElementById('clientsList');
     if(list){
       list.innerHTML='';
+      const formatter=(date)=>{
+        if(!date) return '--';
+        try { return new Date(date+'T00:00:00').toLocaleDateString(); } catch(err){ return date; }
+      };
       for(const c of S.clients){
         const vehicles=Array.isArray(c.vehicles)?c.vehicles:[];
-        const vehicleRows=vehicles.length?vehicles.map(v=>{
-          const service=v.lastService;
-          const addonsLabel=service?.addons&&service.addons.length?` (${service.addons.join(', ')})`:'';
-          const pkgLabel=service?.pkg?` — ${service.pkg}`:'';
-          const serviceText=service?`Last service: ${service.date||'Unknown date'}${pkgLabel}${addonsLabel}`:'No service recorded yet.';
-          return el('div',{class:'tiny'},`${v.label||'Vehicle'}${v.size?` · ${v.size}`:''} · ${serviceText}`);
-        }):[el('div',{class:'tiny'},'No vehicles saved yet.')];
-        const contactBits=[c.phone||'',c.email||''].filter(Boolean).join(' • ');
-        const header=el('div',{class:'row',style:'justify-content:space-between;align-items:flex-start;gap:.5rem;'},
-          el('div',{html:`<b>${c.name}</b>${contactBits?` <span class='tiny'>${contactBits}</span>`:''}`}),
-          el('button',{class:'pill',onclick:()=>UI.openClientVehicles(c.id)},'Manage Vehicles')
+        const jobs=S.jobs.filter(job=>job.clientId===c.id);
+        const completed=jobs.filter(job=>['Complete','Paid'].includes(job.status));
+        const lifetime=S.transactions.filter(tx=>tx.clientId===c.id && tx.type==='Income').reduce((sum,tx)=>sum+Number(tx.amount||0),0);
+        const lastJob=completed.reduce((latest,job)=>{
+          const date=job.completedAt||job.schedule?.date||job.date||'';
+          if(!date) return latest;
+          return !latest || date>latest?date:latest;
+        },'');
+        const nextService=lastJob?(()=>{ const dt=new Date(lastJob+'T00:00:00'); dt.setDate(dt.getDate()+30); return dt.toISOString().slice(0,10); })():'';
+        const pendingReminder=S.reminders.find(rem=>rem.clientId===c.id && !rem.done);
+        const loyaltyLabel=(c.loyalty||'new').toUpperCase();
+        const summary=el('div',{class:'list-item'},
+          el('div',{class:'row',style:'justify-content:space-between;align-items:flex-start;gap:.5rem;'},
+            el('div',{},
+              el('div',{style:'font-weight:700;'}, c.name||'Client'),
+              el('div',{class:'tiny'}, [c.city||'', [c.phone,c.email].filter(Boolean).join(' • ')].filter(Boolean).join(' · '))
+            ),
+            el('div',{class:'row',style:'gap:.35rem;align-items:center;'},
+              el('span',{class:'pill'}, loyaltyLabel),
+              el('button',{class:'pill',onclick:()=>UI.openClientVehicles(c.id)},'Vehicles')
+            )
+          ),
+          el('div',{class:'tiny'},`Lifetime spend: ${fmt(lifetime)} · Jobs completed: ${completed.length}`),
+          el('div',{class:'tiny'},`Last service: ${lastJob?formatter(lastJob):'--'} · Next recommended: ${nextService?formatter(nextService):'--'}`),
+          ...(pendingReminder?[el('div',{class:'crew-callout alert'},`Reminder due ${pendingReminder.dueDate}: ${pendingReminder.label}`)]:[]),
+          ...(c.notes?[el('div',{class:'tiny'},c.notes)]:[]),
+          ...(vehicles.length?vehicles.map(v=>{
+            const service=v.lastService;
+            const addonsLabel=service?.addons&&service.addons.length?` (${service.addons.join(', ')})`:'';
+            const pkgLabel=service?.pkg?` — ${service.pkg}`:'';
+            const serviceText=service?`Last service: ${service.date||'Unknown date'}${pkgLabel}${addonsLabel}`:'No service recorded yet.';
+            return el('div',{class:'tiny'},`${v.label||'Vehicle'}${v.size?` · ${v.size}`:''} · ${serviceText}`);
+          }):[el('div',{class:'tiny'},'No vehicles saved yet.')])
         );
-        const body=el('div',{}, ...vehicleRows, ...(c.notes?[el('div',{class:'tiny'},c.notes)]:[]));
-        const li=el('div',{class:'list-item'}, header, body);
-        list.append(li);
+        list.append(summary);
       }
     }
     UI.refreshClientVehicleOptions();
@@ -2285,6 +3639,8 @@ const UI = {
     if(expenseEl) expenseEl.textContent=fmt(expense);
     if(netEl) netEl.textContent=fmt(net);
     this.renderCRMPayments();
+    this.renderFollowUps();
+    this.renderMarketingProgress();
   },
   quickDisc(type,val){ document.getElementById('jobDiscType').value=type; document.getElementById('jobDiscValue').value=val; UI.updateTotals(); },
   resetJobForm(){
@@ -3550,8 +4906,12 @@ const UI = {
   delRow(tableId,name){ const tr=document.querySelector(`#${tableId} tr[data-name="${name}"]`); if(tr) tr.remove(); },
   openCustomBuilder(row=null){ const size=(row?.querySelector('.vehicle-size')?.value)||document.querySelector('.vehicle-size')?.value||S.menu.sizes[0]; const basePref=row?.querySelector('.vehicle-base')?.value||'0'; const content=el('div',{}, el('label',{},'Package Name'), el('input',{id:'cbName', value:'Custom Package'}), el('div',{class:'row'}, el('div',{}, el('label',{}, 'Base Price for '+size), el('input',{id:'cbBase',type:'number',min:'0',step:'0.01',value:basePref})), el('div',{}, el('label',{}, 'Lock Retail Base'), el('select',{id:'cbLock'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')))), el('label',{},'Description'), el('textarea',{id:'cbDesc',placeholder:'What is highlighted in this package?'}), el('label',{},'Included Add-ons (optional)'), (()=>{ const box=el('div',{class:'list'}); for(const n of Object.keys(S.menu.addons)) box.append(el('label',{}, el('input',{type:'checkbox','data-name':n,style:'margin-right:.4rem;'}), n)); return box; })(), el('label',{},'Pick & Choose mode (no included items)'), el('select',{id:'cbPick'}, el('option',{value:'no'},'No'), el('option',{value:'yes'},'Yes')) ); UI.modal('Build Custom Package',(close)=>{ const name=content.querySelector('#cbName').value.trim()||'Custom Package'; const base=Number(content.querySelector('#cbBase').value||0); const lock=content.querySelector('#cbLock').value==='yes'; const description=content.querySelector('#cbDesc').value.trim(); const pick=content.querySelector('#cbPick').value==='yes'; const inc=pick?[]:Array.from(content.querySelectorAll('input[type=checkbox][data-name]')).filter(x=>x.checked).map(x=>x.getAttribute('data-name')); const prices=S.menu.sizes.map(()=>0); const idx=S.menu.sizes.indexOf(size); if(idx>=0) prices[idx]=base; else if(prices.length) prices[0]=base; S.menu.packages[name]=prices; S.menu.packageMeta[name]={lock, includedAddons:inc, description}; Storage.save(S); UI.populateSizesAndPackages(); if(row){ const pkgSel=row.querySelector('.vehicle-package'); if(pkgSel){ pkgSel.value=name; UI.refreshVehicleRow(row,{setBase:true}); UI.updateTotals(); } } else { const firstRow=document.querySelector('.vehicle-row'); const pkgSel=firstRow?.querySelector('.vehicle-package'); if(pkgSel){ pkgSel.value=name; UI.refreshVehicleRow(firstRow,{setBase:true}); } UI.handlePackageChange(); } UI.flash('Custom package added.'); close(); }, content, 'Use Package', true, true); },
   openImport(){ const file=el('input',{type:'file',accept:'.json'}); file.onchange=(e)=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const data=JSON.parse(r.result); if(!data.transactions) throw new Error('Invalid backup file: missing "transactions"'); S=data; if(!S.menu.packageMeta) S.menu.packageMeta={}; Storage.save(S); location.reload(); }catch(err){ alert('Import error: '+err.message); } }; r.readAsText(f); }; file.click(); },
-  openSettings(){ const content=el('div',{}, el('h4',{},'Brand'), el('label',{},'Header Title'), el('input',{id:'stHeader', value:S.business.headerTitle||''}), el('label',{},'Business Name (on quotes)'), el('input',{id:'stBiz', value:S.business.name||''}), el('label',{},'Logo'), el('div',{class:'row'}, el('button',{class:'btn', onclick:()=>UI.pickLogo()},'Upload Logo'), el('button',{class:'btn secondary', onclick:()=>{ S.business.logoDataUrl=''; Storage.save(S); UI.initHeader(); UI.flash('Logo removed.'); }},'Remove Logo')), el('div',{class:'footnote'},'Replace install icons by swapping icon-192.png / icon-512.png in the bundle.') ); UI.modal('Settings',(close)=>{ S.business.headerTitle=content.querySelector('#stHeader').value.trim()||'POLISH CREW — Accounting'; S.business.name=content.querySelector('#stBiz').value.trim()||'Polish Crew'; Storage.save(S); UI.initHeader(); UI.flash('Settings saved.'); close(); }, content); },
+  openSettings(){
+    this.switchTab('Settings');
+    this.populateSettingsTab();
+  },
   pickLogo(){ const f=el('input',{type:'file',accept:'image/*'}); f.onchange=(e)=>{ const file=e.target.files[0]; if(!file) return; const r=new FileReader(); r.onload=()=>{ S.business.logoDataUrl=r.result; Storage.save(S); UI.initHeader(); UI.flash('Logo updated.'); }; r.readAsDataURL(file); }; f.click(); },
+  clearLogo(){ S.business.logoDataUrl=''; Storage.save(S); UI.initHeader(); UI.flash('Logo removed.'); },
   clientName(id){ return (S.clients.find(c=>c.id===id)||{}).name||''; },
   printQuote(){
     const clientId = document.getElementById('jobClient').value || '';
