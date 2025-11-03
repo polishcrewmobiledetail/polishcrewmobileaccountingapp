@@ -1,4 +1,4 @@
-const CACHE_VERSION = "pcwa-v3.0.0";
+const CACHE_VERSION = "pcwa-v3.1.0";
 const CACHE_NAME = CACHE_VERSION;
 
 self.addEventListener('install', e=>{
